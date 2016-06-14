@@ -1,0 +1,3 @@
+git+https://github.com/macdiesel/gomatic.git@macdiesel/basic-auth#egg=gomatic
+click>=6.0,<7.0
+pyyaml==3.11
