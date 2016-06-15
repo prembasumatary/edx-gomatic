@@ -26,7 +26,7 @@ class TestDictMerge(unittest.TestCase):
     def test_merge_collision(self, *args):
         self.assertRaises(util.MergeConflict, util.dict_merge, *args)
 
-    @data(("edxpipelines/tests/variables1.yml", {'key1': 'value1', 'key2': 'value2', 'key3': 'value3'}))
+    @data(("edxpipelines/tests/files/variables1.yml", {'key1': 'value1', 'key2': 'value2', 'key3': 'value3'}))
     @unpack
     def test_load_yaml_from_file(self, file_path, expected):
         variables = util.load_yaml_from_file(file_path)
