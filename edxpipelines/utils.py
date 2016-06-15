@@ -68,7 +68,7 @@ def load_yaml_from_file(filename):
         dict: representing the yaml in the file
     """
     with open(filename, 'r') as stream:
-        return yaml.load(stream)
+        return yaml.safe_load(stream)
 
 
 def merge_files_and_dicts(file_paths, dicts):
@@ -87,7 +87,7 @@ def merge_files_and_dicts(file_paths, dicts):
         TypeError: if a and b are not both dicts
         MergeConflict: if a key exists with different values between the two dictionaries
     """
-    file_variables = [load_yaml_from_file(file) for file in file_paths]
+    file_variables = [load_yaml_from_file(f) for f in file_paths]
     if not isinstance(dicts, dict):
         # try to convert to a dict as it could be a list of tuples from click
         dict_vars = {k: v for k, v in dicts}
