@@ -14,6 +14,7 @@ def install_pipeline(save_config_locally, dry_run, variable_files=[], cmd_line_v
     Variables needed for this pipeline:
     - gocd_username
     - gocd_password
+    - gocd_url
     - configuration_secure_repo
     - hipchat_token
     - github_private_key
@@ -26,7 +27,7 @@ def install_pipeline(save_config_locally, dry_run, variable_files=[], cmd_line_v
     """
     config = utils.merge_files_and_dicts(variable_files, cmd_line_vars)
 
-    configurator = GoCdConfigurator(HostRestClient("gocd.tools.edx.org", config["gocd_username"], config["gocd_password"], ssl=True))
+    configurator = GoCdConfigurator(HostRestClient(config['gocd_url'], config["gocd_username"], config["gocd_password"], ssl=True))
     pipeline = configurator.ensure_pipeline_group("AMIBuilders")\
                            .ensure_replacement_of_pipeline("BuildEdxAppSandbox")\
                            .ensure_material(GitMaterial("https://github.com/edx/tubular",
