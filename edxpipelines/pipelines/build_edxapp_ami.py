@@ -6,10 +6,10 @@ from gomatic import *
 
 @click.command()
 @click.option('--save-config', 'save_config_locally', envvar='SAVE_CONFIG', help='Save the pipeline configuration xml locally', required=False, default=False)
-@click.option('--dry-run', envvar='DRY_RUN', help='do a dry run of  the pipeline installation, and save the pre/post xml configurations locally', required=False, default=True)
+@click.option('--dry-run', envvar='DRY_RUN', help='do a dry run of  the pipeline installation, and save the pre/post xml configurations locally', required=False, default=False)
 @click.option('--variable_file', 'variable_files', multiple=True, help='path to yaml variable file with a dictionary of key/value pairs to be used as variables in the script', required=False)
 @click.option('-e', '--variable', 'cmd_line_vars', multiple=True, help='key/value of a variable used as a replacement in this script', required=False, type=(str, str), nargs=2)
-def install_pipeline(save_config_locally=False, dry_run=False, variable_files=[], cmd_line_vars={}):
+def install_pipeline(save_config_locally, dry_run, variable_files=[], cmd_line_vars={}):
     """
     Variables needed for this pipeline:
     - gocd_username
