@@ -6,7 +6,7 @@ def as_python(self, pipeline, with_save=True):
     head = "#!/usr/bin/env python\n\n" \
              "from gomatic import *\n\n" \
              "import click\n" \
-             "import edxpipelines.utils as utils\n"
+             "import edxpipelines.utils as utils\n\n\n"
 
     head += "@click.command()\n"\
            "@click.option('--save-config', 'save_config_locally', envvar='SAVE_CONFIG', help='Save the pipeline configuration xml locally', required=False, default=False)\n"\
