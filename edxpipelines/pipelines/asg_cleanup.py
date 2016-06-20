@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 from gomatic import *
-from edxpipelines.templates import stages
+from edxpipelines.patterns import stages
 
 import click
 import edxpipelines.utils as utils

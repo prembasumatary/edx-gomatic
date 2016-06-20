@@ -1,5 +1,5 @@
 from gomatic import *
-from edxpipelines.templates import stages, jobs
+from edxpipelines.patterns import stages, jobs
 
 
 def generate_deploy_pipeline(configurator,

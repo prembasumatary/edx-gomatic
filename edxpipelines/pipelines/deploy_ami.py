@@ -2,7 +2,7 @@
 
 import click
 import edxpipelines.utils as utils
-import edxpipelines.templates as patterns
+import edxpipelines.patterns as patterns
 from gomatic import *
 
 
