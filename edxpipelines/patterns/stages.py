@@ -1,5 +1,5 @@
 from gomatic import *
-import edxpipelines.templates as patterns
+import edxpipelines.patterns as patterns
 
 
 def generate_asg_cleanup(pipeline, asgard_api_endpoints, asgard_token, aws_access_key_id, aws_secret_access_key):
