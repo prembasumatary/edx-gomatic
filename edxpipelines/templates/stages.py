@@ -2,6 +2,32 @@ from gomatic import *
 import edxpipelines.templates as patterns
 
 
+def generate_asg_cleanup(pipeline, asgard_api_endpoints, asgard_token, aws_access_key_id, aws_secret_access_key):
+    """
+
+    Args:
+        pipeline:
+        asgard_api_endpoints:
+        asgard_token:
+        aws_access_key_id:
+        aws_secret_access_key:
+
+    Returns:
+
+    """
+    pipeline.ensure_environment_variables({'ASGARD_API_ENDPOINTS': asgard_api_endpoints}) \
+            .ensure_encrypted_environment_variables({'ASGARD_API_TOKEN': asgard_token,
+                                                     'AWS_ACCESS_KEY_ID': aws_access_key_id,
+                                                     'AWS_SECRET_ACCESS_KEY': aws_secret_access_key})
+
+    stage = pipeline.ensure_stage("ASG-Cleanup-Stage")
+    job = stage.ensure_job("Cleanup-ASGS")
+    patterns.tasks.generate_install_requirements(job, 'tubular')
+    job.add_task(ExecTask(['/usr/bin/python', 'scripts/cleanup-asgs.py'], working_dir="tubular"))
+
+    return pipeline
+
+
 def generate_basic_deploy_ami(pipeline, asgard_api_endpoints, asgard_token, aws_access_key_id, aws_secret_access_key):
     """
 
