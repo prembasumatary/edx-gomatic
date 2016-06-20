@@ -1,10 +1,11 @@
 #!/usr/bin/env python
 
-from gomatic import *
-from edxpipelines import templates
-
 import click
 import edxpipelines.utils as utils
+import edxpipelines.templates as patterns
+from gomatic import *
+
+
 @click.command()
 @click.option('--save-config', 'save_config_locally', envvar='SAVE_CONFIG', help='Save the pipeline configuration xml locally', required=False, default=False)
 @click.option('--dry-run', envvar='DRY_RUN', help='do a dry run of  the pipeline installation, and save the pre/post xml configurations locally', required=False, default=False)
@@ -38,7 +39,7 @@ def install_pipeline(save_config_locally, dry_run, variable_files=[], cmd_line_v
         "aws_access_key_id": config['aws_access_key_id'],
         "aws_secret_access_key": config['aws_secret_access_key']
     }
-    configurator = templates.generate_deploy_pipeline(configurator, **pipeline_params)
+    configurator = patterns.piplines.generate_deploy_pipeline(configurator, **pipeline_params)
     configurator.save_updated_config(save_config_locally=save_config_locally, dry_run=dry_run)
     print "done"
 
