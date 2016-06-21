@@ -22,7 +22,7 @@ def as_python(self, pipeline, with_save=True):
             "@click.option('-e', '--variable', 'cmd_line_vars', multiple=True, help='key/value of a variable used as a replacement in this script', required=False, type=(str, str), nargs=2, , default={})\n"\
             "def install_pipeline(save_config_locally, dry_run, variable_files, cmd_line_vars):\n"
 
-    result = "config = utils.merge_files_and_dicts(variable_files, cmd_line_vars)\n\n"
+    result = "config = utils.merge_files_and_dicts(variable_files, list(cmd_line_vars,))\n\n"
     result += "configurator = " + str(self) + "\n"
     result += "pipeline = configurator"
     result += pipeline.as_python_commands_applied_to_server()

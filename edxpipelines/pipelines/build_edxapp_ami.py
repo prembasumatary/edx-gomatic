@@ -25,7 +25,7 @@ def install_pipeline(save_config_locally, dry_run, variable_files, cmd_line_vars
     - ec2_subnet_id
     - base_ami_id
     """
-    config = utils.merge_files_and_dicts(variable_files, cmd_line_vars)
+    config = utils.merge_files_and_dicts(variable_files, list(cmd_line_vars,))
 
     configurator = GoCdConfigurator(HostRestClient(config['gocd_url'], config["gocd_username"], config["gocd_password"], ssl=True))
     pipeline = configurator.ensure_pipeline_group("AMIBuilders")\

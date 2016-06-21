@@ -1,4 +1,5 @@
 import yaml
+from copy import copy
 
 
 class MergeConflict(Exception):
@@ -12,7 +13,7 @@ def dict_merge(*args):
     dict_merge(dict1, dict2, dict3, dict4)
 
     Args:
-        *args: must all the dictionaries.
+        *args: a list of dictionaries
 
     Returns:
         dict: a merged dict
@@ -23,10 +24,10 @@ def dict_merge(*args):
     elif len(args) == 1:
         return args[0]
     else:
-        return reduce(_dict_merge, args)
+        return reduce(_deep_dict_merge, args)
 
 
-def _dict_merge(a, b):
+def _deep_dict_merge(a, b):
     """
     Deep merges 2 dictionaries together.
 
@@ -44,17 +45,19 @@ def _dict_merge(a, b):
     if not isinstance(a, dict) or not isinstance(b, dict):
         raise TypeError("Both arguments must be a dict. Can not merge {} and {}".format(a.__class__, b.__class__))
 
+    ret_dict = copy(a)
+
     for key in b:
-        if key in a:
-            if isinstance(a[key], dict) and isinstance(b[key], dict):
-                dict_merge(a[key], b[key])
-            elif a[key] == b[key]:
+        if key in ret_dict:
+            if isinstance(ret_dict[key], dict) and isinstance(b[key], dict):
+                ret_dict[key] = _deep_dict_merge(ret_dict[key], b[key])
+            elif ret_dict[key] == b[key]:
                 pass  # same leaf value
             else:
-                raise MergeConflict('Conflict at key: {} . A value: {} -- B value: {}'.format(key, a[key], b[key]))
+                raise MergeConflict('Conflict at key: {} . A value: {} -- B value: {}'.format(key, ret_dict[key], b[key]))
         else:
-            a[key] = b[key]
-    return a
+            ret_dict[key] = b[key]
+    return ret_dict
 
 
 def load_yaml_from_file(filename):
@@ -78,7 +81,7 @@ def merge_files_and_dicts(file_paths, dicts):
 
     Args:
         file_paths (list<str>): a list of strings to the input yaml files
-        dicts (dict): A dictonary
+        dicts (list<dict>): A list of dictionaries
 
     Returns:
         dict: all the parameters merged
@@ -88,7 +91,15 @@ def merge_files_and_dicts(file_paths, dicts):
         MergeConflict: if a key exists with different values between the two dictionaries
     """
     file_variables = [load_yaml_from_file(f) for f in file_paths]
-    if not isinstance(dicts, dict):
-        # try to convert to a dict as it could be a list of tuples from click
-        dict_vars = {k: v for k, v in dicts}
-    return dict_merge(dict_vars, *file_variables)
+    dict_vars = []
+    for d in dicts:
+        if isinstance(d, list):
+            # try to convert to a dict as it could be a list of tuples from click
+            dict_vars.append({k: v for k, v in d})
+        elif isinstance(d, dict):
+            dict_vars.append(d)
+        else:
+            raise ValueError("dicts contains an instance that is not a dictionary {}".format(d.__class__))
+
+    [file_variables.append(d) for d in dict_vars]
+    return dict_merge(*file_variables)
