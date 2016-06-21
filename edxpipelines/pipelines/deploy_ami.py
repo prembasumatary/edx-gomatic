@@ -29,7 +29,7 @@ def install_pipeline(save_config_locally, dry_run, variable_files=[], cmd_line_v
     python edxpipelines/pipelines/deploy_ami.py --variable_file ../gocd-pipelines/gocd/vars/tools/deploy_edx_ami.yml --variable_file ../gocd-pipelines/gocd/vars/tools/tools.yml
     python edxpipelines/pipelines/deploy_ami.py --variable_file ../gocd-pipelines/gocd/vars/tools/deploy-mckinsey-ami.yml --variable_file ../gocd-pipelines/gocd/vars/tools/tools.yml
     """
-    config = utils.merge_files_and_dicts(variable_files, cmd_line_vars)
+    config = utils.merge_files_and_dicts(variable_files, list(cmd_line_vars,))
     configurator = GoCdConfigurator(HostRestClient(config['gocd_url'], config['gocd_username'], config['gocd_password'], ssl=True))
     pipeline_params = {
         "pipeline_name": config['pipeline_name'],
