@@ -27,4 +27,3 @@ diff config-before.xml config-after.xml
 ## Things to look out for
 - Currently any *Secure Variables* must be hashed first by the gocd server before putting them in the script
 - gocd tends to mangle long strings or strings that have carrage returns in them.
-- If you need to view a secure variable in the terminal use ```printf "%s" $ENV_VAR``` as echo will not work.
