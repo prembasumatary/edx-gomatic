@@ -157,7 +157,6 @@ def generate_ami_cleanup(job, runif="passed"):
                                                '-i "localhost," '
                                                '-c local '
                                                '-e @../../../target/launch_info.yml '
-                                               '-e @../../../target/ami.yml '
                                                '-e ec2_region=$EC2_REGION '
                                                '-e hipchat_token=$HIPCHAT_TOKEN '
                                                '-e hipchat_room="$HIPCHAT_ROOM" '
