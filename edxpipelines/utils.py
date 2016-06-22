@@ -81,7 +81,7 @@ def merge_files_and_dicts(file_paths, dicts):
 
     Args:
         file_paths (list<str>): a list of strings to the input yaml files
-        dicts (list<dict>): A list of dictionaries
+        dicts (list<dict>): A list of dictionaries (can also be a list of (k,v) tuples)
 
     Returns:
         dict: all the parameters merged
