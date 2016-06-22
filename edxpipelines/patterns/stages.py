@@ -1,5 +1,5 @@
 from gomatic import *
-import edxpipelines.patterns as patterns
+import edxpipelines.patterns.tasks as tasks
 
 
 def generate_asg_cleanup(pipeline, asgard_api_endpoints, asgard_token, aws_access_key_id, aws_secret_access_key):
@@ -22,7 +22,7 @@ def generate_asg_cleanup(pipeline, asgard_api_endpoints, asgard_token, aws_acces
 
     stage = pipeline.ensure_stage("ASG-Cleanup-Stage")
     job = stage.ensure_job("Cleanup-ASGS")
-    patterns.tasks.generate_install_requirements(job, 'tubular')
+    tasks.generate_install_requirements(job, 'tubular')
     job.add_task(ExecTask(['/usr/bin/python', 'scripts/cleanup-asgs.py'], working_dir="tubular"))
 
     return pipeline
@@ -49,7 +49,7 @@ def generate_basic_deploy_ami(pipeline, asgard_api_endpoints, asgard_token, aws_
                                                      'AWS_SECRET_ACCESS_KEY': aws_secret_access_key})
     stage = pipeline.ensure_stage("Deploy_AMI").set_has_manual_approval()
     job = stage.ensure_job("Deploy_AMI")
-    patterns.tasks.generate_install_requirements(job, 'tubular')
+    tasks.generate_install_requirements(job, 'tubular')
     job.add_task(ExecTask(['/usr/bin/python', 'scripts/asgard-deploy.py'], working_dir="tubular"))
 
     return pipeline
@@ -87,7 +87,7 @@ def generate_edp_validation(pipeline,
 
     stage = pipeline.ensure_stage("Validation")
     job = stage.ensure_job("EDPValidation")
-    patterns.tasks.generate_install_requirements(job, 'tubular')
+    tasks.generate_install_requirements(job, 'tubular')
     job.add_task(ExecTask(['/usr/bin/python', 'scripts/validate_edp.py'], working_dir="tubular"))
     job.add_task(ExecTask(['/bin/bash', '-c',
                            '/usr/bin/python scripts/submit_hipchat_msg.py -m "${AMI_ID} is not tagged for ${AMI_ENVIRONMENT}-${AMI_DEPLOYMENT}-${AMI_PLAY}. Are you sure you\'re deploying the right AMI to the right app?" --color "red"'],

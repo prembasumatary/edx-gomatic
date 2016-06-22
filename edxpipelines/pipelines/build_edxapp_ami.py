@@ -1,6 +1,11 @@
 #!/usr/bin/env python
+import sys
+from os import path
+sys.path.append( path.dirname( path.dirname( path.dirname( path.abspath(__file__) ) ) ) )
+
 import click
 import edxpipelines.utils as utils
+import edxpipelines.patterns.tasks as tasks
 from gomatic import *
 
 
@@ -75,15 +80,12 @@ def install_pipeline(save_config_locally, dry_run, variable_files, cmd_line_vars
 
     stage = pipeline.ensure_stage("Build-AMI")
     job = stage.ensure_job("Build-ami-job").ensure_artifacts(set([BuildArtifact("configuration", "configuration"),
-                                                                  BuildArtifact("target/ami.yml", "ami.yml"),
                                                                   BuildArtifact("target/config_secure_sha", "config_secure_sha"),
-                                                                  BuildArtifact("target/key.pem", "key.pem"),
-                                                                  BuildArtifact("target/launch_info.yml", "launch_info.yml"),
                                                                   BuildArtifact("tubular", "tubular")]))
 
-    job.add_task(ExecTask(['/bin/bash', '-c', 'sudo pip install -r requirements.txt'], working_dir="tubular"))
-
-    job.add_task(ExecTask(['/bin/bash', '-c', 'sudo pip install -r requirements.txt'], working_dir="configuration"))
+    # install the requirements
+    tasks.generate_install_requirements(job, 'tubular')
+    tasks.generate_install_requirements(job, 'configuration')
 
     # Setup configuration secure
     job.add_task(ExecTask(['/bin/bash',
@@ -106,20 +108,7 @@ def install_pipeline(save_config_locally, dry_run, variable_files, cmd_line_vars
                           working_dir="configuration/"))
 
     # Launch instance
-    job.add_task(ExecTask(['/bin/bash',
-                           '-c', 'ansible-playbook '
-                           '-vvvv '
-                           '--module-path=../../configuration/playbooks/library '
-                           '-i "localhost," '
-                           '-c local '
-                           '-e artifact_path=`/bin/pwd`/../../../$ARTIFACT_PATH '
-                           '-e ec2_subnet_id=$EC2_SUBNET_ID '
-                           '-e base_ami_id=$BASE_AMI_ID '
-                           '-e ec2_vpc_subnet_id=$EC2_VPC_SUBNET_ID '
-                           '-e ec2_security_group_id=$EC2_SECURITY_GROUP_ID '
-                           '-e ec2_instance_type=$EC2_INSTANCE_TYPE '
-                           'launch_instance.yml'],
-                          working_dir="configuration/playbooks/continuous_delivery/"))
+    tasks.generate_launch_instance(job)
 
     # run the edxapp play
     job.add_task(ExecTask(['/bin/bash',
@@ -145,50 +134,10 @@ def install_pipeline(save_config_locally, dry_run, variable_files, cmd_line_vars
                           working_dir="configuration/playbooks/continuous_delivery/"))
 
     # Create an AMI from the instance
-    job.add_task(ExecTask(['/bin/bash',
-                           '-c',
-                           'ansible-playbook '
-                           '-vvvv '
-                           '--module-path=../../playbooks/library '
-                           '-i "localhost," '
-                           '-c local '
-                           '-e @../../../target/launch_info.yml '
-                           '-e play=$PLAY '
-                           '-e deployment=$DEPLOYMENT '
-                           '-e edx_environment=$EDX_ENVIRONMENT '
-                           '-e cluster_repo=$CLUSTER_REPO '
-                           '-e cluster_version=$CLUSTER_VERSION '
-                           '-e configuration_repo=$CONFIGURATION_REPO '
-                           '-e configuration_version=$CONFIGURATION_VERSION '
-                           '-e configuration_secure_repo=$CONFIGURATION_SECURE_REPO '
-                           '-e configuration_secure_version=$CONFIGURATION_SECURE_VERSION '
-                           '-e cache_id=$CACHE_ID '
-                           '-e ec2_region=$EC2_REGION '
-                           '-e artifact_path=`/bin/pwd`/../../../$ARTIFACT_PATH '
-                           '-e edx_app_theme_repo=$EDX_APP_THEME_REPO '
-                           '-e edx_app_theme_version=$EDX_APP_THEME_VERSION '
-                           '-e hipchat_token=$HIPCHAT_TOKEN '
-                           '-e hipchat_room="$HIPCHAT_ROOM" '
-                           '-e ami_wait=$AMI_WAIT '
-                           '-e no_reboot=$NO_REBOOT '
-                           'create_ami.yml'],
-                          working_dir="configuration/playbooks/continuous_delivery/"))
+    tasks.generate_create_edxapp_ami(job)
 
     # Cleanup EC2
-    job.add_task(ExecTask(['/bin/bash',
-                           '-c',
-                           'ansible-playbook '
-                           '-vvvv '
-                           '--module-path=../../configuration/playbooks/library '
-                           '-i "localhost," '
-                           '-c local '
-                           '-e @../../../target/launch_info.yml '
-                           '-e @../../../target/ami.yml '
-                           '-e ec2_region=$EC2_REGION '
-                           '-e hipchat_token=$HIPCHAT_TOKEN '
-                           '-e hipchat_room="$HIPCHAT_ROOM" '
-                           'cleanup.yml'],
-                          working_dir="configuration/playbooks/continuous_delivery/"))
+    tasks.generate_ami_cleanup(job, runif='any')
 
     configurator.save_updated_config(save_config_locally=save_config_locally, dry_run=dry_run)
 

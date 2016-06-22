@@ -77,11 +77,11 @@ def load_yaml_from_file(filename):
 def merge_files_and_dicts(file_paths, dicts):
     """
     Merges together yaml files with key/value pairs with dictonaries. Useful for parsing the inputs from the command
-    line of a pipline script
+    line of a pipeline script
 
     Args:
         file_paths (list<str>): a list of strings to the input yaml files
-        dicts (list<dict>): A list of dictionaries
+        dicts (list<dict>): A list of dictionaries (can also be a list of (k,v) tuples)
 
     Returns:
         dict: all the parameters merged
