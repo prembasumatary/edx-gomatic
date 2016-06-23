@@ -46,6 +46,7 @@ def generate_launch_instance(job, runif="passed"):
                                                      '-e ec2_security_group_id=$EC2_SECURITY_GROUP_ID '
                                                      '-e ec2_instance_type=$EC2_INSTANCE_TYPE '
                                                      '-e ec2_instance_profile_name=$EC2_INSTANCE_PROFILE_NAME '
+                                                     '-e ebs_volume_size=$EBS_VOLUME_SIZE '
                                                      'launch_instance.yml'],
                                     working_dir="configuration/playbooks/continuous_delivery/",
                                     runif=runif
