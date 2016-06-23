@@ -6,6 +6,7 @@ sys.path.append( path.dirname( path.dirname( path.dirname( path.abspath(__file__
 import click
 import edxpipelines.utils as utils
 import edxpipelines.patterns.tasks as tasks
+import edxpipelines.patterns.stages as stages
 from gomatic import *
 
 
