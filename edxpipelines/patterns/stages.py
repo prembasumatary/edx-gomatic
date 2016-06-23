@@ -111,3 +111,17 @@ def generate_edp_validation(pipeline,
                           working_dir="tubular", runif="failed"))
 
     return pipeline
+
+
+def generate_launch_instance_stage(pipeline, stage_name):
+    stage = pipeline.ensure_stage(stage_name)
+    job = stage.ensure_job("Build-ami-job").ensure_artifacts(set([BuildArtifact("configuration", "configuration"),
+                                                                  BuildArtifact("tubular", "tubular")]))
+
+    # install the requirements
+    tasks.generate_install_requirements(job, 'tubular')
+    tasks.generate_install_requirements(job, 'configuration')
+    tasks.generate_launch_instance(job)
+
+    return stage
+

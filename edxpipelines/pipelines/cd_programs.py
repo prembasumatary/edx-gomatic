@@ -76,6 +76,9 @@ def install_pipeline(save_config_locally, dry_run, variable_files, cmd_line_vars
                                                                     'AWS_ACCESS_KEY_ID': config['aws_access_key_id'],
                                                                     'AWS_SECRET_ACCESS_KEY': config['aws_secret_access_key']})
 
+    stage = stages.generate_launch_instance_stage("Create_Instance_For_AMI")
+
+
     stage = pipeline.ensure_stage("Build-AMI")
     job = stage.ensure_job("Build-ami-job").ensure_artifacts(set([BuildArtifact("configuration", "configuration"),
                                                                   BuildArtifact("target/config_secure_sha", "config_secure_sha"),
