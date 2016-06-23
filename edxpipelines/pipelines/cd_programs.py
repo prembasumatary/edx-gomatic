@@ -108,6 +108,9 @@ def install_pipeline(save_config_locally, dry_run, variable_files, cmd_line_vars
     # Launch instance
     tasks.generate_launch_instance(job)
 
+    # Cleanup EC2
+    tasks.generate_ami_cleanup(job, runif='failed')
+
     # run the edxapp play
     job.add_task(ExecTask(['/bin/bash',
                            '-c',
