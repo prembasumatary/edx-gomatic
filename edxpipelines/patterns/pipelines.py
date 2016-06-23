@@ -8,7 +8,8 @@ def generate_deploy_pipeline(configurator,
                              asgard_api_endpoints,
                              asgard_token,
                              aws_access_key_id,
-                             aws_secret_access_key):
+                             aws_secret_access_key,
+                             ami_file_location):
     """
 
     Args:
@@ -29,5 +30,5 @@ def generate_deploy_pipeline(configurator,
         .ensure_replacement_of_pipeline(pipeline_name) \
         .set_git_material(
             GitMaterial("https://github.com/edx/tubular.git", polling=False, destination_directory="tubular"))
-    stages.generate_basic_deploy_ami(pipeline, asgard_api_endpoints, asgard_token, aws_access_key_id, aws_secret_access_key)
+    stages.generate_basic_deploy_ami(pipeline, asgard_api_endpoints, asgard_token, aws_access_key_id, aws_secret_access_key, ami_file_location)
     return configurator
