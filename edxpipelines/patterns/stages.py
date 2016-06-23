@@ -28,7 +28,7 @@ def generate_asg_cleanup(pipeline, asgard_api_endpoints, asgard_token, aws_acces
     return pipeline
 
 
-def generate_basic_deploy_ami(pipeline, asgard_api_endpoints, asgard_token, aws_access_key_id, aws_secret_access_key):
+def generate_basic_deploy_ami(pipeline, asgard_api_endpoints, asgard_token, aws_access_key_id, aws_secret_access_key, ami_file_location):
     """
 
     Args:
@@ -37,21 +37,38 @@ def generate_basic_deploy_ami(pipeline, asgard_api_endpoints, asgard_token, aws_
         asgard_token (str):
         aws_access_key_id (str):
         aws_secret_access_key (str):
-
+        ami_file_location (ArtifactLocation): The location of yaml artifact that has the `ami_id`, so that we can fetch it.
     Returns:
         gomatic.Pipeline
 
     """
-    pipeline.ensure_environment_variables({'AMI_ID': None,
-                                           'ASGARD_API_ENDPOINTS': asgard_api_endpoints}) \
-            .ensure_encrypted_environment_variables({'ASGARD_API_TOKEN': asgard_token,
-                                                     'AWS_ACCESS_KEY_ID': aws_access_key_id,
-                                                     'AWS_SECRET_ACCESS_KEY': aws_secret_access_key})
+    pipeline.ensure_environment_variables({
+            'ASGARD_API_ENDPOINTS': asgard_api_endpoints
+        }).ensure_encrypted_environment_variables({
+            'ASGARD_API_TOKEN': asgard_token,
+            'AWS_ACCESS_KEY_ID': aws_access_key_id,
+            'AWS_SECRET_ACCESS_KEY': aws_secret_access_key,
+        })
+
     stage = pipeline.ensure_stage("Deploy_AMI").set_has_manual_approval()
     job = stage.ensure_job("Deploy_AMI")
     tasks.generate_install_requirements(job, 'tubular')
-    job.add_task(ExecTask(['/usr/bin/python', 'scripts/asgard-deploy.py'], working_dir="tubular"))
 
+    artifact_params = {
+        "pipeline": ami_file_location.pipeline,
+        "stage": ami_file_location.stage,
+        "job": ami_file_location.job,
+        "src": FetchArtifactFile(ami_file_location.file_name),
+        "dest": 'tubular'
+    }
+    job.add_task(FetchArtifactTask(**artifact_params))
+    job.add_task(ExecTask(
+        [
+            '/usr/bin/python',
+            'scripts/asgard-deploy.py',
+            '--config-file', ami_file_location.file_name,
+        ],
+        working_dir="tubular"))
     return pipeline
 
 

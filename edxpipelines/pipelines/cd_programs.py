@@ -150,6 +150,8 @@ def install_pipeline(save_config_locally, dry_run, variable_files, cmd_line_vars
 
 
     # Stage to deploy the programs AMI Goes here
+    ami_file_location = ArtifactLocation(pipeline.name, stage.name, job.name, "ami.yml")
+    stages.generate_basic_deploy_ami(pipeline, config['asgard_api_endpoints'], config['asgard_token'], config['aws_access_key_id'], config['aws_secret_access_key'], ami_file_location)
 
 
     # Stage to terminate the migrations Instance goes here
