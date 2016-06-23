@@ -27,7 +27,7 @@ def install_pipeline(save_config_locally, dry_run, variable_files, cmd_line_vars
     - aws_secret_access_key
     - ec2_vpc_subnet_id
     - ec2_security_group_id
-    - ec2_subnet_id
+    - ec2_instance_profile_name
     - base_ami_id
     """
     config = utils.merge_files_and_dicts(variable_files, list(cmd_line_vars,))
@@ -57,12 +57,12 @@ def install_pipeline(save_config_locally, dry_run, variable_files, cmd_line_vars
                                                           'CONFIGURATION_SECURE_VERSION': 'master',
                                                           'EC2_VPC_SUBNET_ID': config['ec2_vpc_subnet_id'],
                                                           'EC2_SECURITY_GROUP_ID': config['ec2_security_group_id'],
-                                                          'EC2_SUBNET_ID': config['ec2_subnet_id'],
                                                           'EC2_ASSIGN_PUBLIC_IP': 'no',
                                                           'EC2_TIMEOUT': '300',
                                                           'EC2_REGION': 'us-east-1',
                                                           'EBS_VOLUME_SIZE': '8',
                                                           'EC2_INSTANCE_TYPE': 't2.large',
+                                                          'EC2_INSTANCE_PROFILE_NAME': config['ec2_instance_profile_name'],
                                                           'NO_REBOOT': 'no',
                                                           'BASE_AMI_ID': config['base_ami_id'], # get the last built AMI or rebuild new
                                                           'AMI_CREATION_TIMEOUT': '3600',
@@ -129,9 +129,6 @@ def install_pipeline(save_config_locally, dry_run, variable_files, cmd_line_vars
                            '-e edxapp_theme_name=$EDXAPP_THEME_NAME  '
                            '../edx-east/programs.yml'],
                           working_dir="configuration/playbooks/continuous_delivery/"))
-
-    # Cleanup EC2 if the play failed
-    tasks.generate_ami_cleanup(job, runif='failed')
 
     # Create an AMI from the instance
     tasks.generate_create_ami(job)
