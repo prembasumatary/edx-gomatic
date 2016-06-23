@@ -61,7 +61,7 @@ def install_pipeline(save_config_locally, dry_run, variable_files, cmd_line_vars
                                                           'EC2_ASSIGN_PUBLIC_IP': 'no',
                                                           'EC2_TIMEOUT': '300',
                                                           'EC2_REGION': 'us-east-1',
-                                                          'EBS_VOLUME_SIZE': '8',
+                                                          'EBS_VOLUME_SIZE': '50',
                                                           'EC2_INSTANCE_TYPE': 't2.large',
                                                           'EC2_INSTANCE_PROFILE_NAME': config['ec2_instance_profile_name'],
                                                           'NO_REBOOT': 'no',
@@ -123,7 +123,7 @@ def install_pipeline(save_config_locally, dry_run, variable_files, cmd_line_vars
                            '-e @../../../target/launch_info.yml '
                            '-e @../../../secure_repo/ansible/vars/${EDX_ENVIRONMENT}-${DEPLOYMENT}.yml '
                            '-e cache_id=$CACHE_ID '
-                           '-e edx_platform_version=$CLUSTER_VERSION '
+                           '-e PROGRAMS_VERSION=$CLUSTER_VERSION '
                            '-e edx_platform_repo=$CLUSTER_REPO '
                            '-e edxapp_theme_source_repo=$EDX_APP_THEME_REPO  '
                            '-e edxapp_theme_version=$EDX_APP_THEME_VERSION  '
