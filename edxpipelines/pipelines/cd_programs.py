@@ -125,12 +125,10 @@ def install_pipeline(save_config_locally, dry_run, variable_files, cmd_line_vars
                            '-i ../../../target/ansible_inventory '
                            '-e @../../../target/launch_info.yml '
                            '-e @../../../secure_repo/ansible/vars/${EDX_ENVIRONMENT}-${DEPLOYMENT}.yml '
-                           '-e cache_id=$CACHE_ID '
+                           '-e @../../../secure_repo/ansible/vars/${DEPLOYMENT}.yml '
+                           '-e cache_id=$GO_PIPELINE_COUNTER'
                            '-e PROGRAMS_VERSION=$APP_VERSION '
-                           '-e edx_platform_repo=$APP_REPO '
-                           '-e edxapp_theme_source_repo=$EDX_APP_THEME_REPO  '
-                           '-e edxapp_theme_version=$EDX_APP_THEME_VERSION  '
-                           '-e edxapp_theme_name=$EDXAPP_THEME_NAME  '
+                           '-e programs_repo=$APP_REPO '
                            '../edx-east/programs.yml'],
                           working_dir="configuration/playbooks/continuous_delivery/"))
 
