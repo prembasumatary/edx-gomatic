@@ -137,13 +137,16 @@ def install_pipeline(save_config_locally, dry_run, variable_files, cmd_line_vars
 
 
     # Setup the migrations Stage
-    # stage = pipeline.ensure_stage("Run-Migrations")
-    # job = stage.ensure_job("Start-AMI").ensure_artifacts(set([BuildArtifact("configuration", "configuration"),
-    #                                                               BuildArtifact("tubular", "tubular")]))
-    #
-    # # install the requirements
-    # tasks.generate_install_requirements(job, 'tubular')
-    # tasks.generate_install_requirements(job, 'configuration')
+    pipeline.ensure_environment_variables({
+        'APPLICATION_USER': 'programs',
+        'APPLICATION_NAME': 'programs',
+        'APPLICATION_PATH': '/edx/app/programs',
+        'DB_MIGRATION_USER': 'migrate',
+        })
+    pipeline.ensure_encrypted_environment_variables({
+        'DB_MIGRATION_PASS': config['db_migration_pass'],
+        })
+
     stage = pipeline.ensure_stage("Apply_Migrations")
     # TODO: Be specific about which artifacts we are publishing.
     job = stage.ensure_job("Apply_Migrations_Job").ensure_artifacts({BuildArtifact("target/*")})
