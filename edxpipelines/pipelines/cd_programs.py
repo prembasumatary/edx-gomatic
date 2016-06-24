@@ -53,7 +53,7 @@ def install_pipeline(save_config_locally, dry_run, variable_files, cmd_line_vars
                                                           'APP_REPO': 'https://github.com/edx/programs.git',
                                                           'APP_VERSION': 'pipeline/build_migrate_deploy',
                                                           'CONFIGURATION_REPO': 'https://github.com/edx/configuration.git',
-                                                          'CONFIGURATION_VERSION': 'feanil/httplib2',
+                                                          'CONFIGURATION_VERSION': 'feanil/pipline_hackathon',
                                                           'CONFIGURATION_SECURE_REPO': config['configuration_secure_repo'],
                                                           'CONFIGURATION_SECURE_VERSION': 'master',
                                                           'EC2_VPC_SUBNET_ID': config['ec2_vpc_subnet_id'],
