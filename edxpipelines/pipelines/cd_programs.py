@@ -77,9 +77,9 @@ def install_pipeline(save_config_locally, dry_run, variable_files, cmd_line_vars
                                                                     'AWS_SECRET_ACCESS_KEY': config['aws_secret_access_key']})
 
     stage = pipeline.ensure_stage("Build-AMI")
-    job = stage.ensure_job("Build-ami-job").ensure_artifacts(set([BuildArtifact("configuration", "configuration"),
-                                                                  BuildArtifact("target/config_secure_sha", "config_secure_sha"),
-                                                                  BuildArtifact("tubular", "tubular")]))
+    job = stage.ensure_job("Build-ami-job").ensure_artifacts(set([BuildArtifact("configuration"),
+                                                                  BuildArtifact("target/config_secure_sha"),
+                                                                  BuildArtifact("tubular")]))
 
     # install the requirements
     tasks.generate_install_requirements(job, 'tubular')
