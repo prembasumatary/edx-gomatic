@@ -50,8 +50,8 @@ def install_pipeline(save_config_locally, dry_run, variable_files, cmd_line_vars
                            .ensure_environment_variables({'PLAY': 'programs',
                                                           'DEPLOYMENT': 'edx',
                                                           'EDX_ENVIRONMENT': 'loadtest',
-                                                          'CLUSTER_REPO': 'https://github.com/edx/programs.git',
-                                                          'CLUSTER_VERSION': 'pipeline/build_migrate_deploy',
+                                                          'APP_REPO': 'https://github.com/edx/programs.git',
+                                                          'APP_VERSION': 'pipeline/build_migrate_deploy',
                                                           'CONFIGURATION_REPO': 'https://github.com/edx/configuration.git',
                                                           'CONFIGURATION_VERSION': 'master',
                                                           'CONFIGURATION_SECURE_REPO': config['configuration_secure_repo'],
@@ -126,8 +126,8 @@ def install_pipeline(save_config_locally, dry_run, variable_files, cmd_line_vars
                            '-e @../../../target/launch_info.yml '
                            '-e @../../../secure_repo/ansible/vars/${EDX_ENVIRONMENT}-${DEPLOYMENT}.yml '
                            '-e cache_id=$CACHE_ID '
-                           '-e PROGRAMS_VERSION=$CLUSTER_VERSION '
-                           '-e edx_platform_repo=$CLUSTER_REPO '
+                           '-e PROGRAMS_VERSION=$APP_VERSION '
+                           '-e edx_platform_repo=$APP_REPO '
                            '-e edxapp_theme_source_repo=$EDX_APP_THEME_REPO  '
                            '-e edxapp_theme_version=$EDX_APP_THEME_VERSION  '
                            '-e edxapp_theme_name=$EDXAPP_THEME_NAME  '
@@ -152,7 +152,10 @@ def install_pipeline(save_config_locally, dry_run, variable_files, cmd_line_vars
 
     # Stage to deploy the programs AMI Goes here
     ami_file_location = utils.ArtifactLocation(pipeline.name, stage.name, job.name, "ami.yml")
-    stages.generate_basic_deploy_ami(pipeline, config['asgard_api_endpoints'], config['asgard_token'], config['aws_access_key_id'], config['aws_secret_access_key'], ami_file_location)
+    stages.generate_basic_deploy_ami(pipeline,
+                                     config['asgard_api_endpoints'],
+                                     config['asgard_token'],
+                                     config['aws_access_key_id'], config['aws_secret_access_key'], ami_file_location)
 
 
     # Stage to terminate the migrations Instance goes here

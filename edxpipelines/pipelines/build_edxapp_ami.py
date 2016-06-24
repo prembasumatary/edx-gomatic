@@ -48,8 +48,8 @@ def install_pipeline(save_config_locally, dry_run, variable_files, cmd_line_vars
                            .ensure_environment_variables({'PLAY': 'edxapp',
                                                           'DEPLOYMENT': 'edx',
                                                           'EDX_ENVIRONMENT': 'loadtest',
-                                                          'CLUSTER_REPO': 'https://github.com/edx/edx-platform.git',
-                                                          'CLUSTER_VERSION': 'master',
+                                                          'APP_REPO': 'https://github.com/edx/edx-platform.git',
+                                                          'APP_VERSION': 'master',
                                                           'EDX_APP_THEME_REPO': 'https://github.com/Stanford-Online/edx-theme.git',
                                                           'EDX_APP_THEME_VERSION': 'master',
                                                           'EDXAPP_THEME_NAME': '',
@@ -124,8 +124,8 @@ def install_pipeline(save_config_locally, dry_run, variable_files, cmd_line_vars
                            '-e @../../../target/launch_info.yml '
                            '-e @../../../secure_repo/ansible/vars/${EDX_ENVIRONMENT}-${DEPLOYMENT}.yml '
                            '-e cache_id=$CACHE_ID '
-                           '-e edx_platform_version=$CLUSTER_VERSION '
-                           '-e edx_platform_repo=$CLUSTER_REPO '
+                           '-e edx_platform_version=$APP_VERSION '
+                           '-e edx_platform_repo=$APP_REPO '
                            '-e edxapp_theme_source_repo=$EDX_APP_THEME_REPO  '
                            '-e edxapp_theme_version=$EDX_APP_THEME_VERSION  '
                            '-e edxapp_theme_name=$EDXAPP_THEME_NAME  '
