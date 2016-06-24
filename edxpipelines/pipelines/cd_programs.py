@@ -149,7 +149,7 @@ def install_pipeline(save_config_locally, dry_run, variable_files, cmd_line_vars
 
     stage = pipeline.ensure_stage("Apply_Migrations")
     # TODO: Be specific about which artifacts we are publishing.
-    job = stage.ensure_job("Apply_Migrations_Job").ensure_artifacts({BuildArtifact("target/*")})
+    job = stage.ensure_job("Apply_Migrations_Job").ensure_artifacts({BuildArtifact("configuration/playbooks/continuous_delivery/target/*")})
     # Check out the requested version of configuration
     # This is a work around to add the ability to checkout a specific git sha, an option that gocd does not allow.
     job.add_task(ExecTask(['/bin/bash',
