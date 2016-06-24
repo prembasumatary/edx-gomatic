@@ -135,8 +135,6 @@ def install_pipeline(save_config_locally, dry_run, variable_files, cmd_line_vars
     # Create an AMI from the instance
     tasks.generate_create_ami(job)
 
-    # Cleanup EC2
-    tasks.generate_ami_cleanup(job, runif='any')
 
     # Setup the migrations Stage
     # stage = pipeline.ensure_stage("Run-Migrations")
@@ -158,6 +156,8 @@ def install_pipeline(save_config_locally, dry_run, variable_files, cmd_line_vars
 
     # Stage to terminate the migrations Instance goes here
 
+    # Cleanup EC2
+    tasks.generate_ami_cleanup(job, runif='any')
 
     configurator.save_updated_config(save_config_locally=save_config_locally, dry_run=dry_run)
 
