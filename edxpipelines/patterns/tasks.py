@@ -32,8 +32,9 @@ def generate_launch_instance(job, runif="passed"):
         gomatic.task.Task
 
     """
-    job.ensure_artifacts(set([BuildArtifact("target/key.pem", "key.pem"),
-                             BuildArtifact("target/launch_info.yml", "launch_info.yml")]))
+    job.ensure_artifacts(set([BuildArtifact("target/key.pem", ""),
+                             BuildArtifact("target/ansible_inventory", ""),
+                             BuildArtifact("target/launch_info.yml", "")]))
     return job.add_task(ExecTask(['/bin/bash', '-c', 'ansible-playbook '
                                                      '-vvvv '
                                                      '--module-path=../../configuration/playbooks/library '
@@ -66,7 +67,7 @@ def generate_create_edxapp_ami(job, runif="passed"):
         gomatic.task.Task
 
     """
-    job.ensure_artifacts(set([BuildArtifact("target/ami.yml", "ami.yml")]))
+    job.ensure_artifacts(set([BuildArtifact("target/ami.yml", "")]))
     job.add_task(ExecTask(['/bin/bash', '-c', 'ansible-playbook '
                                               '-vvvv '
                                               '--module-path=../../playbooks/library '
@@ -110,7 +111,7 @@ def generate_create_ami(job, runif="passed"):
         gomatic.task.Task
 
     """
-    job.ensure_artifacts(set([BuildArtifact("target/ami.yml", "ami.yml")]))
+    job.ensure_artifacts(set([BuildArtifact("target/ami.yml", "")]))
     job.add_task(ExecTask(['/bin/bash', '-c', 'ansible-playbook '
                                               '-vvvv '
                                               '--module-path=../../playbooks/library '
