@@ -129,6 +129,8 @@ def install_pipeline(save_config_locally, dry_run, variable_files, cmd_line_vars
                            '-e cache_id=$GO_PIPELINE_COUNTER '
                            '-e PROGRAMS_VERSION=$APP_VERSION '
                            '-e programs_repo=$APP_REPO '
+                           '-e disable_edx_services=true '
+                           '-e COMMON_TAG_EC2_INSTANCE=true '
                            '../edx-east/programs.yml'],
                           working_dir="configuration/playbooks/continuous_delivery/"))
 
