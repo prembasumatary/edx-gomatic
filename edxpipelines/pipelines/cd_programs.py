@@ -53,7 +53,7 @@ def install_pipeline(save_config_locally, dry_run, variable_files, cmd_line_vars
                                                           'APP_REPO': 'https://github.com/edx/programs.git',
                                                           'APP_VERSION': 'pipeline/build_migrate_deploy',
                                                           'CONFIGURATION_REPO': 'https://github.com/edx/configuration.git',
-                                                          'CONFIGURATION_VERSION': 'master',
+                                                          'CONFIGURATION_VERSION': 'feanil/httplib2',
                                                           'CONFIGURATION_SECURE_REPO': config['configuration_secure_repo'],
                                                           'CONFIGURATION_SECURE_VERSION': 'master',
                                                           'EC2_VPC_SUBNET_ID': config['ec2_vpc_subnet_id'],
@@ -126,7 +126,7 @@ def install_pipeline(save_config_locally, dry_run, variable_files, cmd_line_vars
                            '-e @../../../target/launch_info.yml '
                            '-e @../../../secure_repo/ansible/vars/${DEPLOYMENT}.yml '
                            '-e @../../../secure_repo/ansible/vars/${EDX_ENVIRONMENT}-${DEPLOYMENT}.yml '
-                           '-e cache_id=$GO_PIPELINE_COUNTER'
+                           '-e cache_id=$GO_PIPELINE_COUNTER '
                            '-e PROGRAMS_VERSION=$APP_VERSION '
                            '-e programs_repo=$APP_REPO '
                            '../edx-east/programs.yml'],
@@ -144,6 +144,14 @@ def install_pipeline(save_config_locally, dry_run, variable_files, cmd_line_vars
     # # install the requirements
     # tasks.generate_install_requirements(job, 'tubular')
     # tasks.generate_install_requirements(job, 'configuration')
+    stage = pipeline.ensure_stage("Apply_Migrations")
+    # TODO: Be specific about which artifacts we are publishing.
+    job = stage.ensure_job("Apply_Migrations_Job").ensure_artifacts({BuildArtifact("target/*")})
+    job.add_task(FetchArtifactTask("", "Build-AMI", "Build-ami-job", FetchArtifactFile("key.pem"), dest="configuration"))
+    job.add_task(ExecTask(['/bin/bash', '-c', 'chmod 600 key.pem'], working_dir="configuration"))
+    job.add_task(FetchArtifactTask("", "Build-AMI", "Build-ami-job", FetchArtifactFile("ansible_inventory"), dest="configuration"))
+    job.add_task(ExecTask(['/bin/bash', '-c', 'sudo pip install -r requirements.txt'], working_dir="configuration"))
+    job.add_task(ExecTask(['/bin/bash', '-c', 'export ANSIBLE_HOST_KEY_CHECKING=False;export ANSIBLE_SSH_ARGS="-o ControlMaster=auto -o ControlPersist=30m";PRIVATE_KEY=`/bin/pwd`/../../key.pem;ansible-playbook -vvvv -i ../../ansible_inventory --private-key=$PRIVATE_KEY --user=ubuntu -e APPLICATION_PATH=$APPLICATION_PATH -e APPLICATION_NAME=$APPLICATION_NAME -e APPLICATION_USER=$APPLICATION_USER -e ARTIFACT_PATH=$ARTIFACT_PATH -e DB_MIGRATION_USER=$DB_MIGRATION_USER -e DB_MIGRATION_PASS=$DB_MIGRATION_PASS run_migrations.yml'], working_dir="configuration/playbooks/continuous_delivery/"))
 
 
     # Stage to deploy the programs AMI Goes here
@@ -157,6 +165,9 @@ def install_pipeline(save_config_locally, dry_run, variable_files, cmd_line_vars
     # Stage to terminate the migrations Instance goes here
 
     # Cleanup EC2
+    stage = pipeline.ensure_stage("Cleanup_AMI_Instance")
+    job = stage.ensure_job("Terminate_Instance")
+    job.add_task(FetchArtifactTask("", "Build-AMI", "Build-ami-job", FetchArtifactFile("launch_info.yml"), dest="target"))
     tasks.generate_ami_cleanup(job, runif='any')
 
     configurator.save_updated_config(save_config_locally=save_config_locally, dry_run=dry_run)
