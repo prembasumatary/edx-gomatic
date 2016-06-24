@@ -88,22 +88,21 @@ def install_pipeline(save_config_locally, dry_run, variable_files, cmd_line_vars
     # Setup configuration secure
     job.add_task(ExecTask(['/bin/bash',
                            '-c',
-                           " touch github_key.pem && "
-                           " chmod 600 github_key.pem && "
-                           ' python tubular/scripts/format_rsa_key.py --key " $PRIVATE_GITHUB_KEY" --output-file github_key.pem && '
-                           " GIT_SSH_COMMAND=' /usr/bin/ssh -o StrictHostKeyChecking=no -i github_key.pem' /usr/bin/git clone $CONFIGURATION_SECURE_REPO secure_repo && "
-                           " cd secure_repo && "
-                           " /usr/bin/git checkout $CONFIGURATION_SECURE_VERSION && "
-                           " mkdir ../target/ && "
-                           " /usr/bin/git rev-parse HEAD > ../target/config_secure_sha"]))
+                           "touch github_key.pem && "
+                           "chmod 600 github_key.pem && "
+                           'python tubular/scripts/format_rsa_key.py --key "$PRIVATE_GITHUB_KEY" --output-file github_key.pem && '
+                           "GIT_SSH_COMMAND='/usr/bin/ssh -o StrictHostKeyChecking=no -i github_key.pem' /usr/bin/git clone $CONFIGURATION_SECURE_REPO secure_repo && "
+                           "cd secure_repo && "
+                           "/usr/bin/git checkout $CONFIGURATION_SECURE_VERSION && "
+                           "mkdir ../target/ && "
+                           "/usr/bin/git rev-parse HEAD > ../target/config_secure_sha"]))
 
     # Check out the requested version of configuration
     # This is a work around to add the ability to checkout a specific git sha, an option that gocd does not allow.
     job.add_task(ExecTask(['/bin/bash',
-                           '-c',
-                           " /usr/bin/git fetch && "
-                           " /usr/bin/git pull && "
-                           " /usr/bin/git checkout $CONFIGURATION_VERSION"],
+                           '-c', "/usr/bin/git fetch && "
+                           "/usr/bin/git pull && "
+                           "/usr/bin/git checkout $CONFIGURATION_VERSION"],
                           working_dir="configuration/"))
 
     # Launch instance
@@ -115,22 +114,22 @@ def install_pipeline(save_config_locally, dry_run, variable_files, cmd_line_vars
     # run the edxapp play
     job.add_task(ExecTask(['/bin/bash',
                            '-c',
-                           ' export ANSIBLE_HOST_KEY_CHECKING=False;'
-                           ' export ANSIBLE_SSH_ARGS="-o ControlMaster=auto -o ControlPersist=30m";'
-                           ' PRIVATE_KEY=`/bin/pwd`/../../../${ARTIFACT_PATH}key.pem;'
-                           ' ansible-playbook '
-                           ' -vvvv '
-                           ' --private-key=$PRIVATE_KEY '
-                           ' --user=ubuntu '
-                           ' --module-path=configuration/playbooks/library '
-                           ' -i ../../../target/ansible_inventory '
-                           ' -e @../../../target/launch_info.yml '
-                           ' -e @../../../secure_repo/ansible/vars/${DEPLOYMENT}.yml '
-                           ' -e @../../../secure_repo/ansible/vars/${EDX_ENVIRONMENT}-${DEPLOYMENT}.yml '
-                           ' -e cache_id=$GO_PIPELINE_COUNTER '
-                           ' -e PROGRAMS_VERSION=$APP_VERSION '
-                           ' -e programs_repo=$APP_REPO '
-                           ' ../edx-east/programs.yml'],
+                           'export ANSIBLE_HOST_KEY_CHECKING=False;'
+                           'export ANSIBLE_SSH_ARGS="-o ControlMaster=auto -o ControlPersist=30m";'
+                           'PRIVATE_KEY=`/bin/pwd`/../../../${ARTIFACT_PATH}key.pem;'
+                           'ansible-playbook '
+                           '-vvvv '
+                           '--private-key=$PRIVATE_KEY '
+                           '--user=ubuntu '
+                           '--module-path=configuration/playbooks/library '
+                           '-i ../../../target/ansible_inventory '
+                           '-e @../../../target/launch_info.yml '
+                           '-e @../../../secure_repo/ansible/vars/${EDX_ENVIRONMENT}-${DEPLOYMENT}.yml '
+                           '-e @../../../secure_repo/ansible/vars/${DEPLOYMENT}.yml '
+                           '-e cache_id=$GO_PIPELINE_COUNTER'
+                           '-e PROGRAMS_VERSION=$APP_VERSION '
+                           '-e programs_repo=$APP_REPO '
+                           '../edx-east/programs.yml'],
                           working_dir="configuration/playbooks/continuous_delivery/"))
 
     # Create an AMI from the instance
