@@ -147,6 +147,13 @@ def install_pipeline(save_config_locally, dry_run, variable_files, cmd_line_vars
     stage = pipeline.ensure_stage("Apply_Migrations")
     # TODO: Be specific about which artifacts we are publishing.
     job = stage.ensure_job("Apply_Migrations_Job").ensure_artifacts({BuildArtifact("target/*")})
+    # Check out the requested version of configuration
+    # This is a work around to add the ability to checkout a specific git sha, an option that gocd does not allow.
+    job.add_task(ExecTask(['/bin/bash',
+                           '-c', "/usr/bin/git fetch && "
+                           "/usr/bin/git pull && "
+                           "/usr/bin/git checkout $CONFIGURATION_VERSION"],
+                          working_dir="configuration/"))
     job.add_task(FetchArtifactTask("", "Build-AMI", "Build-ami-job", FetchArtifactFile("key.pem"), dest="configuration"))
     job.add_task(ExecTask(['/bin/bash', '-c', 'chmod 600 key.pem'], working_dir="configuration"))
     job.add_task(FetchArtifactTask("", "Build-AMI", "Build-ami-job", FetchArtifactFile("ansible_inventory"), dest="configuration"))
