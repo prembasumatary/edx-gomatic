@@ -1,11 +1,13 @@
 #!/usr/bin/env python
 import sys
 from os import path
+# Used to import edxpipelines files - since the module is not installed.
 sys.path.append( path.dirname( path.dirname( path.dirname( path.abspath(__file__) ) ) ) )
 
 import click
 import edxpipelines.utils as utils
 import edxpipelines.patterns.tasks as tasks
+import edxpipelines.patterns.stages as stages
 from gomatic import *
 
 
@@ -27,13 +29,14 @@ def install_pipeline(save_config_locally, dry_run, variable_files, cmd_line_vars
     - aws_secret_access_key
     - ec2_vpc_subnet_id
     - ec2_security_group_id
+    - ec2_instance_profile_name
     - base_ami_id
     """
     config = utils.merge_files_and_dicts(variable_files, list(cmd_line_vars,))
 
     configurator = GoCdConfigurator(HostRestClient(config['gocd_url'], config["gocd_username"], config["gocd_password"], ssl=True))
-    pipeline = configurator.ensure_pipeline_group("AMIBuilders")\
-                           .ensure_replacement_of_pipeline("BuildEdxAppSandbox")\
+    pipeline = configurator.ensure_pipeline_group("DeployTesting")\
+                           .ensure_replacement_of_pipeline("loadtest-edx-programs-cd")\
                            .ensure_material(GitMaterial("https://github.com/edx/tubular",
                                                         material_name="tubular",
                                                         polling=False,
@@ -45,16 +48,13 @@ def install_pipeline(save_config_locally, dry_run, variable_files, cmd_line_vars
                                                         # NOTE if you want to change this, you should set the
                                                         # CONFIGURATION_VERSION environment variable instead
                                                         destination_directory="configuration"))\
-                           .ensure_environment_variables({'PLAY': 'edxapp',
+                           .ensure_environment_variables({'PLAY': 'programs',
                                                           'DEPLOYMENT': 'edx',
                                                           'EDX_ENVIRONMENT': 'loadtest',
-                                                          'APP_REPO': 'https://github.com/edx/edx-platform.git',
-                                                          'APP_VERSION': 'master',
-                                                          'EDX_APP_THEME_REPO': 'https://github.com/Stanford-Online/edx-theme.git',
-                                                          'EDX_APP_THEME_VERSION': 'master',
-                                                          'EDXAPP_THEME_NAME': '',
+                                                          'APP_REPO': 'https://github.com/edx/programs.git',
+                                                          'APP_VERSION': 'pipeline/build_migrate_deploy',
                                                           'CONFIGURATION_REPO': 'https://github.com/edx/configuration.git',
-                                                          'CONFIGURATION_VERSION': 'master',
+                                                          'CONFIGURATION_VERSION': 'feanil/pipline_hackathon',
                                                           'CONFIGURATION_SECURE_REPO': config['configuration_secure_repo'],
                                                           'CONFIGURATION_SECURE_VERSION': 'master',
                                                           'EC2_VPC_SUBNET_ID': config['ec2_vpc_subnet_id'],
@@ -62,7 +62,7 @@ def install_pipeline(save_config_locally, dry_run, variable_files, cmd_line_vars
                                                           'EC2_ASSIGN_PUBLIC_IP': 'no',
                                                           'EC2_TIMEOUT': '300',
                                                           'EC2_REGION': 'us-east-1',
-                                                          'EBS_VOLUME_SIZE': '8',
+                                                          'EBS_VOLUME_SIZE': '50',
                                                           'EC2_INSTANCE_TYPE': 't2.large',
                                                           'EC2_INSTANCE_PROFILE_NAME': config['ec2_instance_profile_name'],
                                                           'NO_REBOOT': 'no',
@@ -78,9 +78,9 @@ def install_pipeline(save_config_locally, dry_run, variable_files, cmd_line_vars
                                                                     'AWS_SECRET_ACCESS_KEY': config['aws_secret_access_key']})
 
     stage = pipeline.ensure_stage("Build-AMI")
-    job = stage.ensure_job("Build-ami-job").ensure_artifacts(set([BuildArtifact("configuration", "configuration"),
-                                                                  BuildArtifact("target/config_secure_sha", "config_secure_sha"),
-                                                                  BuildArtifact("tubular", "tubular")]))
+    job = stage.ensure_job("Build-ami-job").ensure_artifacts(set([BuildArtifact("configuration"),
+                                                                  BuildArtifact("target/config_secure_sha"),
+                                                                  BuildArtifact("tubular")]))
 
     # install the requirements
     tasks.generate_install_requirements(job, 'tubular')
@@ -109,6 +109,9 @@ def install_pipeline(save_config_locally, dry_run, variable_files, cmd_line_vars
     # Launch instance
     tasks.generate_launch_instance(job)
 
+    # Cleanup EC2
+    tasks.generate_ami_cleanup(job, runif='failed')
+
     # run the edxapp play
     job.add_task(ExecTask(['/bin/bash',
                            '-c',
@@ -122,20 +125,62 @@ def install_pipeline(save_config_locally, dry_run, variable_files, cmd_line_vars
                            '--module-path=configuration/playbooks/library '
                            '-i ../../../target/ansible_inventory '
                            '-e @../../../target/launch_info.yml '
+                           '-e @../../../secure_repo/ansible/vars/${DEPLOYMENT}.yml '
                            '-e @../../../secure_repo/ansible/vars/${EDX_ENVIRONMENT}-${DEPLOYMENT}.yml '
-                           '-e cache_id=$CACHE_ID '
-                           '-e edx_platform_version=$APP_VERSION '
-                           '-e edx_platform_repo=$APP_REPO '
-                           '-e edxapp_theme_source_repo=$EDX_APP_THEME_REPO  '
-                           '-e edxapp_theme_version=$EDX_APP_THEME_VERSION  '
-                           '-e edxapp_theme_name=$EDXAPP_THEME_NAME  '
-                           '../edx-east/edxapp.yml'],
+                           '-e cache_id=$GO_PIPELINE_COUNTER '
+                           '-e PROGRAMS_VERSION=$APP_VERSION '
+                           '-e programs_repo=$APP_REPO '
+                           '-e disable_edx_services=true '
+                           '-e COMMON_TAG_EC2_INSTANCE=true '
+                           '../edx-east/programs.yml'],
                           working_dir="configuration/playbooks/continuous_delivery/"))
 
     # Create an AMI from the instance
-    tasks.generate_create_edxapp_ami(job)
+    tasks.generate_create_ami(job)
+
+
+    # Setup the migrations Stage
+    pipeline.ensure_environment_variables({
+        'APPLICATION_USER': 'programs',
+        'APPLICATION_NAME': 'programs',
+        'APPLICATION_PATH': '/edx/app/programs',
+        'DB_MIGRATION_USER': 'migrate',
+        })
+    pipeline.ensure_encrypted_environment_variables({
+        'DB_MIGRATION_PASS': config['db_migration_pass'],
+        })
+
+    stage = pipeline.ensure_stage("Apply_Migrations")
+    # TODO: Be specific about which artifacts we are publishing.
+    job = stage.ensure_job("Apply_Migrations_Job").ensure_artifacts({BuildArtifact("configuration/playbooks/continuous_delivery/target/*")})
+    # Check out the requested version of configuration
+    # This is a work around to add the ability to checkout a specific git sha, an option that gocd does not allow.
+    job.add_task(ExecTask(['/bin/bash',
+                           '-c', "/usr/bin/git fetch && "
+                           "/usr/bin/git pull && "
+                           "/usr/bin/git checkout $CONFIGURATION_VERSION"],
+                          working_dir="configuration/"))
+    job.add_task(FetchArtifactTask("", "Build-AMI", "Build-ami-job", FetchArtifactFile("key.pem"), dest="configuration"))
+    job.add_task(ExecTask(['/bin/bash', '-c', 'chmod 600 key.pem'], working_dir="configuration"))
+    job.add_task(FetchArtifactTask("", "Build-AMI", "Build-ami-job", FetchArtifactFile("ansible_inventory"), dest="configuration"))
+    job.add_task(ExecTask(['/bin/bash', '-c', 'sudo pip install -r requirements.txt'], working_dir="configuration"))
+    job.add_task(ExecTask(['/bin/bash', '-c', 'export ANSIBLE_HOST_KEY_CHECKING=False;export ANSIBLE_SSH_ARGS="-o ControlMaster=auto -o ControlPersist=30m";PRIVATE_KEY=`/bin/pwd`/../../key.pem;ansible-playbook -vvvv -i ../../ansible_inventory --private-key=$PRIVATE_KEY --user=ubuntu -e APPLICATION_PATH=$APPLICATION_PATH -e APPLICATION_NAME=$APPLICATION_NAME -e APPLICATION_USER=$APPLICATION_USER -e ARTIFACT_PATH=$ARTIFACT_PATH -e DB_MIGRATION_USER=$DB_MIGRATION_USER -e DB_MIGRATION_PASS=$DB_MIGRATION_PASS run_migrations.yml'], working_dir="configuration/playbooks/continuous_delivery/"))
+
+
+    # Stage to deploy the programs AMI Goes here
+    ami_file_location = utils.ArtifactLocation(pipeline.name, 'Build-AMI', 'Build-ami-job', "ami.yml")
+    stages.generate_basic_deploy_ami(pipeline,
+                                     config['asgard_api_endpoints'],
+                                     config['asgard_token'],
+                                     config['aws_access_key_id'], config['aws_secret_access_key'], ami_file_location)
+
+
+    # Stage to terminate the migrations Instance goes here
 
     # Cleanup EC2
+    stage = pipeline.ensure_stage("Cleanup_AMI_Instance")
+    job = stage.ensure_job("Terminate_Instance")
+    job.add_task(FetchArtifactTask("", "Build-AMI", "Build-ami-job", FetchArtifactFile("launch_info.yml"), dest="target"))
     tasks.generate_ami_cleanup(job, runif='any')
 
     configurator.save_updated_config(save_config_locally=save_config_locally, dry_run=dry_run)
