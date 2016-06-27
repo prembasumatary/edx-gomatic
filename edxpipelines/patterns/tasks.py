@@ -41,7 +41,6 @@ def generate_launch_instance(job, runif="passed"):
                                                      '-i "localhost," '
                                                      '-c local '
                                                      '-e artifact_path=`/bin/pwd`/../../../$ARTIFACT_PATH '
-                                                     #'-e ec2_subnet_id=$EC2_SUBNET_ID '
                                                      '-e base_ami_id=$BASE_AMI_ID '
                                                      '-e ec2_vpc_subnet_id=$EC2_VPC_SUBNET_ID '
                                                      '-e ec2_security_group_id=$EC2_SECURITY_GROUP_ID '

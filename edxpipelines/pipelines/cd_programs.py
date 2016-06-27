@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 import sys
 from os import path
+# Used to import edxpipelines files - since the module is not installed.
 sys.path.append( path.dirname( path.dirname( path.dirname( path.abspath(__file__) ) ) ) )
 
 import click
