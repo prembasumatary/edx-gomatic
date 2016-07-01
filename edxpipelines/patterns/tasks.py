@@ -1,7 +1,7 @@
 from gomatic import *
 
 
-def generate_install_requirements(job, working_dir, runif="passed"):
+def generate_requirements_install(job, working_dir, runif="passed"):
     """
     Generates a command that runs:
     'sudo pip install -r requirements.txt'
@@ -12,10 +12,20 @@ def generate_install_requirements(job, working_dir, runif="passed"):
         runif (str): one of ['passed', 'failed', 'any'] Default: passed
 
     Returns:
-        gomatic.task.Task
+        The newly created task (gomatic.gocd.tasks.ExecTask)
 
     """
-    return job.add_task(ExecTask(['/bin/bash', '-c', 'sudo pip install -r requirements.txt'], working_dir=working_dir, runif=runif))
+    return job.add_task(
+        ExecTask(
+            [
+                '/bin/bash',
+                '-c',
+                'sudo pip install -r requirements.txt'
+            ],
+            working_dir=working_dir,
+            runif=runif
+        )
+    )
 
 
 def generate_launch_instance(job, runif="passed"):
@@ -29,7 +39,7 @@ def generate_launch_instance(job, runif="passed"):
         runif (str): one of ['passed', 'failed', 'any'] Default: passed
 
     Returns:
-        gomatic.task.Task
+        The newly created task (gomatic.gocd.tasks.ExecTask)
 
     """
     job.ensure_artifacts(set([BuildArtifact("target/key.pem"),
@@ -37,7 +47,7 @@ def generate_launch_instance(job, runif="passed"):
                              BuildArtifact("target/launch_info.yml")]))
     return job.add_task(ExecTask(['/bin/bash', '-c', 'ansible-playbook '
                                                      '-vvvv '
-                                                     '--module-path=../../configuration/playbooks/library '
+                                                     '--module-path=../library '
                                                      '-i "localhost," '
                                                      '-c local '
                                                      '-e artifact_path=`/bin/pwd`/../../../$ARTIFACT_PATH '
@@ -56,20 +66,20 @@ def generate_launch_instance(job, runif="passed"):
 
 def generate_create_edxapp_ami(job, runif="passed"):
     """
-    TODO: Decouple AMI building and AMI tagging in to 2 different jobs/anislbe scripts
+    TODO: Decouple AMI building and AMI tagging in to 2 different jobs/ansible scripts
 
     Args:
         job (gomatic.job.Job): the gomatic job which to add the launch instance task
         runif (str): one of ['passed', 'failed', 'any'] Default: passed
 
     Returns:
-        gomatic.task.Task
+        The newly created task (gomatic.gocd.tasks.ExecTask)
 
     """
     job.ensure_artifacts(set([BuildArtifact("target/ami.yml")]))
     job.add_task(ExecTask(['/bin/bash', '-c', 'ansible-playbook '
                                               '-vvvv '
-                                              '--module-path=../../playbooks/library '
+                                              '--module-path=../library '
                                               '-i "localhost," '
                                               '-c local '
                                               '-e @../../../target/launch_info.yml '
@@ -100,20 +110,20 @@ def generate_create_edxapp_ami(job, runif="passed"):
 
 def generate_create_ami(job, runif="passed"):
     """
-    TODO: Decouple AMI building and AMI tagging in to 2 different jobs/anislbe scripts
+    TODO: Decouple AMI building and AMI tagging in to 2 different jobs/ansible scripts
 
     Args:
         job (gomatic.job.Job): the gomatic job which to add the launch instance task
         runif (str): one of ['passed', 'failed', 'any'] Default: passed
 
     Returns:
-        gomatic.task.Task
+        The newly created task (gomatic.gocd.tasks.ExecTask)
 
     """
     job.ensure_artifacts(set([BuildArtifact("target/ami.yml")]))
     job.add_task(ExecTask(['/bin/bash', '-c', 'ansible-playbook '
                                               '-vvvv '
-                                              '--module-path=../../playbooks/library '
+                                              '--module-path=../library '
                                               '-i "localhost," '
                                               '-c local '
                                               '-e @../../../target/launch_info.yml '
@@ -151,11 +161,12 @@ def generate_ami_cleanup(job, runif="passed"):
         runif (str): one of ['passed', 'failed', 'any'] Default: passed
 
     Returns:
+        The newly created task (gomatic.gocd.tasks.ExecTask)
 
     """
     return job.add_task(ExecTask(['/bin/bash', '-c', 'ansible-playbook '
                                                '-vvvv '
-                                               '--module-path=../../configuration/playbooks/library '
+                                               '--module-path=../library '
                                                '-i "localhost," '
                                                '-c local '
                                                '-e @../../../target/launch_info.yml '
@@ -167,3 +178,153 @@ def generate_ami_cleanup(job, runif="passed"):
                                  runif=runif
                                 )
                         )
+
+
+def generate_run_migrations(job, runif="passed"):
+    """
+    Generates GoCD task that runs migrations via an Ansible script.
+
+    Args:
+        job (gomatic.job.Job): the gomatic job to which the run migrations task will be added
+        runif (str): one of ['passed', 'failed', 'any'] Default: passed
+
+    Returns:
+        The newly created task (gomatic.gocd.tasks.ExecTask)
+
+    """
+    # TODO: Fix this path!
+    job.ensure_artifacts(set([BuildArtifact('configuration/playbooks/continuous_delivery/target/unapplied_migrations.yml'),
+                              BuildArtifact('configuration/playbooks/continuous_delivery/target/migration_output.yml')]))
+    return job.add_task(
+        ExecTask(
+            [
+                '/bin/bash',
+                '-c',
+                'export ANSIBLE_HOST_KEY_CHECKING=False;'
+                'export ANSIBLE_SSH_ARGS="-o ControlMaster=auto -o ControlPersist=30m";'
+                'PRIVATE_KEY=`/bin/pwd`/../../key.pem;'
+                'ansible-playbook '
+                '-vvvv '
+                '-i ../../ansible_inventory '
+                '--private-key=$PRIVATE_KEY '
+                '--user=ubuntu '
+                '-e APPLICATION_PATH=$APPLICATION_PATH '
+                '-e APPLICATION_NAME=$APPLICATION_NAME '
+                '-e APPLICATION_USER=$APPLICATION_USER '
+                '-e ARTIFACT_PATH=$ARTIFACT_PATH '
+                '-e DB_MIGRATION_USER=$DB_MIGRATION_USER '
+                '-e DB_MIGRATION_PASS=$DB_MIGRATION_PASS '
+                'run_migrations.yml'
+            ],
+            working_dir='configuration/playbooks/continuous_delivery/',
+            runif=runif
+        )
+    )
+
+
+def guarantee_configuration_version(job, runif="passed"):
+    """
+    Check out the configuration version specified in $CONFIGURATION_VERSION.
+    This is a work around to add the ability to checkout a specific git sha, which GoCD does not support.
+
+    Args:
+        job (gomatic.job.Job): the gomatic job to which the playbook run task will be added
+        runif (str): one of ['passed', 'failed', 'any'] Default: passed
+
+    Returns:
+        The newly created task (gomatic.gocd.tasks.ExecTask)
+
+    """
+    return job.add_task(
+        ExecTask(
+            [
+                '/bin/bash',
+                '-c',
+                '/usr/bin/git fetch && '
+                '/usr/bin/git pull && '
+                '/usr/bin/git checkout $CONFIGURATION_VERSION'
+            ],
+            working_dir='configuration/'
+        )
+    )
+
+
+def fetch_secure_configuration(job, secure_dir, runif="passed"):
+    """
+    Setup the configuration-secure repo for use in providing secrets.
+
+    Args:
+        job (gomatic.job.Job): the gomatic job to which the playbook run task will be added
+        secure_dir (str): name of dir containing the edx-ops/configuration-secure repo
+        runif (str): one of ['passed', 'failed', 'any'] Default: passed
+
+    Returns:
+        The newly created task (gomatic.gocd.tasks.ExecTask)
+
+    """
+    return job.add_task(
+        ExecTask(
+            [
+                '/bin/bash',
+                '-c',
+                'touch github_key.pem && '
+                'chmod 600 github_key.pem && '
+                'python tubular/scripts/format_rsa_key.py --key "$PRIVATE_GITHUB_KEY" --output-file github_key.pem && '
+                "GIT_SSH_COMMAND='/usr/bin/ssh -o StrictHostKeyChecking=no -i github_key.pem' "
+                '/usr/bin/git clone $CONFIGURATION_SECURE_REPO {secure_dir} && '
+                'cd {secure_dir} && '
+                '/usr/bin/git checkout $CONFIGURATION_SECURE_VERSION && '
+                'mkdir ../target/ && '
+                '/usr/bin/git rev-parse HEAD > ../target/config_secure_sha'.format(
+                    secure_dir=secure_dir
+                )
+            ]
+        )
+    )
+
+
+def generate_run_app_playbook(job, secure_dir, playbook_path, runif="passed"):
+    """
+    Generates a GoCD task that runs an Ansible playbook against a server inventory.
+
+    Args:
+        job (gomatic.job.Job): the gomatic job to which the playbook run task will be added
+        secure_dir (str): name of dir containing the edx-ops/configuration-secure repo
+        playbook_path (str): path to playbook relative to the top-level 'configuration' directory
+        runif (str): one of ['passed', 'failed', 'any'] Default: passed
+
+    Returns:
+        The newly created task (gomatic.gocd.tasks.ExecTask)
+
+    """
+    return job.add_task(
+        ExecTask(
+            [
+                '/bin/bash',
+                '-c',
+                'export ANSIBLE_HOST_KEY_CHECKING=False;'
+                'export ANSIBLE_SSH_ARGS="-o ControlMaster=auto -o ControlPersist=30m";'
+                'PRIVATE_KEY=`/bin/pwd`/../${{ARTIFACT_PATH}}key.pem;'
+                'ansible-playbook '
+                '-vvvv '
+                '--private-key=$PRIVATE_KEY '
+                '--user=ubuntu '
+                '--module-path=configuration/playbooks/library '
+                '-i ../target/ansible_inventory '
+                '-e @../target/launch_info.yml '
+                '-e @../{secure_dir}/ansible/vars/${{DEPLOYMENT}}.yml '
+                '-e @../{secure_dir}/ansible/vars/${{EDX_ENVIRONMENT}}-${{DEPLOYMENT}}.yml '
+                '-e cache_id=$GO_PIPELINE_COUNTER '
+                '-e PROGRAMS_VERSION=$APP_VERSION '
+                '-e programs_repo=$APP_REPO '
+                '-e disable_edx_services=true '
+                '-e COMMON_TAG_EC2_INSTANCE=true '
+                '{playbook_path}'.format(
+                    secure_dir=secure_dir,
+                    playbook_path=playbook_path,
+                )
+            ],
+            working_dir='configuration'
+        )
+    )
+
