@@ -1,14 +1,14 @@
 #!/usr/bin/env python
 import sys
-from os import path
-sys.path.append( path.dirname( path.dirname( path.dirname( path.abspath(__file__) ) ) ) )
-
-from gomatic import *
-from edxpipelines.patterns import stages
-
 import click
-import edxpipelines.utils as utils
+from os import path
+from gomatic import *
 
+# Used to import edxpipelines files - since the module is not installed.
+sys.path.append(path.dirname(path.dirname(path.dirname(path.abspath(__file__)))))
+
+import edxpipelines.utils as utils
+from edxpipelines.patterns import stages
 
 
 @click.command()
@@ -32,13 +32,13 @@ def install_pipeline(save_config_locally, dry_run, variable_files, cmd_line_vars
     """
 
     config = utils.merge_files_and_dicts(variable_files, list(cmd_line_vars,))
-    
+
     configurator = GoCdConfigurator(HostRestClient(config['gocd_username'], config['gocd_username'], config['gocd_password'], ssl=True))
 
     pipeline = configurator.ensure_pipeline_group(config['pipeline_group'])\
-    	                   .ensure_replacement_of_pipeline(config['pipeline_name'])\
-    	                   .set_timer(config['cron_timer'])\
-    	                   .set_git_material(GitMaterial("https://github.com/edx/tubular.git", polling=False, destination_directory="tubular"))
+                           .ensure_replacement_of_pipeline(config['pipeline_name'])\
+                           .set_timer(config['cron_timer'])\
+                           .set_git_material(GitMaterial("https://github.com/edx/tubular.git", polling=False, destination_directory="tubular"))
 
     stages.generate_asg_cleanup(pipeline, config['asgard_api_endpoints'], config['asgard_token'], config['aws_access_key_id'], config['aws_secret_access_key'])
     configurator.save_updated_config(save_config_locally=save_config_locally, dry_run=dry_run)

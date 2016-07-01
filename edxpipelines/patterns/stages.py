@@ -105,13 +105,17 @@ def generate_basic_deploy_ami(pipeline,
     Returns:
         gomatic.Pipeline
     """
-    pipeline.ensure_environment_variables({
+    pipeline.ensure_environment_variables(
+        {
             'ASGARD_API_ENDPOINTS': asgard_api_endpoints
-        }).ensure_encrypted_environment_variables({
+        }
+    ).ensure_encrypted_environment_variables(
+        {
             'ASGARD_API_TOKEN': asgard_token,
             'AWS_ACCESS_KEY_ID': aws_access_key_id,
             'AWS_SECRET_ACCESS_KEY': aws_secret_access_key,
-        })
+        }
+    )
 
     stage = pipeline.ensure_stage(DEPLOY_AMI_STAGE_NAME).set_has_manual_approval()
     job = stage.ensure_job(DEPLOY_AMI_JOB_NAME)

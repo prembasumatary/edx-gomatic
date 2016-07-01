@@ -6,9 +6,12 @@ from copy import copy
 class MergeConflict(Exception):
     pass
 
-ArtifactLocation = namedtuple("ArtifactLocation",[
-            'pipeline', 'stage', 'job', 'file_name',
-        ])
+ArtifactLocation = namedtuple(
+    "ArtifactLocation",
+    [
+        'pipeline', 'stage', 'job', 'file_name',
+    ]
+)
 
 
 def dict_merge(*args):

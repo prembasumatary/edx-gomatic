@@ -1,14 +1,15 @@
 #!/usr/bin/env python
 import sys
 from os import path
-# Used to import edxpipelines files - since the module is not installed.
-sys.path.append( path.dirname( path.dirname( path.dirname( path.abspath(__file__) ) ) ) )
-
 import click
+from gomatic import *
+
+# Used to import edxpipelines files - since the module is not installed.
+sys.path.append(path.dirname(path.dirname(path.dirname(path.abspath(__file__)))))
+
 import edxpipelines.utils as utils
 import edxpipelines.patterns.tasks as tasks
 import edxpipelines.patterns.stages as stages
-from gomatic import *
 
 
 @click.command()
@@ -93,10 +94,10 @@ def install_pipeline(save_config_locally, dry_run, variable_files, cmd_line_vars
                                                  'EC2_INSTANCE_TYPE': 't2.large',
                                                  'EC2_INSTANCE_PROFILE_NAME': config['ec2_instance_profile_name'],
                                                  'NO_REBOOT': 'no',
-                                                 'BASE_AMI_ID': config['base_ami_id'], # get the last built AMI or rebuild new
+                                                 'BASE_AMI_ID': config['base_ami_id'],  # get the last built AMI or rebuild new
                                                  'AMI_CREATION_TIMEOUT': '3600',
                                                  'AMI_WAIT': 'yes',
-                                                 'CACHE_ID': '1234', #gocd build number
+                                                 'CACHE_ID': '1234',  # gocd build number
                                                  'ARTIFACT_PATH': artifact_path,
                                                  'HIPCHAT_ROOM': 'release pipeline'})\
                   .ensure_encrypted_environment_variables({'HIPCHAT_TOKEN': config['hipchat_token'],
