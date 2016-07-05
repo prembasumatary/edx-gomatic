@@ -17,7 +17,8 @@ def generate_asg_cleanup(pipeline,
                          asgard_api_endpoints,
                          asgard_token,
                          aws_access_key_id,
-                         aws_secret_access_key):
+                         aws_secret_access_key,
+                         manual_approval=False):
     """
     Generates stage which calls the ASG cleanup script.
 
@@ -27,6 +28,8 @@ def generate_asg_cleanup(pipeline,
         asgard_token (str): Asgard token to use for authentication
         aws_access_key_id (str): AWS key ID for auth
         aws_secret_access_key (str): AWS secret key for auth
+        manual_approval (bool): Should this stage require manual approval?
+
     Returns:
         gomatic.Stage
     """
@@ -36,6 +39,8 @@ def generate_asg_cleanup(pipeline,
                                                      'AWS_SECRET_ACCESS_KEY': aws_secret_access_key})
 
     stage = pipeline.ensure_stage("ASG-Cleanup-Stage")
+    if manual_approval:
+        stage.set_has_manual_approval()
     job = stage.ensure_job("Cleanup-ASGS")
     tasks.generate_requirements_install(job, 'tubular')
     job.add_task(ExecTask(['/usr/bin/python', 'scripts/cleanup-asgs.py'], working_dir="tubular"))
@@ -43,17 +48,22 @@ def generate_asg_cleanup(pipeline,
     return stage
 
 
-def generate_build_ami(pipeline, playbook_path):
+def generate_build_ami(pipeline,
+                       playbook_path,
+                       manual_approval=False):
     """
     Generates a stage which builds an AMI after running a particular playbook against the instance.
 
     Args:
         pipeline (gomatic.Pipeline):
         playbook_path (str): path to the configuration playbook, relative to the top-level configuration dir, ex. 'playbooks/edx-east/programs.yml'
+        manual_approval (bool): does this stage require manual approval?
     Returns:
         gomatic.Stage
     """
     stage = pipeline.ensure_stage(BUILD_AMI_STAGE_NAME)
+    if manual_approval:
+        stage.set_has_manual_approval()
     job = stage.ensure_job(BUILD_AMI_JOB_NAME)\
                .ensure_artifacts(set([BuildArtifact('configuration'),
                                       BuildArtifact('target/config_secure_sha'),
@@ -91,7 +101,8 @@ def generate_basic_deploy_ami(pipeline,
                               asgard_token,
                               aws_access_key_id,
                               aws_secret_access_key,
-                              ami_file_location):
+                              ami_file_location,
+                              manual_approval=False):
     """
     Generates a stage which deploys an AMI via Asgard.
 
@@ -102,6 +113,7 @@ def generate_basic_deploy_ami(pipeline,
         aws_access_key_id (str):
         aws_secret_access_key (str):
         ami_file_location (ArtifactLocation): The location of yaml artifact that has the `ami_id`, so that we can fetch it.
+        manual_approval (bool): Should this stage require manual approval?
     Returns:
         gomatic.Stage
     """
@@ -117,7 +129,9 @@ def generate_basic_deploy_ami(pipeline,
         }
     )
 
-    stage = pipeline.ensure_stage(DEPLOY_AMI_STAGE_NAME).set_has_manual_approval()
+    stage = pipeline.ensure_stage(DEPLOY_AMI_STAGE_NAME)
+    if manual_approval:
+        stage.set_has_manual_approval()
     job = stage.ensure_job(DEPLOY_AMI_JOB_NAME)
     tasks.generate_requirements_install(job, 'tubular')
 
@@ -145,7 +159,8 @@ def generate_edp_validation(pipeline,
                             asgard_api_endpoints,
                             ami_deployment,
                             ami_environment,
-                            ami_play):
+                            ami_play,
+                            manual_approval=False):
     """
     Generate stage which checks an AMI's environment/deployment/play (EDP) against the allowed EDP.
     Stage fails if the EDPs don't match.
@@ -158,6 +173,7 @@ def generate_edp_validation(pipeline,
         ami_deployment (str): typically one of: [edx, edge, etc...]
         ami_environment (str): typically one of: [stage, prod, loadtest, etc...]
         ami_play (str):
+        manual_approval (bool): Should this stage require manual approval?
 
     Returns:
         gomatic.Stage
@@ -171,6 +187,8 @@ def generate_edp_validation(pipeline,
             .ensure_encrypted_environment_variables({'HIPCHAT_AUTH_TOKEN': hipchat_auth_token})
 
     stage = pipeline.ensure_stage("Validation")
+    if manual_approval:
+        stage.set_has_manual_approval()
     job = stage.ensure_job("EDPValidation")
     tasks.generate_requirements_install(job, 'tubular')
     job.add_task(
@@ -206,7 +224,8 @@ def generate_run_migrations(pipeline,
                             db_migration_pass,
                             artifact_path,
                             inventory_location,
-                            instance_key_location):
+                            instance_key_location,
+                            manual_approval=False):
     """
     Generate the stage that applies/runs migrations.
 
@@ -216,6 +235,7 @@ def generate_run_migrations(pipeline,
         artifact_path (str): Path where the artifacts can be found.
         inventory_location (ArtifactLocation): Location of inventory containing the IP address of the EC2 instance, for fetching.
         instance_key_location (ArtifactLocation): Location of SSH key used to access the EC2 instance, for fetching.
+        manual_approval (bool): Should this stage require manual approval?
 
     Returns:
         gomatic.Stage
@@ -236,6 +256,8 @@ def generate_run_migrations(pipeline,
     )
 
     stage = pipeline.ensure_stage('Apply-Migrations')
+    if manual_approval:
+        stage.set_has_manual_approval()
     job = stage.ensure_job('Apply_Migrations_Job')
 
     # Check out the requested version of configuration
@@ -280,7 +302,8 @@ def generate_run_migrations(pipeline,
 
 def generate_terminate_instance(pipeline,
                                 instance_info_location,
-                                runif='any'):
+                                runif='any',
+                                manual_approval=False):
     """
     Generate the stage that terminates an EC2 instance.
 
@@ -288,12 +311,15 @@ def generate_terminate_instance(pipeline,
         pipeline (gomatic.Pipeline): Pipeline to which to add the run migrations stage.
         instance_info_location (ArtifactLocation): Location of YAML file containing instance info from the AMI-building stage, for fetching.
         runif (str): one of ['passed', 'failed', 'any'] Default: any - controls when the stage's terminate task is triggered in the pipeline
+        manual_approval (bool): Should this stage require manual approval?
 
     Returns:
         gomatic.Stage
 
     """
     stage = pipeline.ensure_stage(TERMINATE_INSTANCE_STAGE_NAME)
+    if manual_approval:
+        stage.set_has_manual_approval()
     job = stage.ensure_job(TERMINATE_INSTANCE_JOB_NAME)
 
     # Fetch the instance info to use in reaching the EC2 instance.

@@ -148,7 +148,8 @@ def install_pipeline(save_config_locally, dry_run, variable_files, cmd_line_vars
         config['asgard_token'],
         config['aws_access_key_id'],
         config['aws_secret_access_key'],
-        ami_file_location
+        ami_file_location,
+        True
     )
 
     #
