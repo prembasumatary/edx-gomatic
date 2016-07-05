@@ -1,15 +1,14 @@
 #!/usr/bin/env python
 import sys
 from os import path
-sys.path.append( path.dirname( path.dirname( path.dirname( path.abspath(__file__) ) ) ) )
-
 import click
-import edxpipelines.utils as utils
-import edxpipelines.patterns.pipelines as pipelines
 from gomatic import *
 
+# Used to import edxpipelines files - since the module is not installed.
+sys.path.append(path.dirname(path.dirname(path.dirname(path.abspath(__file__)))))
 
-
+import edxpipelines.utils as utils
+import edxpipelines.patterns.pipelines as pipelines
 
 
 @click.command()
@@ -51,4 +50,3 @@ def install_pipeline(save_config_locally, dry_run, variable_files, cmd_line_vars
 
 if __name__ == "__main__":
     install_pipeline()
-

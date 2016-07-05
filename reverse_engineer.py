@@ -8,12 +8,13 @@ python -m reverse_engineer --ssl -s <server_address> -p <pipeline_name> --userna
 import sys
 from gomatic import go_cd_configurator
 
+
 # patch the as_python method to generate the python we would like to use
 def as_python(self, pipeline, with_save=True):
     head = "#!/usr/bin/env python\n\n" \
-             "from gomatic import *\n\n" \
-             "import click\n" \
-             "import edxpipelines.utils as utils\n\n\n"
+           "from gomatic import *\n\n" \
+           "import click\n" \
+           "import edxpipelines.utils as utils\n\n\n"
 
     head += "@click.command()\n"\
             "@click.option('--save-config', 'save_config_locally', envvar='SAVE_CONFIG', help='Save the pipeline configuration xml locally', required=False, default=False)\n"\
@@ -47,8 +48,5 @@ def host_rest_client_repr(self):
 go_cd_configurator.GoCdConfigurator.as_python = as_python
 go_cd_configurator.HostRestClient.__repr__ = host_rest_client_repr
 
-#call the main
+# call the main
 go_cd_configurator.main(sys.argv[1:])
-
-
-
