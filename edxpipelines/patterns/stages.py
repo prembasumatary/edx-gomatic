@@ -28,7 +28,7 @@ def generate_asg_cleanup(pipeline,
         aws_access_key_id (str): AWS key ID for auth
         aws_secret_access_key (str): AWS secret key for auth
     Returns:
-        gomatic.Pipeline
+        gomatic.Stage
     """
     pipeline.ensure_environment_variables({'ASGARD_API_ENDPOINTS': asgard_api_endpoints}) \
             .ensure_encrypted_environment_variables({'ASGARD_API_TOKEN': asgard_token,
@@ -40,7 +40,7 @@ def generate_asg_cleanup(pipeline,
     tasks.generate_requirements_install(job, 'tubular')
     job.add_task(ExecTask(['/usr/bin/python', 'scripts/cleanup-asgs.py'], working_dir="tubular"))
 
-    return pipeline
+    return stage
 
 
 def generate_build_ami(pipeline, playbook_path):
@@ -51,7 +51,7 @@ def generate_build_ami(pipeline, playbook_path):
         pipeline (gomatic.Pipeline):
         playbook_path (str): path to the configuration playbook, relative to the top-level configuration dir, ex. 'playbooks/edx-east/programs.yml'
     Returns:
-        gomatic.Pipeline
+        gomatic.Stage
     """
     stage = pipeline.ensure_stage(BUILD_AMI_STAGE_NAME)
     job = stage.ensure_job(BUILD_AMI_JOB_NAME)\
@@ -83,7 +83,7 @@ def generate_build_ami(pipeline, playbook_path):
     # Cleanup EC2 instance if launching the instance failed.
     tasks.generate_ami_cleanup(job, runif='failed')
 
-    return pipeline
+    return stage
 
 
 def generate_basic_deploy_ami(pipeline,
@@ -103,7 +103,7 @@ def generate_basic_deploy_ami(pipeline,
         aws_secret_access_key (str):
         ami_file_location (ArtifactLocation): The location of yaml artifact that has the `ami_id`, so that we can fetch it.
     Returns:
-        gomatic.Pipeline
+        gomatic.Stage
     """
     pipeline.ensure_environment_variables(
         {
@@ -136,7 +136,7 @@ def generate_basic_deploy_ami(pipeline,
             '--config-file', ami_file_location.file_name,
         ],
         working_dir="tubular"))
-    return pipeline
+    return stage
 
 
 def generate_edp_validation(pipeline,
@@ -160,7 +160,7 @@ def generate_edp_validation(pipeline,
         ami_play (str):
 
     Returns:
-        gomatic.Pipeline
+        gomatic.Stage
     """
     pipeline.ensure_environment_variables({'AMI_ID': None,
                                            'AMI_DEPLOYMENT': ami_deployment,
@@ -199,7 +199,7 @@ def generate_edp_validation(pipeline,
         )
     )
 
-    return pipeline
+    return stage
 
 
 def generate_run_migrations(pipeline,
@@ -218,7 +218,7 @@ def generate_run_migrations(pipeline,
         instance_key_location (ArtifactLocation): Location of SSH key used to access the EC2 instance, for fetching.
 
     Returns:
-        gomatic.Pipeline
+        gomatic.Stage
     """
     pipeline.ensure_environment_variables(
         {
@@ -275,7 +275,7 @@ def generate_run_migrations(pipeline,
     # Cleanup EC2 instance if running the migrations failed.
     tasks.generate_ami_cleanup(job, runif='failed')
 
-    return pipeline
+    return stage
 
 
 def generate_terminate_instance(pipeline,
@@ -290,7 +290,7 @@ def generate_terminate_instance(pipeline,
         runif (str): one of ['passed', 'failed', 'any'] Default: any - controls when the stage's terminate task is triggered in the pipeline
 
     Returns:
-        gomatic.Pipeline
+        gomatic.Stage
 
     """
     stage = pipeline.ensure_stage(TERMINATE_INSTANCE_STAGE_NAME)
@@ -308,4 +308,4 @@ def generate_terminate_instance(pipeline,
 
     tasks.generate_ami_cleanup(job, runif=runif)
 
-    return pipeline
+    return stage
