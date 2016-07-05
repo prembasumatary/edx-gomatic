@@ -83,7 +83,7 @@ def generate_create_edxapp_ami(job, runif="passed"):
 
     """
     job.ensure_artifacts(set([BuildArtifact("target/ami.yml")]))
-    job.add_task(
+    return job.add_task(
         ExecTask(
             [
                 '/bin/bash',
@@ -133,7 +133,7 @@ def generate_create_ami(job, runif="passed"):
 
     """
     job.ensure_artifacts(set([BuildArtifact("target/ami.yml")]))
-    job.add_task(
+    return job.add_task(
         ExecTask(
             [
                 '/bin/bash',
