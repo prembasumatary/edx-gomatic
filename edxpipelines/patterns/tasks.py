@@ -30,9 +30,10 @@ def generate_requirements_install(job, working_dir, runif="passed"):
 
 def generate_launch_instance(job, runif="passed"):
     """
-    Generate the launch AMI job. This ansible script generates 2 artifacts:
-        key.pem         - Key material generated for this instance launch
-        launch_info.yml -
+    Generate the launch AMI job. This ansible script generates 3 artifacts:
+        key.pem             - Private key material generated for this instance launch
+        launch_info.yml     - yaml file that contains information about the instance launched
+        ansible_inventory   - a list of private aws IP addresses that can be fed in to ansible to run playbooks
 
     Args:
         job (gomatic.job.Job): the gomatic job which to add the launch instance task
