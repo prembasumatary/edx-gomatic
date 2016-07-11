@@ -530,6 +530,7 @@ def generate_run_migrations(pipeline,
                             artifact_path,
                             inventory_location,
                             instance_key_location,
+                            launch_info_location,
                             manual_approval=False):
     """
     Generate the stage that applies/runs migrations.
@@ -540,6 +541,7 @@ def generate_run_migrations(pipeline,
         artifact_path (str): Path where the artifacts can be found.
         inventory_location (ArtifactLocation): Location of inventory containing the IP address of the EC2 instance, for fetching.
         instance_key_location (ArtifactLocation): Location of SSH key used to access the EC2 instance, for fetching.
+        launch_info_location (ArtifactLocation): Location of the launch_info.yml file for fetching
         manual_approval (bool): Should this stage require manual approval?
 
     Returns:
@@ -593,10 +595,10 @@ def generate_run_migrations(pipeline,
 
     # fetch the launch_info.yml
     artifact_params = {
-        "pipeline": inventory_location.pipeline,
-        "stage": inventory_location.stage,
-        "job": inventory_location.job,
-        "src": FetchArtifactFile("launch_info.yml"),
+        "pipeline": launch_info_location.pipeline,
+        "stage": launch_info_location.stage,
+        "job": launch_info_location.job,
+        "src": FetchArtifactFile(launch_info_location.file_name),
         "dest": "target"
     }
     job.add_task(FetchArtifactTask(**artifact_params))

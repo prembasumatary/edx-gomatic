@@ -128,11 +128,18 @@ def install_pipeline(save_config_locally, dry_run, variable_files, cmd_line_vars
         stages.BUILD_AMI_JOB_NAME,
         'key.pem'
     )
+    launch_info_location = utils.ArtifactLocation(
+        pipeline.name,
+        stages.LAUNCH_INSTANCE_STAGE_NAME,
+        stages.LAUNCH_INSTANCE_JOB_NAME,
+        'launch_info.yml'
+    )
     stages.generate_run_migrations(pipeline,
                                    config['db_migration_pass'],
                                    artifact_path,
                                    ansible_inventory_location,
-                                   instance_ssh_key_location)
+                                   instance_ssh_key_location,
+                                   launch_info_location)
     #
     # Create the stage to deploy the programs AMI.
     #
