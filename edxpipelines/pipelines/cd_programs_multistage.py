@@ -64,7 +64,7 @@ def install_pipeline(save_config_locally, dry_run, variable_files, cmd_line_vars
 
     gcc = GoCdConfigurator(HostRestClient(config['gocd_url'], config['gocd_username'], config['gocd_password'], ssl=True))
     pipeline = gcc.ensure_pipeline_group('DeployTesting')\
-                  .ensure_replacement_of_pipeline('loadtest-edx-programs-cd')\
+                  .ensure_replacement_of_pipeline('loadtest-multistage-edx-programs-cd')\
                   .ensure_material(GitMaterial('https://github.com/edx/tubular',
                                                material_name='tubular',
                                                polling=False,
@@ -76,56 +76,58 @@ def install_pipeline(save_config_locally, dry_run, variable_files, cmd_line_vars
                                                # NOTE if you want to change this, you should set the
                                                # CONFIGURATION_VERSION environment variable instead
                                                destination_directory='configuration'))\
-                  .ensure_environment_variables({'PLAY': 'programs',
-                                                 'DEPLOYMENT': 'edx',
-                                                 'EDX_ENVIRONMENT': 'loadtest',
-                                                 'APP_REPO': 'https://github.com/edx/programs.git',
-                                                 'APP_VERSION': 'pipeline/build_migrate_deploy',
-                                                 'CONFIGURATION_REPO': 'https://github.com/edx/configuration.git',
-                                                 'CONFIGURATION_VERSION': 'master',
-                                                 'CONFIGURATION_SECURE_REPO': config['configuration_secure_repo'],
-                                                 'CONFIGURATION_SECURE_VERSION': 'master',
-                                                 'EC2_VPC_SUBNET_ID': config['ec2_vpc_subnet_id'],
-                                                 'EC2_SECURITY_GROUP_ID': config['ec2_security_group_id'],
-                                                 'EC2_ASSIGN_PUBLIC_IP': 'no',
-                                                 'EC2_TIMEOUT': '300',
-                                                 'EC2_REGION': 'us-east-1',
-                                                 'EBS_VOLUME_SIZE': '50',
-                                                 'EC2_INSTANCE_TYPE': 't2.large',
-                                                 'EC2_INSTANCE_PROFILE_NAME': config['ec2_instance_profile_name'],
-                                                 'NO_REBOOT': 'no',
-                                                 'BASE_AMI_ID': config['base_ami_id'],  # get the last built AMI or rebuild new
-                                                 'AMI_CREATION_TIMEOUT': '3600',
-                                                 'AMI_WAIT': 'yes',
-                                                 'CACHE_ID': '1234',  # gocd build number
-                                                 'ARTIFACT_PATH': artifact_path,
-                                                 'HIPCHAT_ROOM': 'release pipeline'})\
-                  .ensure_encrypted_environment_variables({'HIPCHAT_TOKEN': config['hipchat_token'],
-                                                           'PRIVATE_GITHUB_KEY': config['github_private_key'],
-                                                           'AWS_ACCESS_KEY_ID': config['aws_access_key_id'],
-                                                           'AWS_SECRET_ACCESS_KEY': config['aws_secret_access_key']})
 
     #
     # Create the AMI-building stage.
     #
-    stages.generate_build_ami_single_stage(
-        pipeline,
-        'playbooks/edx-east/programs.yml'
-    )
+    stages.generate_launch_instance(pipeline,
+                                    config['aws_access_key_id'],
+                                    config['aws_secret_access_key'],
+                                    config['ec2_vpc_subnet_id'],
+                                    config['ec2_security_group_id'],
+                                    config['ec2_instance_profile_name'],
+                                    config['base_ami_id']
+                                    )
+
+    stages.generate_run_play(pipeline,
+                             'playbooks/edx-east/programs.yml',
+                             play='programs',
+                             deployment='edx',
+                             edx_environment='loadtest',
+                             private_github_key=config['github_private_key'],
+                             app_repo='https://github.com/edx/programs.git',
+                             configuration_secure_repo=config['configuration_secure_repo'],
+                             configuration_repo='https://github.com/edx/configuration.git',
+                             hipchat_auth_token=config['hipchat_token'],
+                             hipchat_room='release pipeline'
+                             )
+
+    stages.generate_create_ami_from_instance(pipeline,
+                                             play='programs',
+                                             deployment='edx',
+                                             edx_environment='loadtest',
+                                             app_repo='https://github.com/edx/programs.git',
+                                             configuration_secure_repo=config['configuration_secure_repo'],
+                                             configuration_repo='https://github.com/edx/configuration.git',
+                                             hipchat_auth_token=config['hipchat_token'],
+                                             hipchat_room='release pipeline',
+                                             aws_access_key_id=config['aws_access_key_id'],
+                                             aws_secret_access_key=config['aws_secret_access_key'],
+                                             )
 
     #
     # Create the DB migration running stage.
     #
     ansible_inventory_location = utils.ArtifactLocation(
         pipeline.name,
-        stages.BUILD_AMI_STAGE_NAME,
-        stages.BUILD_AMI_JOB_NAME,
+        stages.LAUNCH_INSTANCE_STAGE_NAME,
+        stages.LAUNCH_INSTANCE_JOB_NAME,
         'ansible_inventory'
     )
     instance_ssh_key_location = utils.ArtifactLocation(
         pipeline.name,
-        stages.BUILD_AMI_STAGE_NAME,
-        stages.BUILD_AMI_JOB_NAME,
+        stages.LAUNCH_INSTANCE_STAGE_NAME,
+        stages.LAUNCH_INSTANCE_JOB_NAME,
         'key.pem'
     )
     stages.generate_run_migrations(pipeline,
@@ -157,13 +159,17 @@ def install_pipeline(save_config_locally, dry_run, variable_files, cmd_line_vars
     #
     instance_info_location = utils.ArtifactLocation(
         pipeline.name,
-        stages.BUILD_AMI_STAGE_NAME,
-        stages.BUILD_AMI_JOB_NAME,
+        stages.LAUNCH_INSTANCE_STAGE_NAME,
+        stages.LAUNCH_INSTANCE_JOB_NAME,
         'launch_info.yml'
     )
     stages.generate_terminate_instance(
         pipeline,
-        instance_info_location
+        instance_info_location,
+        aws_access_key_id=config['aws_access_key_id'],
+        aws_secret_access_key=config['aws_secret_access_key'],
+        hipchat_auth_token=config['hipchat_token'],
+        runif='any'
     )
 
     gcc.save_updated_config(save_config_locally=save_config_locally, dry_run=dry_run)

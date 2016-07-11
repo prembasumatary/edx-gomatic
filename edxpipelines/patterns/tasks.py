@@ -217,9 +217,8 @@ def generate_run_migrations(job, runif="passed"):
         The newly created task (gomatic.gocd.tasks.ExecTask)
 
     """
-    # TODO: Fix this path!
-    job.ensure_artifacts(set([BuildArtifact('configuration/playbooks/continuous_delivery/target/unapplied_migrations.yml'),
-                              BuildArtifact('configuration/playbooks/continuous_delivery/target/migration_output.yml')]))
+    job.ensure_artifacts(set([BuildArtifact('target/unapplied_migrations.yml'),
+                              BuildArtifact('target/migration_output.yml')]))
     return job.add_task(
         ExecTask(
             [
@@ -236,7 +235,7 @@ def generate_run_migrations(job, runif="passed"):
                 '-e APPLICATION_PATH=$APPLICATION_PATH '
                 '-e APPLICATION_NAME=$APPLICATION_NAME '
                 '-e APPLICATION_USER=$APPLICATION_USER '
-                '-e ARTIFACT_PATH=$ARTIFACT_PATH '
+                '-e ARTIFACT_PATH=`/bin/pwd`/../../../$ARTIFACT_PATH/ '
                 '-e DB_MIGRATION_USER=$DB_MIGRATION_USER '
                 '-e DB_MIGRATION_PASS=$DB_MIGRATION_PASS '
                 'run_migrations.yml'
@@ -299,11 +298,24 @@ def fetch_secure_configuration(job, secure_dir, runif="passed"):
                 '/usr/bin/git clone $CONFIGURATION_SECURE_REPO {secure_dir} && '
                 'cd {secure_dir} && '
                 '/usr/bin/git checkout $CONFIGURATION_SECURE_VERSION && '
-                'mkdir ../target/ && '
+                '[ -d ../target/ ] && echo "Directory Exists" || mkdir ../target/ && '
                 '/usr/bin/git rev-parse HEAD > ../target/config_secure_sha'.format(
                     secure_dir=secure_dir
                 )
             ]
+        )
+    )
+
+
+def generate_target_directory(job, directory_name="target", runif="passed"):
+    return job.add_task(
+        ExecTask(
+            [
+                '/bin/bash',
+                '-c ',
+                '[ -d {0} ] && echo "Directory Exists" || mkdir {0} '.format(directory_name)
+            ],
+            runif=runif
         )
     )
 
@@ -327,9 +339,10 @@ def generate_run_app_playbook(job, secure_dir, playbook_path, runif="passed"):
             [
                 '/bin/bash',
                 '-c',
+                'chmod 600 ../${{ARTIFACT_PATH}}/key.pem;'
                 'export ANSIBLE_HOST_KEY_CHECKING=False;'
                 'export ANSIBLE_SSH_ARGS="-o ControlMaster=auto -o ControlPersist=30m";'
-                'PRIVATE_KEY=`/bin/pwd`/../${{ARTIFACT_PATH}}key.pem;'
+                'PRIVATE_KEY=`/bin/pwd`/../${{ARTIFACT_PATH}}/key.pem;'
                 'ansible-playbook '
                 '-vvvv '
                 '--private-key=$PRIVATE_KEY '
