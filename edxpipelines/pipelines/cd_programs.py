@@ -8,8 +8,9 @@ from gomatic import *
 sys.path.append(path.dirname(path.dirname(path.dirname(path.abspath(__file__)))))
 
 import edxpipelines.utils as utils
-import edxpipelines.patterns.tasks as tasks
 import edxpipelines.patterns.stages as stages
+import edxpipelines.constants as constants
+
 
 
 @click.command()
@@ -118,20 +119,20 @@ def install_pipeline(save_config_locally, dry_run, variable_files, cmd_line_vars
     #
     ansible_inventory_location = utils.ArtifactLocation(
         pipeline.name,
-        stages.BUILD_AMI_STAGE_NAME,
-        stages.BUILD_AMI_JOB_NAME,
+        constants.BUILD_AMI_STAGE_NAME,
+        constants.BUILD_AMI_JOB_NAME,
         'ansible_inventory'
     )
     instance_ssh_key_location = utils.ArtifactLocation(
         pipeline.name,
-        stages.BUILD_AMI_STAGE_NAME,
-        stages.BUILD_AMI_JOB_NAME,
+        constants.BUILD_AMI_STAGE_NAME,
+        constants.BUILD_AMI_JOB_NAME,
         'key.pem'
     )
     launch_info_location = utils.ArtifactLocation(
         pipeline.name,
-        stages.LAUNCH_INSTANCE_STAGE_NAME,
-        stages.LAUNCH_INSTANCE_JOB_NAME,
+        constants.LAUNCH_INSTANCE_STAGE_NAME,
+        constants.LAUNCH_INSTANCE_JOB_NAME,
         'launch_info.yml'
     )
     stages.generate_run_migrations(pipeline,
@@ -145,8 +146,8 @@ def install_pipeline(save_config_locally, dry_run, variable_files, cmd_line_vars
     #
     ami_file_location = utils.ArtifactLocation(
         pipeline.name,
-        stages.BUILD_AMI_STAGE_NAME,
-        stages.BUILD_AMI_JOB_NAME,
+        constants.BUILD_AMI_STAGE_NAME,
+        constants.BUILD_AMI_JOB_NAME,
         'ami.yml'
     )
     stages.generate_basic_deploy_ami(
@@ -164,8 +165,8 @@ def install_pipeline(save_config_locally, dry_run, variable_files, cmd_line_vars
     #
     instance_info_location = utils.ArtifactLocation(
         pipeline.name,
-        stages.BUILD_AMI_STAGE_NAME,
-        stages.BUILD_AMI_JOB_NAME,
+        constants.BUILD_AMI_STAGE_NAME,
+        constants.BUILD_AMI_JOB_NAME,
         'launch_info.yml'
     )
     stages.generate_terminate_instance(
