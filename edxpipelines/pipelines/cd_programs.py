@@ -12,7 +12,6 @@ import edxpipelines.patterns.stages as stages
 import edxpipelines.constants as constants
 
 
-
 @click.command()
 @click.option(
     '--save-config', 'save_config_locally',
