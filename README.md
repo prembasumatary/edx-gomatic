@@ -1,6 +1,7 @@
-# edx-pipelines go here
+# GoMatic scripts for edX pipelines
+This repository contains Python code which uses the Gomatic Python module to create pipelines and their stages, jobs, and tasks in GoCD. [Gomatic](https://github.com/SpringerSBM/gomatic) is a domain-specific language (DSL) which allows pipelines to be created via code under source control instead of via the GoCD web GUI. 
 
-## How to reverse-engineer a pipline
+## How to reverse-engineer a pipeline
 ```
 python -m reverse_engineer --ssl -s <server_address> -p <pipeline_name> --username <username> --password <password> > new_script.py
 ```
@@ -10,12 +11,12 @@ python -m reverse_engineer --ssl -s <server_address> -p <pipeline_name> --userna
 python edxpipelines/pipelines/deploy_ami.py --variable_file ../gocd-pipelines/gocd/vars/tools/deploy_edge_ami.yml --variable_file ../gocd-pipelines/gocd/vars/tools/tools.yml
 ```
 
-You can also do a dry run of the script:
+For testing purposes, you can also perform a dry run of the script:
 ```
 python edxpipelines/pipelines/deploy_ami.py --dry-run --variable_file ../gocd-pipelines/gocd/vars/tools/deploy_edge_ami.yml --variable_file ../gocd-pipelines/gocd/vars/tools/tools.yml
 ```
 
-This will output 2 files:
+The dry run will output 2 files:
 - config-after.xml
 - config-before.xml
 
@@ -24,6 +25,6 @@ You can then diff these files:
 diff config-before.xml config-after.xml
 ```
 
-## Things to look out for
-- Currently any *Secure Variables* must be hashed first by the gocd server before putting them in the script
-- gocd tends to mangle long strings or strings that have carrage returns in them.
+## Cautions and Caveats
+- Currently any *Secure Variables* must be hashed first by the GoCD server before putting them in the script
+- GoCD tends to mangle long strings or strings that have carrage returns in them.
