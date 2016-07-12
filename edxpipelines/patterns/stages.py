@@ -546,10 +546,10 @@ def generate_run_migrations(pipeline,
         }
     )
 
-    stage = pipeline.ensure_stage('Apply-Migrations')
+    stage = pipeline.ensure_stage(constants.APPLY_MIGRATIONS_STAGE)
     if manual_approval:
         stage.set_has_manual_approval()
-    job = stage.ensure_job('Apply_Migrations_Job')
+    job = stage.ensure_job(constants.APPLY_MIGRATIONS_JOB)
 
     # Check out the requested version of configuration
     tasks.guarantee_configuration_version(job)

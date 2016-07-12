@@ -11,6 +11,8 @@ LAUNCH_INSTANCE_STAGE_NAME = 'launch_instance'
 LAUNCH_INSTANCE_JOB_NAME = 'launch_instance_job'
 RUN_PLAY_STAGE_NAME = "run_play"
 RUN_PLAY_JOB_NAME = "run_play_job"
+APPLY_MIGRATIONS_STAGE = 'apply_migrations'
+APPLY_MIGRATIONS_JOB = 'apply_migrations_job'
 
 # Defaults
 ARTIFACT_PATH = 'target'
