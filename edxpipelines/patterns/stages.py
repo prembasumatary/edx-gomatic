@@ -67,6 +67,9 @@ def generate_launch_instance(pipeline,
         launch_info.yml     - yaml file that contains information about the instance launched
         ansible_inventory   - a list of private aws IP addresses that can be fed in to ansible to run playbooks
 
+        Please check here for further information:
+        https://github.com/edx/configuration/blob/master/playbooks/continuous_delivery/launch_instance.yml
+
     Args:
         pipeline (gomatic.Pipeline):
         aws_access_key_id (str): AWS key ID for auth
