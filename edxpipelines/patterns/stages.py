@@ -1,16 +1,6 @@
 from gomatic import *
 import edxpipelines.patterns.tasks as tasks
-
-
-# Names for the standard stages/jobs
-DEPLOY_AMI_STAGE_NAME = 'Deploy-AMI'
-DEPLOY_AMI_JOB_NAME = 'Deploy_AMI_Job'
-RUN_MIGRATIONS_STAGE_NAME = 'Apply-Migrations'
-RUN_MIGRATIONS_JOB_NAME = 'Apply_Migrations_Job'
-BUILD_AMI_STAGE_NAME = 'Build-AMI'
-BUILD_AMI_JOB_NAME = 'Build_AMI_Job'
-TERMINATE_INSTANCE_STAGE_NAME = 'Cleanup-AMI-Instance'
-TERMINATE_INSTANCE_JOB_NAME = 'Cleanup_AMI_Instance_Job'
+import edxpipelines.constants as constants
 
 
 def generate_asg_cleanup(pipeline,
@@ -33,48 +23,346 @@ def generate_asg_cleanup(pipeline,
     Returns:
         gomatic.Stage
     """
-    pipeline.ensure_environment_variables({'ASGARD_API_ENDPOINTS': asgard_api_endpoints}) \
-            .ensure_encrypted_environment_variables({'ASGARD_API_TOKEN': asgard_token,
-                                                     'AWS_ACCESS_KEY_ID': aws_access_key_id,
-                                                     'AWS_SECRET_ACCESS_KEY': aws_secret_access_key})
+    pipeline.ensure_environment_variables({'ASGARD_API_ENDPOINTS': asgard_api_endpoints})
+    pipeline.ensure_encrypted_environment_variables(
+        {
+            'ASGARD_API_TOKEN': asgard_token,
+            'AWS_ACCESS_KEY_ID': aws_access_key_id,
+            'AWS_SECRET_ACCESS_KEY': aws_secret_access_key
+        }
+    )
 
     stage = pipeline.ensure_stage("ASG-Cleanup-Stage")
     if manual_approval:
         stage.set_has_manual_approval()
+
     job = stage.ensure_job("Cleanup-ASGS")
     tasks.generate_requirements_install(job, 'tubular')
-    job.add_task(ExecTask(['/usr/bin/python', 'scripts/cleanup-asgs.py'], working_dir="tubular"))
+    job.add_task(ExecTask(
+        [
+            '/usr/bin/python',
+            'scripts/cleanup-asgs.py'
+        ],
+        working_dir="tubular")
+    )
 
     return stage
 
 
-def generate_build_ami(pipeline,
-                       playbook_path,
-                       manual_approval=False):
+def generate_launch_instance(pipeline,
+                             aws_access_key_id,
+                             aws_secret_access_key,
+                             ec2_vpc_subnet_id,
+                             ec2_security_group_id,
+                             ec2_instance_profile_name,
+                             base_ami_id,
+                             manual_approval=False,
+                             ec2_region=constants.EC2_REGION,
+                             ec2_instance_type=constants.EC2_INSTANCE_TYPE,
+                             ec2_timeout=constants.EC2_LAUNCH_INSTANCE_TIMEOUT,
+                             ec2_ebs_volume_size=constants.EC2_EBS_VOLUME_SIZE):
+    """
+    Pattern to launch an AMI. Generates 3 artifacts:
+        key.pem             - Private key material generated for this instance launch
+        launch_info.yml     - yaml file that contains information about the instance launched
+        ansible_inventory   - a list of private aws IP addresses that can be fed in to ansible to run playbooks
+
+        Please check here for further information:
+        https://github.com/edx/configuration/blob/master/playbooks/continuous_delivery/launch_instance.yml
+
+    Args:
+        pipeline (gomatic.Pipeline):
+        aws_access_key_id (str): AWS key ID for auth
+        aws_secret_access_key (str): AWS secret key for auth
+        ec2_vpc_subnet_id (str):
+        ec2_security_group_id (str):
+        ec2_instance_profile_name (str):
+        base_ami_id (str): the ami-id used to launch the instance
+        manual_approval (bool): Should this stage require manual approval?
+        ec2_region (str):
+        ec2_instance_type (str):
+        ec2_timeout (str):
+        ec2_ebs_volume_size (str):
+
+    Returns:
+
+    """
+    pipeline.ensure_encrypted_environment_variables(
+        {
+            'AWS_ACCESS_KEY_ID': aws_access_key_id,
+            'AWS_SECRET_ACCESS_KEY': aws_secret_access_key
+        }
+    )
+
+    pipeline.ensure_environment_variables(
+        {
+            'EC2_VPC_SUBNET_ID': ec2_vpc_subnet_id,
+            'EC2_SECURITY_GROUP_ID': ec2_security_group_id,
+            'EC2_ASSIGN_PUBLIC_IP': 'no',
+            'EC2_TIMEOUT': ec2_timeout,
+            'EC2_REGION': ec2_region,
+            'EBS_VOLUME_SIZE': ec2_ebs_volume_size,
+            'EC2_INSTANCE_TYPE': ec2_instance_type,
+            'EC2_INSTANCE_PROFILE_NAME': ec2_instance_profile_name,
+            'NO_REBOOT': 'no',
+            'BASE_AMI_ID': base_ami_id,
+        }
+    )
+
+    stage = pipeline.ensure_stage(constants.LAUNCH_INSTANCE_STAGE_NAME)
+
+    if manual_approval:
+        stage.set_has_manual_approval()
+
+    # Install the requirements.
+    job = stage.ensure_job(constants.LAUNCH_INSTANCE_JOB_NAME)
+    tasks.generate_requirements_install(job, 'tubular')
+    tasks.generate_requirements_install(job, 'configuration')
+    tasks.generate_launch_instance(job)
+
+    return stage
+
+
+def generate_run_play(pipeline,
+                      playbook_path,
+                      play,
+                      deployment,
+                      edx_environment,
+                      app_repo,
+                      configuration_secure_repo,
+                      private_github_key='',
+                      configuration_repo=constants.PUBLIC_CONFIGURATION_REPO_URL,
+                      app_version=constants.APP_REPO_BRANCH,
+                      configuration_version=constants.PUBLIC_CONFIGURATION_REPO_BRANCH,
+                      configuration_secure_version=constants.PRIVATE_CONFIGURATION_REPO_BRANCH,
+                      hipchat_auth_token='',
+                      hipchat_room=constants.HIPCHAT_ROOM,
+                      manual_approval=False):
+    """
+    Pattern assumes that generate_launch_instance stage was used launch the instance preceding this stage.
+    Requires the ansible_inventory and key.pem files to be in the target/ directory
+
+    Args:
+        pipeline (gomatic.Pipeline):
+        playbook_path (str):
+        play (str):
+        deployment (str):
+        edx_environment (str):
+        app_repo(str) :
+        configuration_secure_repo (str):
+        private_github_key (str):
+        configuration_repo (str):
+        app_version (str):
+        configuration_version (str):
+        configuration_secure_version (str):
+        hipchat_auth_token (str):
+        hipchat_room (str):
+        manual_approval (bool):
+
+    Returns:
+        gomatic.Stage
+    """
+    # setup the necessary environment variables
+    pipeline.ensure_encrypted_environment_variables(
+        {
+            'HIPCHAT_AUTH_TOKEN': hipchat_auth_token,
+            'PRIVATE_GITHUB_KEY': private_github_key
+        }
+    )
+    pipeline.ensure_environment_variables(
+        {
+            'PLAY': play,
+            'DEPLOYMENT': deployment,
+            'EDX_ENVIRONMENT': edx_environment,
+            'APP_REPO': app_repo,
+            'APP_VERSION': app_version,
+            'CONFIGURATION_REPO': configuration_repo,
+            'CONFIGURATION_VERSION': configuration_version,
+            'CONFIGURATION_SECURE_REPO': configuration_secure_repo,
+            'CONFIGURATION_SECURE_VERSION': configuration_secure_version,
+            'ARTIFACT_PATH': 'target/',
+            'HIPCHAT_ROOM': hipchat_room
+        }
+    )
+
+    stage = pipeline.ensure_stage(constants.RUN_PLAY_STAGE_NAME)
+    if manual_approval:
+        stage.set_has_manual_approval()
+
+    # Install the requirements.
+    job = stage.ensure_job(constants.RUN_PLAY_JOB_NAME)
+    tasks.generate_requirements_install(job, 'tubular')
+    tasks.generate_requirements_install(job, 'configuration')
+    tasks.generate_target_directory(job)
+
+    # fetch the key material
+    artifact_params = {
+        "pipeline": pipeline.name,
+        "stage": constants.LAUNCH_INSTANCE_STAGE_NAME,
+        "job": constants.LAUNCH_INSTANCE_JOB_NAME,
+        "src": FetchArtifactFile("key.pem"),
+        "dest": "target"
+    }
+    job.add_task(FetchArtifactTask(**artifact_params))
+
+    # fetch the launch_info.yml
+    artifact_params['src'] = FetchArtifactFile("launch_info.yml")
+    job.add_task(FetchArtifactTask(**artifact_params))
+
+    # fetch the inventory file
+    artifact_params['src'] = FetchArtifactFile("ansible_inventory")
+    job.add_task(FetchArtifactTask(**artifact_params))
+
+    # Setup secure configuration for any needed secrets.
+    secure_dir = constants.PRIVATE_CONFIGURATION_LOCAL_DIR
+    tasks.fetch_secure_configuration(job, secure_dir)
+
+    # Check out the requested version of configuration.
+    # Required if a particular SHA hash is needed.
+    tasks.guarantee_configuration_version(job)
+
+    tasks.generate_run_app_playbook(job, secure_dir, playbook_path)
+    return stage
+
+
+def generate_create_ami_from_instance(pipeline,
+                                      play,
+                                      deployment,
+                                      edx_environment,
+                                      app_repo,
+                                      configuration_secure_repo,
+                                      aws_access_key_id,
+                                      aws_secret_access_key,
+                                      configuration_repo=constants.PUBLIC_CONFIGURATION_REPO_URL,
+                                      app_version=constants.APP_REPO_BRANCH,
+                                      configuration_version=constants.PUBLIC_CONFIGURATION_REPO_BRANCH,
+                                      configuration_secure_version=constants.PRIVATE_CONFIGURATION_REPO_BRANCH,
+                                      ami_creation_timeout="3600",
+                                      ami_wait='yes',
+                                      cache_id='',
+                                      artifact_path=constants.ARTIFACT_PATH,
+                                      hipchat_room=constants.HIPCHAT_ROOM,
+                                      manual_approval=False,
+                                      **kwargs):
+    """
+    Generates an artifact ami.yml:
+        ami_id: ami-abcdefg
+        ami_message: AMI creation operation complete
+        ami_state: available
+
+    Args:
+        pipeline (gomatic.Pipeline):
+        play (str): Play that was run on the instance (used for tagging)
+        deployment (str):
+        edx_environment (str):
+        app_repo (str):
+        configuration_secure_repo (str):
+        aws_access_key_id (str):
+        aws_secret_access_key (str):
+        configuration_repo (str):
+        app_version (str):
+        configuration_version (str):
+        configuration_secure_version (str):
+        ami_creation_timeout (str):
+        ami_wait (str):
+        cache_id (str):
+        artifact_path (str):
+        hipchat_room (str):
+        manual_approval (bool):
+        **kwargs:
+
+    Returns:
+        gomatic.Stage
+    """
+    stage = pipeline.ensure_stage(constants.BUILD_AMI_STAGE_NAME)
+    if manual_approval:
+        stage.set_has_manual_approval()
+    pipeline.ensure_encrypted_environment_variables(
+        {
+            'AWS_ACCESS_KEY_ID': aws_access_key_id,
+            'AWS_SECRET_ACCESS_KEY': aws_secret_access_key
+        }
+    )
+    variables = {
+        'PLAY': play,
+        'DEPLOYMENT': deployment,
+        'EDX_ENVIRONMENT': edx_environment,
+        'APP_REPO': app_repo,
+        'APP_VERSION': app_version,
+        'CONFIGURATION_REPO': configuration_repo,
+        'CONFIGURATION_VERSION': configuration_version,
+        'CONFIGURATION_SECURE_REPO': configuration_secure_repo,
+        'CONFIGURATION_SECURE_VERSION': configuration_secure_version,
+        'AMI_CREATION_TIMEOUT': ami_creation_timeout,
+        'AMI_WAIT': ami_wait,
+        'CACHE_ID': cache_id,  # gocd build number
+        'ARTIFACT_PATH': artifact_path,
+        'HIPCHAT_ROOM': hipchat_room,
+    }
+
+    # TODO: it would be good if we could pass in additional k/v pairs as argumentsthat could then be passed to
+    # the ansible script being run using -e
+    # variables.update(kwargs)
+
+    pipeline.ensure_environment_variables(variables)
+
+    # Install the requirements.
+    job = stage.ensure_job(constants.BUILD_AMI_JOB_NAME)
+    tasks.generate_requirements_install(job, 'tubular')
+    tasks.generate_requirements_install(job, 'configuration')
+
+    tasks.generate_target_directory(job)
+
+    # fetch the key material
+    artifact_params = {
+        "pipeline": pipeline.name,
+        "stage": constants.LAUNCH_INSTANCE_STAGE_NAME,
+        "job": constants.LAUNCH_INSTANCE_JOB_NAME,
+        "src": FetchArtifactFile("launch_info.yml"),
+        "dest": 'target'
+    }
+    job.add_task(FetchArtifactTask(**artifact_params))
+
+    # Create an AMI from the instance
+    tasks.generate_create_ami(job)
+
+    return stage
+
+
+def generate_build_ami_single_stage(pipeline,
+                                    playbook_path,
+                                    manual_approval=False):
     """
     Generates a stage which builds an AMI after running a particular playbook against the instance.
 
     Args:
         pipeline (gomatic.Pipeline):
-        playbook_path (str): path to the configuration playbook, relative to the top-level configuration dir, ex. 'playbooks/edx-east/programs.yml'
+        playbook_path (str): path to the configuration playbook, relative to the top-level configuration dir,
+                              ex. 'playbooks/edx-east/programs.yml'
         manual_approval (bool): does this stage require manual approval?
+
     Returns:
         gomatic.Stage
     """
-    stage = pipeline.ensure_stage(BUILD_AMI_STAGE_NAME)
+    stage = pipeline.ensure_stage(constants.BUILD_AMI_STAGE_NAME)
     if manual_approval:
         stage.set_has_manual_approval()
-    job = stage.ensure_job(BUILD_AMI_JOB_NAME)\
-               .ensure_artifacts(set([BuildArtifact('configuration'),
-                                      BuildArtifact('target/config_secure_sha'),
-                                      BuildArtifact('tubular')]))
+
+    job = stage.ensure_job(constants.BUILD_AMI_JOB_NAME)
+    job.ensure_artifacts(
+        [
+            BuildArtifact('configuration'),
+            BuildArtifact('target/config_secure_sha'),
+            BuildArtifact('tubular')
+        ]
+    )
 
     # Install the requirements.
     tasks.generate_requirements_install(job, 'tubular')
     tasks.generate_requirements_install(job, 'configuration')
 
     # Setup secure configuration for any needed secrets.
-    secure_dir = 'secure_repo'
+    secure_dir = constants.PRIVATE_CONFIGURATION_LOCAL_DIR
     tasks.fetch_secure_configuration(job, secure_dir)
 
     # Check out the requested version of configuration.
@@ -129,10 +417,10 @@ def generate_basic_deploy_ami(pipeline,
         }
     )
 
-    stage = pipeline.ensure_stage(DEPLOY_AMI_STAGE_NAME)
+    stage = pipeline.ensure_stage(constants.DEPLOY_AMI_STAGE_NAME)
     if manual_approval:
         stage.set_has_manual_approval()
-    job = stage.ensure_job(DEPLOY_AMI_JOB_NAME)
+    job = stage.ensure_job(constants.DEPLOY_AMI_JOB_NAME)
     tasks.generate_requirements_install(job, 'tubular')
 
     artifact_params = {
@@ -143,6 +431,7 @@ def generate_basic_deploy_ami(pipeline,
         "dest": 'tubular'
     }
     job.add_task(FetchArtifactTask(**artifact_params))
+
     job.add_task(ExecTask(
         [
             '/usr/bin/python',
@@ -225,6 +514,7 @@ def generate_run_migrations(pipeline,
                             artifact_path,
                             inventory_location,
                             instance_key_location,
+                            launch_info_location,
                             manual_approval=False):
     """
     Generate the stage that applies/runs migrations.
@@ -235,6 +525,7 @@ def generate_run_migrations(pipeline,
         artifact_path (str): Path where the artifacts can be found.
         inventory_location (ArtifactLocation): Location of inventory containing the IP address of the EC2 instance, for fetching.
         instance_key_location (ArtifactLocation): Location of SSH key used to access the EC2 instance, for fetching.
+        launch_info_location (ArtifactLocation): Location of the launch_info.yml file for fetching
         manual_approval (bool): Should this stage require manual approval?
 
     Returns:
@@ -283,6 +574,19 @@ def generate_run_migrations(pipeline,
     }
     job.add_task(FetchArtifactTask(**artifact_params))
 
+    # ensure the target directoy exists
+    tasks.generate_target_directory(job)
+
+    # fetch the launch_info.yml
+    artifact_params = {
+        "pipeline": launch_info_location.pipeline,
+        "stage": launch_info_location.stage,
+        "job": launch_info_location.job,
+        "src": FetchArtifactFile(launch_info_location.file_name),
+        "dest": "target"
+    }
+    job.add_task(FetchArtifactTask(**artifact_params))
+
     # The SSH key used to access the EC2 instance needs specific permissions.
     job.add_task(
         ExecTask(
@@ -295,13 +599,19 @@ def generate_run_migrations(pipeline,
     tasks.generate_run_migrations(job)
 
     # Cleanup EC2 instance if running the migrations failed.
-    tasks.generate_ami_cleanup(job, runif='failed')
+    # I think this should be left for the terminate instance stage
+    # tasks.generate_ami_cleanup(job, runif='failed')
 
     return stage
 
 
 def generate_terminate_instance(pipeline,
                                 instance_info_location,
+                                aws_access_key_id,
+                                aws_secret_access_key,
+                                hipchat_auth_token,
+                                ec2_region=constants.EC2_REGION,
+                                artifact_path=constants.ARTIFACT_PATH,
                                 runif='any',
                                 manual_approval=False):
     """
@@ -317,10 +627,24 @@ def generate_terminate_instance(pipeline,
         gomatic.Stage
 
     """
-    stage = pipeline.ensure_stage(TERMINATE_INSTANCE_STAGE_NAME)
+    pipeline.ensure_encrypted_environment_variables(
+        {
+            'AWS_ACCESS_KEY_ID': aws_access_key_id,
+            'AWS_SECRET_ACCESS_KEY': aws_secret_access_key,
+            'HIPCHAT_TOKEN': hipchat_auth_token
+        }
+    )
+    pipeline.ensure_environment_variables(
+        {
+            'ARTIFACT_PATH': artifact_path,
+            'EC2_REGION': ec2_region,
+            'HIPCHAT_ROOM': constants.HIPCHAT_ROOM
+        }
+    )
+
+    stage = pipeline.ensure_stage(constants.TERMINATE_INSTANCE_STAGE_NAME)
     if manual_approval:
         stage.set_has_manual_approval()
-    job = stage.ensure_job(TERMINATE_INSTANCE_JOB_NAME)
 
     # Fetch the instance info to use in reaching the EC2 instance.
     artifact_params = {
@@ -330,6 +654,7 @@ def generate_terminate_instance(pipeline,
         "src": FetchArtifactFile(instance_info_location.file_name),
         "dest": 'target'
     }
+    job = stage.ensure_job(constants.TERMINATE_INSTANCE_JOB_NAME)
     job.add_task(FetchArtifactTask(**artifact_params))
 
     tasks.generate_ami_cleanup(job, runif=runif)
