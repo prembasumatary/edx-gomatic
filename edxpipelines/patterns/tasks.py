@@ -330,6 +330,10 @@ def fetch_secure_configuration(job, secure_dir, runif="passed"):
     """
     Setup the configuration-secure repo for use in providing secrets.
 
+    Stage using this task must have the following environment variables:
+        CONFIGURATION_SECURE_REPO
+        CONFIGURATION_SECURE_VERSION
+
     Args:
         job (gomatic.job.Job): the gomatic job to which the playbook run task will be added
         secure_dir (str): name of dir containing the edx-ops/configuration-secure repo
@@ -350,6 +354,10 @@ def fetch_secure_configuration(job, secure_dir, runif="passed"):
 def fetch_gomatic_secure(job, secure_dir, runif="passed"):
     """
     Setup the gomatic-secure repo for use in providing secrets.
+
+    Stage using this task must have the following environment variables:
+        GOMATIC_SECURE_REPO
+        GOMATIC_SECURE_VERSION
 
     Args:
         job (gomatic.job.Job): the gomatic job to which the task will be added
