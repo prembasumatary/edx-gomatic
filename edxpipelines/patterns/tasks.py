@@ -273,13 +273,16 @@ def guarantee_configuration_version(job, runif="passed"):
     )
 
 
-def fetch_secure_configuration(job, secure_dir, runif="passed"):
+def _fetch_secure_repo(job, secure_dir, secure_repo_envvar, secure_version_envvar, secure_repo_name, runif="passed"):
     """
-    Setup the configuration-secure repo for use in providing secrets.
+    Setup a secure repo for use in providing secrets.
 
     Args:
-        job (gomatic.job.Job): the gomatic job to which the playbook run task will be added
+        job (gomatic.job.Job): the gomatic job to which the task will be added
         secure_dir (str): name of dir containing the edx-ops/configuration-secure repo
+        secure_repo_envvar (str): HTTPS-based link to secure repo on GitHub
+        secure_version_envvar (str): GitHub ref identifying version of secure repo to use
+        secure_repo_name (str): name of secure repo, e.g. "configuration-secure"
         runif (str): one of ['passed', 'failed', 'any'] Default: passed
 
     Returns:
@@ -295,12 +298,15 @@ def fetch_secure_configuration(job, secure_dir, runif="passed"):
                 'chmod 600 github_key.pem && '
                 'python tubular/scripts/format_rsa_key.py --key "$PRIVATE_GITHUB_KEY" --output-file github_key.pem && '
                 "GIT_SSH_COMMAND='/usr/bin/ssh -o StrictHostKeyChecking=no -i github_key.pem' "
-                '/usr/bin/git clone $CONFIGURATION_SECURE_REPO {secure_dir} && '
+                '/usr/bin/git clone ${secure_repo_envvar} {secure_dir} && '
                 'cd {secure_dir} && '
-                '/usr/bin/git checkout $CONFIGURATION_SECURE_VERSION && '
-                '[ -d ../target/ ] && echo "Directory Exists" || mkdir ../target/ && '
-                '/usr/bin/git rev-parse HEAD > ../target/config_secure_sha'.format(
-                    secure_dir=secure_dir
+                '/usr/bin/git checkout ${secure_version_envvar} && '
+                'mkdir ../target/ && '
+                '/usr/bin/git rev-parse HEAD > ../target/{secure_repo_name}_sha'.format(
+                    secure_dir=secure_dir,
+                    secure_repo_envvar=secure_repo_envvar,
+                    secure_version_envvar=secure_version_envvar,
+                    secure_repo_name=secure_repo_name
                 )
             ]
         )
@@ -317,6 +323,56 @@ def generate_target_directory(job, directory_name="target", runif="passed"):
             ],
             runif=runif
         )
+    )
+
+
+def fetch_secure_configuration(job, secure_dir, runif="passed"):
+    """
+    Setup the configuration-secure repo for use in providing secrets.
+
+    Stage using this task must have the following environment variables:
+        CONFIGURATION_SECURE_REPO
+        CONFIGURATION_SECURE_VERSION
+
+    Args:
+        job (gomatic.job.Job): the gomatic job to which the playbook run task will be added
+        secure_dir (str): name of dir containing the edx-ops/configuration-secure repo
+        runif (str): one of ['passed', 'failed', 'any'] Default: passed
+
+    Returns:
+        The newly created task (gomatic.gocd.tasks.ExecTask)
+
+    """
+    return _fetch_secure_repo(
+        job, secure_dir,
+        "CONFIGURATION_SECURE_REPO",
+        "CONFIGURATION_SECURE_VERSION",
+        "configuration-secure"
+    )
+
+
+def fetch_gomatic_secure(job, secure_dir, runif="passed"):
+    """
+    Setup the gomatic-secure repo for use in providing secrets.
+
+    Stage using this task must have the following environment variables:
+        GOMATIC_SECURE_REPO
+        GOMATIC_SECURE_VERSION
+
+    Args:
+        job (gomatic.job.Job): the gomatic job to which the task will be added
+        secure_dir (str): name of dir containing the edx-ops/gomatic-secure repo
+        runif (str): one of ['passed', 'failed', 'any'] Default: passed
+
+    Returns:
+        The newly created task (gomatic.gocd.tasks.ExecTask)
+
+    """
+    return _fetch_secure_repo(
+        job, secure_dir,
+        "GOMATIC_SECURE_REPO",
+        "GOMATIC_SECURE_VERSION",
+        "gomatic-secure"
     )
 
 
