@@ -121,49 +121,60 @@ def generate_create_edxapp_ami(job, runif="passed"):
     )
 
 
-def generate_create_ami(job, runif="passed"):
+def generate_create_ami(job, runif="passed", **kwargs):
     """
     TODO: Decouple AMI building and AMI tagging in to 2 different jobs/ansible scripts
 
     Args:
         job (gomatic.job.Job): the gomatic job which to add the launch instance task
         runif (str): one of ['passed', 'failed', 'any'] Default: passed
+        **kwargs (dict):
+            k,v pairs:
+                k: the name of the option to pass to ansible
+                v: the value to use for this option
 
     Returns:
         The newly created task (gomatic.gocd.tasks.ExecTask)
 
     """
     job.ensure_artifacts(set([BuildArtifact("target/ami.yml")]))
+    command = ' '.join(
+        [
+            'ansible-playbook',
+            '-vvvv',
+            '--module-path=../library',
+            '-i "localhost,"',
+            '-c local',
+            '-e @../../../target/launch_info.yml',
+            '-e play=$PLAY',
+            '-e deployment=$DEPLOYMENT',
+            '-e edx_environment=$EDX_ENVIRONMENT',
+            '-e app_repo=$APP_REPO',
+            '-e app_version=$APP_VERSION',
+            '-e configuration_repo=$CONFIGURATION_REPO',
+            '-e configuration_version=$CONFIGURATION_VERSION',
+            '-e configuration_secure_repo=$CONFIGURATION_SECURE_REPO',
+            '-e configuration_secure_version=$CONFIGURATION_SECURE_VERSION',
+            '-e cache_id=$CACHE_ID',
+            '-e ec2_region=$EC2_REGION',
+            '-e artifact_path=`/bin/pwd`/../../../$ARTIFACT_PATH',
+            '-e hipchat_token=$HIPCHAT_TOKEN',
+            '-e hipchat_room="$HIPCHAT_ROOM"',
+            '-e ami_wait=$AMI_WAIT',
+            '-e no_reboot=$NO_REBOOT'
+        ]
+    )
+
+    for k, v in kwargs.iteritems():
+        command += ' -e {key}={value} '.format(key=k, value=v)
+    command += 'create_ami.yml'
+
     return job.add_task(
         ExecTask(
             [
                 '/bin/bash',
                 '-c',
-                'ansible-playbook '
-                '-vvvv '
-                '--module-path=../library '
-                '-i "localhost," '
-                '-c local '
-                '-e @../../../target/launch_info.yml '
-                '-e play=$PLAY '
-                '-e deployment=$DEPLOYMENT '
-                '-e edx_environment=$EDX_ENVIRONMENT '
-                '-e app_repo=$APP_REPO '
-                '-e app_version=$APP_VERSION '
-                '-e configuration_repo=$CONFIGURATION_REPO '
-                '-e configuration_version=$CONFIGURATION_VERSION '
-                '-e configuration_secure_repo=$CONFIGURATION_SECURE_REPO '
-                '-e configuration_secure_version=$CONFIGURATION_SECURE_VERSION '
-                '-e cache_id=$CACHE_ID '
-                '-e ec2_region=$EC2_REGION '
-                '-e artifact_path=`/bin/pwd`/../../../$ARTIFACT_PATH '
-                '-e edx_app_theme_repo=$EDX_APP_THEME_REPO '
-                '-e edx_app_theme_version=$EDX_APP_THEME_VERSION '
-                '-e hipchat_token=$HIPCHAT_TOKEN '
-                '-e hipchat_room="$HIPCHAT_ROOM" '
-                '-e ami_wait=$AMI_WAIT '
-                '-e no_reboot=$NO_REBOOT '
-                'create_ami.yml'
+                command
             ],
             working_dir="configuration/playbooks/continuous_delivery/",
             runif=runif
@@ -362,7 +373,7 @@ def generate_target_directory(job, directory_name="target", runif="passed"):
     )
 
 
-def generate_run_app_playbook(job, secure_dir, playbook_path, runif="passed"):
+def generate_run_app_playbook(job, secure_dir, playbook_path, runif="passed", **kwargs):
     """
     Generates a GoCD task that runs an Ansible playbook against a server inventory.
     Expects there to be:
@@ -377,39 +388,46 @@ def generate_run_app_playbook(job, secure_dir, playbook_path, runif="passed"):
         secure_dir (str): name of dir containing the edx-ops/configuration-secure repo
         playbook_path (str): path to playbook relative to the top-level 'configuration' directory
         runif (str): one of ['passed', 'failed', 'any'] Default: passed
+        **kwargs (dict):
+            k,v pairs:
+                k: the name of the option to pass to ansible
+                v: the value to use for this option
 
     Returns:
         The newly created task (gomatic.gocd.tasks.ExecTask)
 
     """
+    command = ' '.join(
+        [
+            'chmod 600 ../${{ARTIFACT_PATH}}/key.pem;',
+            'export ANSIBLE_HOST_KEY_CHECKING=False;',
+            'export ANSIBLE_SSH_ARGS="-o ControlMaster=auto -o ControlPersist=30m";',
+            'PRIVATE_KEY=`/bin/pwd`/../${{ARTIFACT_PATH}}/key.pem;',
+            'ansible-playbook',
+            '-vvvv',
+            '--private-key=$PRIVATE_KEY',
+            '--user=ubuntu',
+            '--module-path=configuration/playbooks/library ',
+            '-i ../target/ansible_inventory',
+            '-e @../target/launch_info.yml',
+            '-e @../{secure_dir}/ansible/vars/${{DEPLOYMENT}}.yml',
+            '-e @../{secure_dir}/ansible/vars/${{EDX_ENVIRONMENT}}-${{DEPLOYMENT}}.yml',
+            '-e cache_id=$GO_PIPELINE_COUNTER'
+        ]
+    )
+    command = command.format(secure_dir=secure_dir)
+    for k, v in kwargs.iteritems():
+        command += ' -e {key}={value} '.format(key=k, value=v)
+    command += playbook_path
+
     return job.add_task(
         ExecTask(
             [
                 '/bin/bash',
                 '-c',
-                'chmod 600 ../${{ARTIFACT_PATH}}/key.pem;'
-                'export ANSIBLE_HOST_KEY_CHECKING=False;'
-                'export ANSIBLE_SSH_ARGS="-o ControlMaster=auto -o ControlPersist=30m";'
-                'PRIVATE_KEY=`/bin/pwd`/../${{ARTIFACT_PATH}}/key.pem;'
-                'ansible-playbook '
-                '-vvvv '
-                '--private-key=$PRIVATE_KEY '
-                '--user=ubuntu '
-                '--module-path=configuration/playbooks/library '
-                '-i ../target/ansible_inventory '
-                '-e @../target/launch_info.yml '
-                '-e @../{secure_dir}/ansible/vars/${{DEPLOYMENT}}.yml '
-                '-e @../{secure_dir}/ansible/vars/${{EDX_ENVIRONMENT}}-${{DEPLOYMENT}}.yml '
-                '-e cache_id=$GO_PIPELINE_COUNTER '
-                '-e PROGRAMS_VERSION=$APP_VERSION '
-                '-e programs_repo=$APP_REPO '
-                '-e disable_edx_services=true '
-                '-e COMMON_TAG_EC2_INSTANCE=true '
-                '{playbook_path}'.format(
-                    secure_dir=secure_dir,
-                    playbook_path=playbook_path,
-                )
+                command
             ],
-            working_dir='configuration'
+            working_dir='configuration',
+            runif=runif
         )
     )

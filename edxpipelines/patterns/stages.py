@@ -137,7 +137,8 @@ def generate_run_play(pipeline,
                       configuration_secure_version=constants.PRIVATE_CONFIGURATION_REPO_BRANCH,
                       hipchat_auth_token='',
                       hipchat_room=constants.HIPCHAT_ROOM,
-                      manual_approval=False):
+                      manual_approval=False,
+                      **kwargs):
     """
     Pattern assumes that generate_launch_instance stage was used launch the instance preceding this stage.
     Requires the ansible_inventory and key.pem files to be in the target/ directory
@@ -158,6 +159,10 @@ def generate_run_play(pipeline,
         hipchat_auth_token (str):
         hipchat_room (str):
         manual_approval (bool):
+        **kwargs (dict):
+            k,v pairs:
+                k: the name of the option to pass to ansible
+                v: the value to use for this option
 
     Returns:
         gomatic.Stage
@@ -221,7 +226,7 @@ def generate_run_play(pipeline,
     # Required if a particular SHA hash is needed.
     tasks.guarantee_configuration_version(job)
 
-    tasks.generate_run_app_playbook(job, secure_dir, playbook_path)
+    tasks.generate_run_app_playbook(job, secure_dir, playbook_path, **kwargs)
     return stage
 
 
@@ -269,7 +274,10 @@ def generate_create_ami_from_instance(pipeline,
         artifact_path (str):
         hipchat_room (str):
         manual_approval (bool):
-        **kwargs:
+        **kwargs (dict):
+            k,v pairs:
+                k: the name of the option to pass to ansible
+                v: the value to use for this option
 
     Returns:
         gomatic.Stage
@@ -283,28 +291,25 @@ def generate_create_ami_from_instance(pipeline,
             'AWS_SECRET_ACCESS_KEY': aws_secret_access_key
         }
     )
-    variables = {
-        'PLAY': play,
-        'DEPLOYMENT': deployment,
-        'EDX_ENVIRONMENT': edx_environment,
-        'APP_REPO': app_repo,
-        'APP_VERSION': app_version,
-        'CONFIGURATION_REPO': configuration_repo,
-        'CONFIGURATION_VERSION': configuration_version,
-        'CONFIGURATION_SECURE_REPO': configuration_secure_repo,
-        'CONFIGURATION_SECURE_VERSION': configuration_secure_version,
-        'AMI_CREATION_TIMEOUT': ami_creation_timeout,
-        'AMI_WAIT': ami_wait,
-        'CACHE_ID': cache_id,  # gocd build number
-        'ARTIFACT_PATH': artifact_path,
-        'HIPCHAT_ROOM': hipchat_room,
-    }
 
-    # TODO: it would be good if we could pass in additional k/v pairs as argumentsthat could then be passed to
-    # the ansible script being run using -e
-    # variables.update(kwargs)
-
-    pipeline.ensure_environment_variables(variables)
+    pipeline.ensure_environment_variables(
+        {
+            'PLAY': play,
+            'DEPLOYMENT': deployment,
+            'EDX_ENVIRONMENT': edx_environment,
+            'APP_REPO': app_repo,
+            'APP_VERSION': app_version,
+            'CONFIGURATION_REPO': configuration_repo,
+            'CONFIGURATION_VERSION': configuration_version,
+            'CONFIGURATION_SECURE_REPO': configuration_secure_repo,
+            'CONFIGURATION_SECURE_VERSION': configuration_secure_version,
+            'AMI_CREATION_TIMEOUT': ami_creation_timeout,
+            'AMI_WAIT': ami_wait,
+            'CACHE_ID': cache_id,  # gocd build number
+            'ARTIFACT_PATH': artifact_path,
+            'HIPCHAT_ROOM': hipchat_room,
+        }
+    )
 
     # Install the requirements.
     job = stage.ensure_job(constants.BUILD_AMI_JOB_NAME)
@@ -324,14 +329,15 @@ def generate_create_ami_from_instance(pipeline,
     job.add_task(FetchArtifactTask(**artifact_params))
 
     # Create an AMI from the instance
-    tasks.generate_create_ami(job)
+    tasks.generate_create_ami(job, **kwargs)
 
     return stage
 
 
 def generate_build_ami_single_stage(pipeline,
                                     playbook_path,
-                                    manual_approval=False):
+                                    manual_approval=False,
+                                    **kwargs):
     """
     Generates a stage which builds an AMI after running a particular playbook against the instance.
 
@@ -340,6 +346,10 @@ def generate_build_ami_single_stage(pipeline,
         playbook_path (str): path to the configuration playbook, relative to the top-level configuration dir,
                               ex. 'playbooks/edx-east/programs.yml'
         manual_approval (bool): does this stage require manual approval?
+        **kwargs (dict): extra options to send the ansible play that builds the app
+            k,v pairs:
+                k: the name of the option to pass to ansible
+                v: the value to use for this option
 
     Returns:
         gomatic.Stage
@@ -373,7 +383,7 @@ def generate_build_ami_single_stage(pipeline,
     tasks.generate_launch_instance(job)
 
     # Run the programs playbook on the EC2 instance.
-    tasks.generate_run_app_playbook(job, secure_dir, playbook_path)
+    tasks.generate_run_app_playbook(job, secure_dir, playbook_path, **kwargs)
 
     # Create an AMI from the instance
     tasks.generate_create_ami(job)

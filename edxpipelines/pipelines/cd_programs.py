@@ -110,7 +110,11 @@ def install_pipeline(save_config_locally, dry_run, variable_files, cmd_line_vars
     #
     stages.generate_build_ami_single_stage(
         pipeline,
-        'playbooks/edx-east/programs.yml'
+        'playbooks/edx-east/programs.yml',
+        PROGRAMS_VERSION='$APP_VERSION',
+        programs_repo='$APP_REPO',
+        disable_edx_services='true',
+        COMMON_TAG_EC2_INSTANCE='true'
     )
 
     #
