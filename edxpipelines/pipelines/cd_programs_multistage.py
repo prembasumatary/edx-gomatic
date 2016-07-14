@@ -99,7 +99,11 @@ def install_pipeline(save_config_locally, dry_run, variable_files, cmd_line_vars
                              configuration_secure_repo=config['configuration_secure_repo'],
                              configuration_repo='https://github.com/edx/configuration.git',
                              hipchat_auth_token=config['hipchat_token'],
-                             hipchat_room='release pipeline'
+                             hipchat_room='release pipeline',
+                             PROGRAMS_VERSION='$APP_VERSION',
+                             programs_repo='$APP_REPO',
+                             disable_edx_services='true',
+                             COMMON_TAG_EC2_INSTANCE='true'
                              )
 
     stages.generate_create_ami_from_instance(pipeline,
