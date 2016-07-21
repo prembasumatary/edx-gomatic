@@ -2,7 +2,7 @@ tools:
   - script: edxpipelines/pipelines/cd_programs_multistage.py
     input_files:
       - &tools-admin "../gomatic-secure/gocd/vars/tools/admin.yml"
-      - "../gomatic-secure/gocd/vars/tools/loadtest-multistage-programs-sandbox.yml"
+      - "../gomatic-secure/gocd/vars/tools/loadtest-multistage-programs.yml"
       - &tools-common "../gomatic-secure/gocd/vars/common/common.yml"
     enabled: True
 
@@ -39,12 +39,19 @@ tools:
       - *tools-admin
       - "../gomatic-secure/gocd/vars/tools/deploy_edge_ami.yml"
       - *tools-common
+    enabled: False
+
+  - script: edxpipelines/pipelines/deploy_gomatic_pipelines.py
+    input_files:
+      - *tools-admin
+      - "../gomatic-secure/gocd/vars/tools/deploy_gomatic_piplines.yml"
+      - *tools-common
     enabled: True
 
 sandbox:
   - script: edxpipelines/pipelines/cd_programs_multistage.py
     input_files:
       - &sandbox-admin "../gomatic-secure/gocd/vars/sandbox/admin.yml"
-      - "../gomatic-secure/gocd/vars/sandbox/loadtest-multistage-programs-sandbox.yml"
+      - "../gomatic-secure/gocd/vars/sandbox/loadtest-multistage-programs.yml"
       - &sandbox-common "../gomatic-secure/gocd/vars/common/common.yml"
     enabled: True

@@ -369,6 +369,7 @@ def fetch_gomatic_secure(job, secure_dir, runif="passed"):
     Stage using this task must have the following environment variables:
         GOMATIC_SECURE_REPO
         GOMATIC_SECURE_VERSION
+        PRIVATE_GITHUB_KEY
 
     Args:
         job (gomatic.job.Job): the gomatic job to which the task will be added
