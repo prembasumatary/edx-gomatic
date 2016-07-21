@@ -452,6 +452,49 @@ def generate_basic_deploy_ami(pipeline,
     return stage
 
 
+def generate_single_stage_deploy_ami(pipeline,
+                                     asgard_api_endpoints,
+                                     asgard_token,
+                                     aws_access_key_id,
+                                     aws_secret_access_key):
+    """
+    Use this when you want a single stage AMI deploy that is not dependent on other stages artifacts. The ami_id must be
+    set as an environment variable.
+
+    Generates a stage which deploys an AMI via Asgard.
+
+    Args:
+        pipeline (gomatic.Pipeline):
+        asgard_api_endpoints (str): canonical URL for asgard.
+        asgard_token (str):
+        aws_access_key_id (str):
+        aws_secret_access_key (str):
+
+    Returns:
+        gomatic.Stage
+    """
+    pipeline.ensure_environment_variables(
+        {
+            'AMI_ID': None,
+            'ASGARD_API_ENDPOINTS': asgard_api_endpoints
+        }
+    )
+    pipeline.ensure_encrypted_environment_variables(
+        {
+            'ASGARD_API_TOKEN': asgard_token,
+            'AWS_ACCESS_KEY_ID': aws_access_key_id,
+            'AWS_SECRET_ACCESS_KEY': aws_secret_access_key
+        }
+    )
+    stage = pipeline.ensure_stage(constants.DEPLOY_AMI_STAGE_NAME)
+
+    job = stage.ensure_job(constants.DEPLOY_AMI_JOB_NAME)
+    tasks.generate_requirements_install(job, 'tubular')
+    job.add_task(ExecTask(['/usr/bin/python', 'scripts/asgard-deploy.py'], working_dir="tubular"))
+
+    return stage
+
+
 def generate_edp_validation(pipeline,
                             hipchat_auth_token,
                             hipchat_channels,
