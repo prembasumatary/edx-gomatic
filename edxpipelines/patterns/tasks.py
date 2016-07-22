@@ -388,6 +388,30 @@ def fetch_gomatic_secure(job, secure_dir, runif="passed"):
     )
 
 
+def fetch_edx_mktg(job, secure_dir, runif="passed"):
+    """
+    Setup the edx-mktg repo for use with Drupal deployment.
+
+    Stage using this task must have the following environment variables:
+        PRIVATE_MARKETING_REPOSITORY_URL
+        MARKETING_REPOSITORY_VERSION
+
+    Args:
+        job (gomatic.job.Job): the gomatic job to which the task will be added
+        secure_dir (str): name of dir containing the edx/edx-mktg repo
+        runif (str): one of ['passed', 'failed', 'any'] Default: passed
+
+    Returns:
+        The newly created task (gomatic.gocd.tasks.ExecTask)
+    """
+    return _fetch_secure_repo(
+        job, secure_dir,
+        "PRIVATE_MARKETING_REPOSITORY_URL",
+        "MARKETING_REPOSITORY_VERSION",
+        "edx-mktg"
+    )
+
+
 def generate_run_app_playbook(job, secure_dir, playbook_path, runif="passed", **kwargs):
     """
     Generates a GoCD task that runs an Ansible playbook against a server inventory.
@@ -444,5 +468,119 @@ def generate_run_app_playbook(job, secure_dir, playbook_path, runif="passed", **
             ],
             working_dir='configuration',
             runif=runif
+        )
+    )
+
+
+def generate_backup_drupal_database(job, site_env):
+    """
+    Creates a backup of the database in the given environment.
+
+    Stage using this task must have the following environment variables:
+        PRIVATE_ACQUIA_USERNAME
+        PRIVATE_ACQUIA_PASSWORD
+
+    Args:
+        job (gomatic.job.Job): the gomatic job to which the task will be added
+        site_env (str): The environment to clear caches from. Choose 'test' for stage and 'prod' for prod
+
+    Returns:
+        The newly created task (gomatic.gocd.tasks.ExecTask)
+    """
+    return job.add_task(
+        ExecTask(
+            [
+                '/usr/bin/python',
+                'scripts/drupal_backup_database.py',
+                '--env', '{site_env}'.format(site_env=site_env),
+                '--username', '$PRIVATE_ACQUIA_USERNAME',
+                '--password', '$PRIVATE_ACQUIA_PASSWORD'
+            ],
+            working_dir='tubular'
+        )
+    )
+
+
+def generate_flush_drupal_caches(job, site_env):
+    """
+    Flushes all drupal caches
+    Assumes the drupal root is located in edx-mktg/docroot. If changed, change the working dir.
+
+    Args:
+        job (gomatic.job.Job): the gomatic job to which the task will be added
+        site_env (str): The environment to clear caches from. Choose 'test' for stage and 'prod' for prod
+
+    Returns:
+        The newly created task (gomatic.gocd.tasks.ExecTask)
+    """
+    return job.add_task(
+        ExecTask(
+            [
+                '/usr/bin/drush',
+                '-y @edx.{site_env} cc all'.format(site_env=site_env)
+            ],
+            working_dir='edx-mktg/docroot'
+        )
+    )
+
+
+def generate_clear_varnish_cache(job, site_env):
+    """
+    Clears the Varnish cache in the given environment.
+
+    Stage using this task must have the following environment variables:
+        PRIVATE_ACQUIA_USERNAME
+        PRIVATE_ACQUIA_PASSWORD
+
+    Args:
+        job (gomatic.job.Job): the gomatic job to which the task will be added
+        site_env (str): The environment to clear caches from. Choose 'test' for stage and 'prod' for prod
+
+    Returns:
+        The newly created task (gomatic.gocd.tasks.ExecTask)
+    """
+    return job.add_task(
+        ExecTask(
+            [
+                '/usr/bin/python',
+                'scripts/drupal_clear_varnish.py',
+                '--env', '{site_env}'.format(site_env=site_env),
+                '--username', '$PRIVATE_ACQUIA_USERNAME',
+                '--password', '$PRIVATE_ACQUIA_PASSWORD'
+            ],
+            working_dir='tubular'
+        )
+    )
+
+
+def generate_drupal_deploy(job, site_env):
+    """
+    Deploys the tag to the environment.
+
+    Stage using this task must have the following environment variables:
+        PRIVATE_ACQUIA_USERNAME
+        PRIVATE_ACQUIA_PASSWORD
+
+    Expects there to be:
+        - a text file containing the tag name in "target/tag_name.txt"
+
+    Args:
+        job (gomatic.job.Job): the gomatic job to which the task will be added
+        site_env (str): The environment to clear caches from. Choose 'test' for stage and 'prod' for prod
+
+    Returns:
+        The newly created task (gomatic.gocd.tasks.ExecTask)
+    """
+    return job.add_task(
+        ExecTask(
+            [
+                '/usr/bin/python',
+                'scripts/drupal_deploy.py',
+                '--env', '{site_env}'.format(site_env=site_env),
+                '--username', '$PRIVATE_ACQUIA_USERNAME',
+                '--password', '$PRIVATE_ACQUIA_PASSWORD',
+                '--tag', '$(cat ../target/tag_name.txt)'
+            ],
+            working_dir='tubular'
         )
     )

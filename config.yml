@@ -41,9 +41,21 @@ tools:
       - "../gomatic-secure/gocd/vars/tools/deploy_gomatic_piplines.yml"
     enabled: True
 
+  - script: edxpipelines/pipelines/deploy_marketing_site.py
+    input_files:
+      - *tools-admin
+      - "../gomatic-secure/gocd/vars/tools/deploy_drupal.yml"
+    enabled: False
+
 sandbox:
   - script: edxpipelines/pipelines/cd_programs_multistage.py
     input_files:
       - &sandbox-admin "../gomatic-secure/gocd/vars/sandbox/admin.yml"
       - "../gomatic-secure/gocd/vars/sandbox/loadtest-multistage-programs.yml"
     enabled: True
+
+  - script: edxpipelines/pipelines/deploy_marketing_site.py
+    input_files:
+      - *sandbox-admin
+      - "../gomatic-secure/gocd/vars/sandbox/deploy_drupal.yml"
+    enabled: False
