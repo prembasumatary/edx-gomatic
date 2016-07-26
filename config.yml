@@ -1,0 +1,50 @@
+tools:
+  - script: edxpipelines/pipelines/cd_programs_multistage.py
+    input_files:
+      - &tools-admin "../gomatic-secure/gocd/vars/tools/admin.yml"
+      - "../gomatic-secure/gocd/vars/tools/loadtest-multistage-programs-sandbox.yml"
+      - &tools-common "../gomatic-secure/gocd/vars/common/common.yml"
+    enabled: True
+
+  - script: edxpipelines/pipelines/asg_cleanup.py
+    input_files:
+      - *tools-admin
+      - "../gomatic-secure/gocd/vars/tools/asg-cleanup-edge.yml"
+      - *tools-common
+    enabled: True
+
+  - script: edxpipelines/pipelines/asg_cleanup.py
+    input_files:
+      - *tools-admin
+      - "../gomatic-secure/gocd/vars/tools/asg-cleanup-edx.yml"
+      - *tools-common
+    enabled: True
+
+  - script: edxpipelines/pipelines/asg_cleanup.py
+    input_files:
+      - *tools-admin
+      - "../gomatic-secure/gocd/vars/tools/asg-cleanup-mckinsey.yml"
+      - *tools-common
+    enabled: True
+
+  - script: edxpipelines/pipelines/build_edxapp_ami.py
+    input_files:
+      - *tools-admin
+      - "../gomatic-secure/gocd/vars/tools/build-edxapp-ami.yml"
+      - *tools-common
+    enabled: False
+
+  - script: edxpipelines/pipelines/deploy_ami.py
+    input_files:
+      - *tools-admin
+      - "../gomatic-secure/gocd/vars/tools/deploy_edge_ami.yml"
+      - *tools-common
+    enabled: True
+
+sandbox:
+  - script: edxpipelines/pipelines/cd_programs_multistage.py
+    input_files:
+      - &sandbox-admin "../gomatic-secure/gocd/vars/sandbox/admin.yml"
+      - "../gomatic-secure/gocd/vars/sandbox/loadtest-multistage-programs-sandbox.yml"
+      - &sandbox-common "../gomatic-secure/gocd/vars/common/common.yml"
+    enabled: True
