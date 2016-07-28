@@ -64,8 +64,8 @@ def install_pipeline(save_config_locally, dry_run, variable_files, cmd_line_vars
     artifact_path = 'target/'
 
     gcc = GoCdConfigurator(HostRestClient(config['gocd_url'], config['gocd_username'], config['gocd_password'], ssl=True))
-    pipeline = gcc.ensure_pipeline_group('DeployTesting')\
-                  .ensure_replacement_of_pipeline('deploy_gomatic_scripts')\
+    pipeline = gcc.ensure_pipeline_group(config['pipeline_group'])\
+                  .ensure_replacement_of_pipeline(config['pipeline_name'])\
                   .ensure_material(GitMaterial('https://github.com/edx/tubular',
                                                material_name='tubular',
                                                polling=False,
@@ -78,23 +78,23 @@ def install_pipeline(save_config_locally, dry_run, variable_files, cmd_line_vars
 
     pipeline.ensure_environment_variables(
         {
-            "GOMATIC_SECURE_REPO": config['gomatic_secure_repo'],
-            "GOMATIC_SECURE_VERSION": config['gomatic_secure_version']
+            'GOMATIC_SECURE_REPO': config['gomatic_secure_repo'],
+            'GOMATIC_SECURE_VERSION': config['gomatic_secure_version']
         }
     )
 
     pipeline.ensure_encrypted_environment_variables(
         {
-            "GOMATIC_USER": config['gomatic_user'],
-            "GOMATIC_PASSWORD": config['gomatic_password'],
-            "PRIVATE_GITHUB_KEY": config['github_private_key']
+            'GOMATIC_USER': config['gomatic_user'],
+            'GOMATIC_PASSWORD': config['gomatic_password'],
+            'PRIVATE_GITHUB_KEY': config['github_private_key']
         }
     )
 
-    stage = pipeline.ensure_stage("deploy_gomatic_stage")
-    job = stage.ensure_job("deploy_gomatic_scripts_job")
-    tasks.fetch_gomatic_secure(job, "gomatic-secure")
-    tasks.generate_requirements_install(job, "edx-gomatic")
+    stage = pipeline.ensure_stage('deploy_gomatic_stage')
+    job = stage.ensure_job('deploy_gomatic_scripts_job')
+    tasks.fetch_gomatic_secure(job, 'gomatic-secure')
+    tasks.generate_requirements_install(job, 'edx-gomatic')
 
     job.add_task(
         ExecTask(
@@ -106,11 +106,11 @@ def install_pipeline(save_config_locally, dry_run, variable_files, cmd_line_vars
                 '-f',
                 'config.yml'
             ],
-            working_dir="edx-gomatic"
+            working_dir='edx-gomatic'
         )
     )
 
     gcc.save_updated_config(save_config_locally=save_config_locally, dry_run=dry_run)
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     install_pipeline()
