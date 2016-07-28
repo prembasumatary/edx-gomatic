@@ -57,7 +57,7 @@ def print_failure_report(failures):
 
 
 @click.command()
-@click.argument('environment', help='The environment in the yaml file to run', required=True)
+@click.argument('environment', required=True)
 @click.option('--config_file', '-f', help='Path to the configuration file', required=True)
 @click.option('--verbose', '-v', is_flag=True)
 @click.option('--script', help='optional, specify the script to run.', default=None)
@@ -65,7 +65,7 @@ def run_pipelines(environment, config_file, script, verbose):
     """
 
     Args:
-        environment (str): The environment in the yaml file to run
+        environment (str): The environment in the config file to run
         config_file (str): Path to the configuration file
         script (str): The script to run.
         verbose (bool): if true set the logging level to debug
