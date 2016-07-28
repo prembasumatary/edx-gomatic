@@ -74,7 +74,7 @@ def install_pipeline(save_config_locally, dry_run, variable_files, cmd_line_vars
                                                material_name='edx-gomatic',
                                                polling=True,
                                                destination_directory='edx-gomatic',
-                                               branch='bbeggs/TE-1432-deploy'))
+                                               branch='master'))
 
     pipeline.ensure_environment_variables(
         {
