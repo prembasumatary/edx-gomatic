@@ -47,6 +47,16 @@ tools:
       - "../gomatic-secure/gocd/vars/tools/deploy_drupal.yml"
     enabled: False
 
+  # CD to loadtest of edxapp
+  - script: edxpipelines/pipelines/cd_edxapp.py
+    input_files:
+      - *tools-admin
+      - "../gomatic-secure/gocd/vars/tools/environment-deployment-play/loadtest-edx-edxapp.yml"
+      - "../gomatic-secure/gocd/vars/tools/environments-deployments/loadtest-edx.yml"
+      - "../gomatic-secure/gocd/vars/tools/plays/edxapp.yml"
+      - "../gomatic-secure/gocd/vars/tools/deployments/edx.yml"
+    enabled: True
+
 sandbox:
   - script: edxpipelines/pipelines/cd_programs_multistage.py
     input_files:
@@ -58,4 +68,11 @@ sandbox:
     input_files:
       - *sandbox-admin
       - "../gomatic-secure/gocd/vars/sandbox/deploy_drupal.yml"
+    enabled: False
+
+  # CD to loadtest of edxapp
+  - script: edxpipelines/pipelines/cd_edxapp.py
+    input_files:
+      - *tools-admin
+      - "../gomatic-secure/gocd/vars/sandbox/loadtest-edxapp.yml"
     enabled: False
