@@ -216,6 +216,7 @@ def install_pipeline(save_config_locally, dry_run, variable_files, cmd_line_vars
         aws_access_key_id=config['aws_access_key_id'],
         aws_secret_access_key=config['aws_secret_access_key'],
         hipchat_auth_token=config['hipchat_token'],
+        hipchat_room=config.get('hipchat_room', constants.HIPCHAT_ROOM),
         runif='any'
     )
 

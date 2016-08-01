@@ -588,19 +588,21 @@ def generate_run_migrations(pipeline,
     return stage
 
 
-def generate_terminate_instance(pipeline,
-                                instance_info_location,
-                                aws_access_key_id,
-                                aws_secret_access_key,
-                                hipchat_auth_token,
-                                ec2_region=constants.EC2_REGION,
-                                artifact_path=constants.ARTIFACT_PATH,
-                                runif='any',
-                                manual_approval=False):
+def generate_terminate_instance(
+        pipeline,
+        instance_info_location,
+        aws_access_key_id,
+        aws_secret_access_key,
+        hipchat_auth_token,
+        hipchat_room=constants.HIPCHAT_ROOM,
+        ec2_region=constants.EC2_REGION,
+        artifact_path=constants.ARTIFACT_PATH, runif='any',
+        manual_approval=False):
     """
     Generate the stage that terminates an EC2 instance.
 
     Args:
+        hipchat_room:
         pipeline (gomatic.Pipeline): Pipeline to which to add the run migrations stage.
         instance_info_location (ArtifactLocation): Location of YAML file containing instance info from the AMI-building stage, for fetching.
         runif (str): one of ['passed', 'failed', 'any'] Default: any - controls when the stage's terminate task is triggered in the pipeline
@@ -621,7 +623,7 @@ def generate_terminate_instance(pipeline,
         {
             'ARTIFACT_PATH': artifact_path,
             'EC2_REGION': ec2_region,
-            'HIPCHAT_ROOM': constants.HIPCHAT_ROOM
+            'HIPCHAT_ROOM': hipchat_room
         }
     )
 
