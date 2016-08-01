@@ -385,7 +385,7 @@ def generate_build_ami_single_stage(pipeline,
     # Launch EC2 instance
     tasks.generate_launch_instance(job)
 
-    # Run the programs playbook on the EC2 instance.
+    # Run the playbook on the EC2 instance.
     tasks.generate_run_app_playbook(job, secure_dir, playbook_path, **kwargs)
 
     # Create an AMI from the instance
