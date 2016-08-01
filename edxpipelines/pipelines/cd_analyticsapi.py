@@ -79,7 +79,8 @@ def install_pipeline(save_config_locally, dry_run, variable_files, cmd_line_vars
         play=play,
         save_config_locally=save_config_locally,
         playbook_path=playbook_path,
-        app_repo=app_repo
+        app_repo=app_repo,
+        version_var_name='ANALYTICS_API_VERSION'
     )
 
 
