@@ -312,7 +312,7 @@ def _fetch_secure_repo(job, secure_dir, secure_repo_envvar, secure_version_envva
                 '/usr/bin/git clone ${secure_repo_envvar} {secure_dir} && '
                 'cd {secure_dir} && '
                 '/usr/bin/git checkout ${secure_version_envvar} && '
-                'mkdir ../target/ && '
+                '[ -d ../target/ ] && echo "Target Directory Exists" || mkdir ../target/ && '
                 '/usr/bin/git rev-parse HEAD > ../target/{secure_repo_name}_sha'.format(
                     secure_dir=secure_dir,
                     secure_repo_envvar=secure_repo_envvar,
