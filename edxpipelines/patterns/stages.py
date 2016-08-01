@@ -148,11 +148,9 @@ def generate_run_play(pipeline,
         play (str):
         deployment (str):
         edx_environment (str):
-        app_repo(str) :
+        app_repo (str) :
         configuration_secure_repo (str):
         private_github_key (str):
-        app_version (str):
-        configuration_secure_version (str):
         hipchat_auth_token (str):
         hipchat_room (str):
         manual_approval (bool):
@@ -308,6 +306,66 @@ def generate_create_ami_from_instance(pipeline,
 
     # Create an AMI from the instance
     tasks.generate_create_ami(job, **kwargs)
+
+    return stage
+
+
+def generate_build_ami_single_stage(pipeline,
+                                    playbook_path,
+                                    manual_approval=False,
+                                    **kwargs):
+    """
+    Generates a stage which builds an AMI after running a particular playbook against the instance.
+
+    Args:
+        pipeline (gomatic.Pipeline):
+        playbook_path (str): path to the configuration playbook, relative to the top-level configuration dir,
+                              ex. 'playbooks/edx-east/programs.yml'
+        manual_approval (bool): does this stage require manual approval?
+        **kwargs (dict): extra options to send the ansible play that builds the app
+            k,v pairs:
+                k: the name of the option to pass to ansible
+                v: the value to use for this option
+
+    Returns:
+        gomatic.Stage
+    """
+    stage = pipeline.ensure_stage(constants.BUILD_AMI_STAGE_NAME)
+    if manual_approval:
+        stage.set_has_manual_approval()
+
+    job = stage.ensure_job(constants.BUILD_AMI_JOB_NAME)
+    job.ensure_artifacts(
+        [
+            BuildArtifact('configuration'),
+            BuildArtifact('target/config_secure_sha'),
+            BuildArtifact('tubular')
+        ]
+    )
+
+    # Install the requirements.
+    tasks.generate_requirements_install(job, 'tubular')
+    tasks.generate_requirements_install(job, 'configuration')
+
+    # Setup secure configuration for any needed secrets.
+    secure_dir = constants.PRIVATE_CONFIGURATION_LOCAL_DIR
+    tasks.fetch_secure_configuration(job, secure_dir)
+
+    # Check out the requested version of configuration.
+    # Required if a particular SHA hash is needed.
+    tasks.guarantee_configuration_version(job)
+
+    # Launch EC2 instance
+    tasks.generate_launch_instance(job)
+
+    # Run the playbook on the EC2 instance.
+    tasks.generate_run_app_playbook(job, secure_dir, playbook_path, **kwargs)
+
+    # Create an AMI from the instance
+    tasks.generate_create_ami(job)
+
+    # Cleanup EC2 instance if launching the instance failed.
+    tasks.generate_ami_cleanup(job, runif='failed')
 
     return stage
 
