@@ -46,6 +46,7 @@ def generate_multistage_pipeline(environment,
                                  pipeline_group,
                                  playbook_path,
                                  app_repo,
+                                 version_var_name,
                                  hipchat_room,
                                  config,
                                  save_config_locally,
@@ -77,6 +78,10 @@ def generate_multistage_pipeline(environment,
                                     config['ec2_instance_profile_name'],
                                     config['base_ami_id']
                                     )
+
+    kwargs = {
+        version_var_name: '$APP_VERSION'
+    }
     stages.generate_run_play(pipeline,
                              playbook_path=playbook_path,
                              play=play,
@@ -88,16 +93,15 @@ def generate_multistage_pipeline(environment,
                              configuration_repo='https://github.com/edx/configuration.git',
                              hipchat_auth_token=config['hipchat_token'],
                              hipchat_room=hipchat_room,
-                             PROGRAMS_VERSION='$APP_VERSION',
-                             programs_repo='$APP_REPO',
                              disable_edx_services='true',
-                             COMMON_TAG_EC2_INSTANCE='true'
+                             COMMON_TAG_EC2_INSTANCE='true',
+                             **kwargs
                              )
     stages.generate_create_ami_from_instance(pipeline,
                                              play=play,
                                              deployment=deployment,
                                              edx_environment=environment,
-                                             app_repo='https://github.com/edx/programs.git',
+                                             app_repo=app_repo,
                                              configuration_secure_repo=config['configuration_secure_repo'],
                                              configuration_repo='https://github.com/edx/configuration.git',
                                              hipchat_auth_token=config['hipchat_token'],
@@ -133,7 +137,7 @@ def generate_multistage_pipeline(environment,
                                    instance_ssh_key_location,
                                    launch_info_location)
     #
-    # Create the stage to deploy the programs AMI.
+    # Create the stage to deploy the AMI.
     #
     ami_file_location = utils.ArtifactLocation(
         pipeline.name,
