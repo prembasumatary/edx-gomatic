@@ -1,7 +1,7 @@
 from gomatic import *
-from edxpipelines.patterns import stages, jobs
-from edxpipelines.utils import ArtifactLocation
+from edxpipelines.patterns import stages
 import edxpipelines.utils as utils
+from edxpipelines import constants
 
 
 def generate_deploy_pipeline(configurator,
