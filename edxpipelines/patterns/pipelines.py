@@ -72,8 +72,7 @@ def generate_multistage_pipeline(environment,
             'APPLICATION_USER': service_name,
             'APPLICATION_NAME': service_name,
             'APPLICATION_PATH': '/edx/app/' + service_name,
-        }) \
-        .set_has_manual_approval()
+        })
     #
     # Create the AMI-building stage.
     #
@@ -83,7 +82,8 @@ def generate_multistage_pipeline(environment,
                                     config['ec2_vpc_subnet_id'],
                                     config['ec2_security_group_id'],
                                     config['ec2_instance_profile_name'],
-                                    config['base_ami_id']
+                                    config['base_ami_id'],
+                                    manual_approval=True
                                     )
 
     kwargs = {
