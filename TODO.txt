@@ -1,1 +1,8 @@
-1. Hipchat notifications
+1. Ensure hipchat notifications work
+2. Make the first stage manual (DONE)
+3. Replace references to programs in stages.py: (DONE)
+    edxpipelines/patterns/stages.py:385:    # Run the programs playbook on the EC2 instance.
+    edxpipelines/patterns/stages.py:589:            'APPLICATION_USER': 'programs',
+    edxpipelines/patterns/stages.py:590:            'APPLICATION_NAME': 'programs',
+    edxpipelines/patterns/stages.py:591:            'APPLICATION_PATH': '/edx/app/programs',
+4. Multiple hipchat token vars (HIPCHAT_TOKEN, HIPCHAT_AUTH_TOKEN)

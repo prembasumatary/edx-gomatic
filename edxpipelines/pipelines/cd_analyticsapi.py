@@ -61,25 +61,18 @@ def install_pipeline(save_config_locally, dry_run, variable_files, cmd_line_vars
     """
     config = utils.merge_files_and_dicts(variable_files, list(cmd_line_vars,))
 
-    pipeline_group = 'Analytics'
-    environment = 'loadtest'
-    deployment = 'edx'
-    play = 'analyticsapi'
-    hipchat_room = 'Analytics'
-    playbook_path = 'playbooks/edx-east/analyticsapi.yml'
-    app_repo = 'https://github.com/edx/edx-analytics-data-api.git'
-
     pipelines.generate_multistage_pipeline(
+        environment='loadtest',
+        deployment='edx',
+        play='analyticsapi',
+        playbook_path='playbooks/edx-east/analyticsapi.yml',
+        app_repo='https://github.com/edx/edx-analytics-data-api.git',
+        service_name='analytics_api',
+        hipchat_room='Analytics',
+        pipeline_group='Analytics',
         config=config,
-        deployment=deployment,
         dry_run=dry_run,
-        environment=environment,
-        hipchat_room=hipchat_room,
-        pipeline_group=pipeline_group,
-        play=play,
         save_config_locally=save_config_locally,
-        playbook_path=playbook_path,
-        app_repo=app_repo,
         version_var_name='ANALYTICS_API_VERSION'
     )
 

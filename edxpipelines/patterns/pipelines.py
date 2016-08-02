@@ -47,6 +47,7 @@ def generate_multistage_pipeline(environment,
                                  playbook_path,
                                  app_repo,
                                  version_var_name,
+                                 service_name,
                                  hipchat_room,
                                  config,
                                  save_config_locally,
@@ -67,6 +68,12 @@ def generate_multistage_pipeline(environment,
                                      # NOTE if you want to change this, you should set the
                                      # CONFIGURATION_VERSION environment variable instead
                                      destination_directory='configuration')) \
+        .ensure_environment_variables({
+            'APPLICATION_USER': service_name,
+            'APPLICATION_NAME': service_name,
+            'APPLICATION_PATH': '/edx/app/' + service_name,
+        }) \
+        .set_has_manual_approval()
     #
     # Create the AMI-building stage.
     #
