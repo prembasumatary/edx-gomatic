@@ -1,15 +1,14 @@
 #!/usr/bin/env python
 import sys
 from os import path
+
 import click
-from gomatic import *
 
 # Used to import edxpipelines files - since the module is not installed.
 sys.path.append(path.dirname(path.dirname(path.dirname(path.abspath(__file__)))))
 
 import edxpipelines.utils as utils
 from edxpipelines.patterns import pipelines
-import edxpipelines.constants as constants
 
 
 @click.command()
@@ -59,7 +58,7 @@ def install_pipeline(save_config_locally, dry_run, variable_files, cmd_line_vars
     - ec2_instance_profile_name
     - base_ami_id
     """
-    config = utils.merge_files_and_dicts(variable_files, list(cmd_line_vars,))
+    config = utils.merge_files_and_dicts(variable_files, list(cmd_line_vars, ))
 
     pipeline_group = 'Analytics'
     environment = 'loadtest'

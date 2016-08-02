@@ -1,7 +1,10 @@
 from gomatic import *
-from edxpipelines.patterns import stages
+
 import edxpipelines.utils as utils
 from edxpipelines import constants
+from edxpipelines.patterns import stages
+
+TUBULAR_MATERIAL = GitMaterial("https://github.com/edx/tubular.git", polling=False, destination_directory="tubular")
 
 
 def generate_deploy_pipeline(configurator,
@@ -29,8 +32,7 @@ def generate_deploy_pipeline(configurator,
     pipeline = configurator \
         .ensure_pipeline_group(pipeline_group) \
         .ensure_replacement_of_pipeline(pipeline_name) \
-        .set_git_material(
-            GitMaterial("https://github.com/edx/tubular.git", polling=False, destination_directory="tubular"))
+        .set_git_material(TUBULAR_MATERIAL)
 
     stages.generate_single_stage_deploy_ami(pipeline,
                                             asgard_api_endpoints,
@@ -52,63 +54,68 @@ def generate_multistage_pipeline(environment,
                                  save_config_locally,
                                  dry_run):
     artifact_path = 'target/'
+    configuration_material = GitMaterial(
+        'https://github.com/edx/configuration',
+        branch='master',
+        material_name='configuration',
+        polling=False,
+        # NOTE if you want to change this, you should set the
+        # CONFIGURATION_VERSION environment variable instead
+        destination_directory='configuration'
+    )
+
     gcc = GoCdConfigurator(
         HostRestClient(config['gocd_url'], config['gocd_username'], config['gocd_password'], ssl=True))
+
     pipeline = gcc.ensure_pipeline_group(pipeline_group) \
         .ensure_replacement_of_pipeline('-'.join([environment, deployment, play])) \
-        .ensure_material(GitMaterial('https://github.com/edx/tubular',
-                                     material_name='tubular',
-                                     polling=False,
-                                     destination_directory='tubular')) \
-        .ensure_material(GitMaterial('https://github.com/edx/configuration',
-                                     branch='master',
-                                     material_name='configuration',
-                                     polling=False,
-                                     # NOTE if you want to change this, you should set the
-                                     # CONFIGURATION_VERSION environment variable instead
-                                     destination_directory='configuration')) \
+        .ensure_material(TUBULAR_MATERIAL) \
+        .ensure_material(configuration_material)
     #
     # Create the AMI-building stage.
     #
-    stages.generate_launch_instance(pipeline,
-                                    config['aws_access_key_id'],
-                                    config['aws_secret_access_key'],
-                                    config['ec2_vpc_subnet_id'],
-                                    config['ec2_security_group_id'],
-                                    config['ec2_instance_profile_name'],
-                                    config['base_ami_id']
-                                    )
+    stages.generate_launch_instance(
+        pipeline,
+        config['aws_access_key_id'],
+        config['aws_secret_access_key'],
+        config['ec2_vpc_subnet_id'],
+        config['ec2_security_group_id'],
+        config['ec2_instance_profile_name'],
+        config['base_ami_id']
+    )
 
     kwargs = {
         version_var_name: '$APP_VERSION'
     }
-    stages.generate_run_play(pipeline,
-                             playbook_path=playbook_path,
-                             play=play,
-                             deployment=deployment,
-                             edx_environment=environment,
-                             private_github_key=config['github_private_key'],
-                             app_repo=app_repo,
-                             configuration_secure_repo=config['configuration_secure_repo'],
-                             configuration_repo='https://github.com/edx/configuration.git',
-                             hipchat_auth_token=config['hipchat_token'],
-                             hipchat_room=hipchat_room,
-                             disable_edx_services='true',
-                             COMMON_TAG_EC2_INSTANCE='true',
-                             **kwargs
-                             )
-    stages.generate_create_ami_from_instance(pipeline,
-                                             play=play,
-                                             deployment=deployment,
-                                             edx_environment=environment,
-                                             app_repo=app_repo,
-                                             configuration_secure_repo=config['configuration_secure_repo'],
-                                             configuration_repo='https://github.com/edx/configuration.git',
-                                             hipchat_auth_token=config['hipchat_token'],
-                                             hipchat_room=hipchat_room,
-                                             aws_access_key_id=config['aws_access_key_id'],
-                                             aws_secret_access_key=config['aws_secret_access_key'],
-                                             )
+    stages.generate_run_play(
+        pipeline,
+        playbook_path=playbook_path,
+        play=play,
+        deployment=deployment,
+        edx_environment=environment,
+        private_github_key=config['github_private_key'],
+        app_repo=app_repo,
+        configuration_secure_repo=config['configuration_secure_repo'],
+        configuration_repo='https://github.com/edx/configuration.git',
+        hipchat_auth_token=config['hipchat_token'],
+        hipchat_room=hipchat_room,
+        disable_edx_services='true',
+        COMMON_TAG_EC2_INSTANCE='true',
+        **kwargs
+    )
+    stages.generate_create_ami_from_instance(
+        pipeline,
+        play=play,
+        deployment=deployment,
+        edx_environment=environment,
+        app_repo=app_repo,
+        configuration_secure_repo=config['configuration_secure_repo'],
+        configuration_repo='https://github.com/edx/configuration.git',
+        hipchat_auth_token=config['hipchat_token'],
+        hipchat_room=hipchat_room,
+        aws_access_key_id=config['aws_access_key_id'],
+        aws_secret_access_key=config['aws_secret_access_key'],
+    )
     #
     # Create the DB migration running stage.
     #
@@ -130,12 +137,14 @@ def generate_multistage_pipeline(environment,
         constants.LAUNCH_INSTANCE_JOB_NAME,
         'launch_info.yml'
     )
-    stages.generate_run_migrations(pipeline,
-                                   config['db_migration_pass'],
-                                   artifact_path,
-                                   ansible_inventory_location,
-                                   instance_ssh_key_location,
-                                   launch_info_location)
+    stages.generate_run_migrations(
+        pipeline,
+        config['db_migration_pass'],
+        artifact_path,
+        ansible_inventory_location,
+        instance_ssh_key_location,
+        launch_info_location
+    )
     #
     # Create the stage to deploy the AMI.
     #
