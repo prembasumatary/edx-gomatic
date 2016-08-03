@@ -9,14 +9,7 @@ sys.path.append(path.dirname(path.dirname(path.dirname(path.abspath(__file__))))
 
 import edxpipelines.utils as utils
 import edxpipelines.patterns.tasks as tasks
-
-DEPLOY_PIPELINE_NAME = 'deploy-marketing-site'
-FETCH_TAG_STAGE_NAME = 'fetch_current_tag_names'
-FETCH_TAG_JOB_NAME = 'fetch_current_tag_names_job'
-CLEAR_PROD_CACHES_STAGE_NAME = 'clear_prod_caches'
-CLEAR_PROD_CACHES_JOB_NAME = 'clear_prod_caches_job'
-ROLLBACK_STAGE_NAME = 'rollback_stage'
-ROLLBACK_JOB_NAME = 'rollback_job'
+from edxpipelines.constants import *
 
 
 @click.command()
@@ -41,7 +34,7 @@ def install_pipeline(save_config_locally, dry_run, variable_files, cmd_line_vars
         .ensure_pipeline_group('Deploy') \
         .ensure_replacement_of_pipeline('rollback-prod-marketing-site') \
         .set_git_material(GitMaterial('https://github.com/edx/tubular', polling=False, destination_directory='tubular')) \
-        .ensure_material(PipelineMaterial(DEPLOY_PIPELINE_NAME, FETCH_TAG_STAGE_NAME))
+        .ensure_material(PipelineMaterial(DEPLOY_MARKETING_PIPELINE_NAME, FETCH_TAG_STAGE_NAME))
 
     pipeline.ensure_environment_variables(
         {
@@ -66,14 +59,15 @@ def install_pipeline(save_config_locally, dry_run, variable_files, cmd_line_vars
 
     tasks.fetch_edx_mktg(clear_prod_caches_job, 'edx-mktg')
     tasks.generate_requirements_install(clear_prod_caches_job, 'tubular')
-    tasks.generate_flush_drupal_caches(clear_prod_caches_job, 'prod')
-    tasks.generate_clear_varnish_cache(clear_prod_caches_job, 'prod')
+    tasks.format_RSA_key(clear_prod_caches_job, 'edx-mktg/docroot/acquia_github_key.pem', '$PRIVATE_ACQUIA_GITHUB_KEY')
+    tasks.generate_flush_drupal_caches(clear_prod_caches_job, PROD_ENV)
+    tasks.generate_clear_varnish_cache(clear_prod_caches_job, PROD_ENV)
 
     prod_tag_name_artifact_params = {
-        'pipeline': DEPLOY_PIPELINE_NAME,
+        'pipeline': DEPLOY_MARKETING_PIPELINE_NAME,
         'stage': FETCH_TAG_STAGE_NAME,
         'job': FETCH_TAG_JOB_NAME,
-        'src': FetchArtifactFile('prod_tag_name.txt'),
+        'src': FetchArtifactFile('{prod_tag}.txt'.format(prod_tag=PROD_TAG_NAME)),
         'dest': 'target'
     }
 
@@ -84,7 +78,7 @@ def install_pipeline(save_config_locally, dry_run, variable_files, cmd_line_vars
     tasks.generate_requirements_install(rollback_job, 'tubular')
     tasks.generate_target_directory(rollback_job)
     rollback_job.add_task(FetchArtifactTask(**prod_tag_name_artifact_params))
-    tasks.generate_drupal_deploy(rollback_job, 'prod', 'prod_tag_name.txt')
+    tasks.generate_drupal_deploy(rollback_job, PROD_ENV, '{prod_tag}.txt'.format(prod_tag=PROD_TAG_NAME))
 
     configurator.save_updated_config(save_config_locally=save_config_locally, dry_run=dry_run)
 

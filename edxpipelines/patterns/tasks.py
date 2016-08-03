@@ -284,6 +284,32 @@ def guarantee_configuration_version(job, runif="passed"):
     )
 
 
+def format_RSA_key(job, output_path, key):
+    """
+    Formats an RSA key for use in future jobs. Does not last between stages.
+    Args:
+        job (gomatic.job.Job): the gomatic job to which the task will be added
+        output_path (str): The file to output the formatted key to.
+        key (str): The RSA key to be formatted
+
+    Returns:
+        The newly created task (gomatic.gocd.tasks.ExecTask)
+    """
+    return job.add_task(
+        ExecTask(
+            [
+                '/bin/bash',
+                '-c',
+                'touch {output_path} && '
+                'chmod 600 {output_path} && '
+                'python tubular/scripts/format_rsa_key.py --key "{key}" --output-file {output_path}'.format(
+                    output_path=output_path, key=key
+                )
+            ]
+        )
+    )
+
+
 def _fetch_secure_repo(job, secure_dir, secure_repo_envvar, secure_version_envvar, secure_repo_name, runif="passed"):
     """
     Setup a secure repo for use in providing secrets.
@@ -519,9 +545,6 @@ def generate_flush_drupal_caches(job, site_env):
             [
                 '/bin/bash',
                 '-c',
-                'touch acquia_github_key.pem && '
-                'chmod 600 acquia_github_key.pem && '
-                'python ../../tubular/scripts/format_rsa_key.py --key "$PRIVATE_ACQUIA_GITHUB_KEY" --output-file acquia_github_key.pem && '
                 'drush -y @edx.{site_env} cc all'.format(site_env=site_env)
             ],
             working_dir='edx-mktg/docroot'
