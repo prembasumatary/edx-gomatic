@@ -216,12 +216,13 @@ def generate_ami_cleanup(job, runif="passed"):
     )
 
 
-def generate_run_migrations(job, runif="passed"):
+def generate_run_migrations(job, sub_application_name=None, runif="passed"):
     """
     Generates GoCD task that runs migrations via an Ansible script.
 
     Args:
         job (gomatic.job.Job): the gomatic job to which the run migrations task will be added
+        sub_application_name (str): additional command to be passed to the migrate app {cms|lms}
         runif (str): one of ['passed', 'failed', 'any'] Default: passed
 
     Returns:
@@ -230,26 +231,36 @@ def generate_run_migrations(job, runif="passed"):
     """
     job.ensure_artifacts(set([BuildArtifact('target/unapplied_migrations.yml'),
                               BuildArtifact('target/migration_output.yml')]))
+
+    command = ' '.join(
+        [
+            'export ANSIBLE_HOST_KEY_CHECKING=False;'
+            'export ANSIBLE_SSH_ARGS="-o ControlMaster=auto -o ControlPersist=30m";'
+            'PRIVATE_KEY=`/bin/pwd`/../../key.pem;'
+            'ansible-playbook '
+            '-vvvv '
+            '-i ../../ansible_inventory '
+            '--private-key=$PRIVATE_KEY '
+            '--user=ubuntu '
+            '-e APPLICATION_PATH=$APPLICATION_PATH '
+            '-e APPLICATION_NAME=$APPLICATION_NAME '
+            '-e APPLICATION_USER=$APPLICATION_USER '
+            '-e ARTIFACT_PATH=`/bin/pwd`/../../../$ARTIFACT_PATH/ '
+            '-e DB_MIGRATION_USER=$DB_MIGRATION_USER '
+            '-e DB_MIGRATION_PASS=$DB_MIGRATION_PASS '
+        ]
+    )
+
+    if sub_application_name is not None:
+        command += '-e SUB_APPLICATION_NAME={sub_application_name} '.format(sub_application_name=sub_application_name)
+    command += 'run_migrations.yml'
+
     return job.add_task(
         ExecTask(
             [
                 '/bin/bash',
                 '-c',
-                'export ANSIBLE_HOST_KEY_CHECKING=False;'
-                'export ANSIBLE_SSH_ARGS="-o ControlMaster=auto -o ControlPersist=30m";'
-                'PRIVATE_KEY=`/bin/pwd`/../../key.pem;'
-                'ansible-playbook '
-                '-vvvv '
-                '-i ../../ansible_inventory '
-                '--private-key=$PRIVATE_KEY '
-                '--user=ubuntu '
-                '-e APPLICATION_PATH=$APPLICATION_PATH '
-                '-e APPLICATION_NAME=$APPLICATION_NAME '
-                '-e APPLICATION_USER=$APPLICATION_USER '
-                '-e ARTIFACT_PATH=`/bin/pwd`/../../../$ARTIFACT_PATH/ '
-                '-e DB_MIGRATION_USER=$DB_MIGRATION_USER '
-                '-e DB_MIGRATION_PASS=$DB_MIGRATION_PASS '
-                'run_migrations.yml'
+                command
             ],
             working_dir='configuration/playbooks/continuous_delivery/',
             runif=runif
@@ -438,19 +449,19 @@ def generate_run_app_playbook(job, secure_dir, playbook_path, runif="passed", **
     """
     command = ' '.join(
         [
-            'chmod 600 ../${{ARTIFACT_PATH}}/key.pem;',
+            'chmod 600 ../../../${{ARTIFACT_PATH}}/key.pem;',
             'export ANSIBLE_HOST_KEY_CHECKING=False;',
             'export ANSIBLE_SSH_ARGS="-o ControlMaster=auto -o ControlPersist=30m";',
-            'PRIVATE_KEY=`/bin/pwd`/../${{ARTIFACT_PATH}}/key.pem;',
+            'PRIVATE_KEY=`/bin/pwd`/../../../${{ARTIFACT_PATH}}/key.pem;'
             'ansible-playbook',
             '-vvvv',
             '--private-key=$PRIVATE_KEY',
             '--user=ubuntu',
             '--module-path=configuration/playbooks/library ',
-            '-i ../target/ansible_inventory',
-            '-e @../target/launch_info.yml',
-            '-e @../{secure_dir}/ansible/vars/${{DEPLOYMENT}}.yml',
-            '-e @../{secure_dir}/ansible/vars/${{EDX_ENVIRONMENT}}-${{DEPLOYMENT}}.yml',
+            '-i ../../../target/ansible_inventory '
+            '-e @../../../target/launch_info.yml',
+            '-e @../../../{secure_dir}/ansible/vars/${{DEPLOYMENT}}.yml',
+            '-e @../../../{secure_dir}/ansible/vars/${{EDX_ENVIRONMENT}}-${{DEPLOYMENT}}.yml',
             '-e cache_id=$GO_PIPELINE_COUNTER'
         ]
     )
@@ -466,7 +477,7 @@ def generate_run_app_playbook(job, secure_dir, playbook_path, runif="passed", **
                 '-c',
                 command
             ],
-            working_dir='configuration',
+            working_dir="configuration/playbooks/continuous_delivery/",
             runif=runif
         )
     )
