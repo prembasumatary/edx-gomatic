@@ -38,7 +38,7 @@ def install_pipeline(save_config_locally, dry_run, variable_files, cmd_line_vars
 
     pipeline.ensure_environment_variables(
         {
-            'MARKETING_REPOSITORY_VERSION': 'ddumesnil/Drush',
+            'MARKETING_REPOSITORY_VERSION': config['mktg_repository_version'],
         }
     )
 
