@@ -284,6 +284,32 @@ def guarantee_configuration_version(job, runif="passed"):
     )
 
 
+def format_RSA_key(job, output_path, key):
+    """
+    Formats an RSA key for use in future jobs. Does not last between stages.
+    Args:
+        job (gomatic.job.Job): the gomatic job to which the task will be added
+        output_path (str): The file to output the formatted key to.
+        key (str): The RSA key to be formatted
+
+    Returns:
+        The newly created task (gomatic.gocd.tasks.ExecTask)
+    """
+    return job.add_task(
+        ExecTask(
+            [
+                '/bin/bash',
+                '-c',
+                'touch {output_path} && '
+                'chmod 600 {output_path} && '
+                'python tubular/scripts/format_rsa_key.py --key "{key}" --output-file {output_path}'.format(
+                    output_path=output_path, key=key
+                )
+            ]
+        )
+    )
+
+
 def _fetch_secure_repo(job, secure_dir, secure_repo_envvar, secure_version_envvar, secure_repo_name, runif="passed"):
     """
     Setup a secure repo for use in providing secrets.
@@ -490,11 +516,12 @@ def generate_backup_drupal_database(job, site_env):
     return job.add_task(
         ExecTask(
             [
-                '/usr/bin/python',
-                'scripts/drupal_backup_database.py',
-                '--env', '{site_env}'.format(site_env=site_env),
-                '--username', '$PRIVATE_ACQUIA_USERNAME',
-                '--password', '$PRIVATE_ACQUIA_PASSWORD'
+                '/bin/bash',
+                '-c',
+                'python scripts/drupal_backup_database.py '
+                '--env {site_env} '
+                '--username $PRIVATE_ACQUIA_USERNAME '
+                '--password $PRIVATE_ACQUIA_PASSWORD'.format(site_env=site_env)
             ],
             working_dir='tubular'
         )
@@ -516,8 +543,9 @@ def generate_flush_drupal_caches(job, site_env):
     return job.add_task(
         ExecTask(
             [
-                '/usr/bin/drush',
-                '-y @edx.{site_env} cc all'.format(site_env=site_env)
+                '/bin/bash',
+                '-c',
+                'drush -y @edx.{site_env} cc all'.format(site_env=site_env)
             ],
             working_dir='edx-mktg/docroot'
         )
@@ -542,31 +570,33 @@ def generate_clear_varnish_cache(job, site_env):
     return job.add_task(
         ExecTask(
             [
-                '/usr/bin/python',
-                'scripts/drupal_clear_varnish.py',
-                '--env', '{site_env}'.format(site_env=site_env),
-                '--username', '$PRIVATE_ACQUIA_USERNAME',
-                '--password', '$PRIVATE_ACQUIA_PASSWORD'
+                '/bin/bash',
+                '-c',
+                'python scripts/drupal_clear_varnish.py '
+                '--env {site_env} '
+                '--username $PRIVATE_ACQUIA_USERNAME '
+                '--password $PRIVATE_ACQUIA_PASSWORD'.format(site_env=site_env)
             ],
             working_dir='tubular'
         )
     )
 
 
-def generate_drupal_deploy(job, site_env):
+def generate_drupal_deploy(job, site_env, tag_file):
     """
-    Deploys the tag to the environment.
+    Deploys the given tag to the environment.
 
     Stage using this task must have the following environment variables:
         PRIVATE_ACQUIA_USERNAME
         PRIVATE_ACQUIA_PASSWORD
 
     Expects there to be:
-        - a text file containing the tag name in "target/tag_name.txt"
+        - a text file containing the tag name in "target/tag_file"
 
     Args:
         job (gomatic.job.Job): the gomatic job to which the task will be added
         site_env (str): The environment to clear caches from. Choose 'test' for stage and 'prod' for prod
+        tag_file (str): The name of the file containing the name of the tag to deploy.
 
     Returns:
         The newly created task (gomatic.gocd.tasks.ExecTask)
@@ -574,12 +604,45 @@ def generate_drupal_deploy(job, site_env):
     return job.add_task(
         ExecTask(
             [
-                '/usr/bin/python',
-                'scripts/drupal_deploy.py',
-                '--env', '{site_env}'.format(site_env=site_env),
-                '--username', '$PRIVATE_ACQUIA_USERNAME',
-                '--password', '$PRIVATE_ACQUIA_PASSWORD',
-                '--tag', '$(cat ../target/tag_name.txt)'
+                '/bin/bash',
+                '-c',
+                'python scripts/drupal_deploy.py '
+                '--env {site_env} '
+                '--username $PRIVATE_ACQUIA_USERNAME '
+                '--password $PRIVATE_ACQUIA_PASSWORD '
+                '--tag $(cat ../target/{tag_file})'.format(site_env=site_env, tag_file=tag_file)
+            ],
+            working_dir='tubular'
+        )
+    )
+
+
+def generate_fetch_tag(job, site_env, path_name):
+    """
+    Fetches the name of the current tag deployed in the environment.
+
+    Stage using this task must have the following environment variables:
+        PRIVATE_ACQUIA_USERNAME
+        PRIVATE_ACQUIA_PASSWORD
+
+    Args:
+        job (gomatic.job.Job): the gomatic job to which the task will be added
+        site_env (str): The environment to clear caches from. Choose 'test' for stage and 'prod' for prod
+        path_name (str): The path to write the tag names to.
+
+    Returns:
+        The newly created task (gomatic.gocd.tasks.ExecTask)
+    """
+    return job.add_task(
+        ExecTask(
+            [
+                '/bin/bash',
+                '-c',
+                'python scripts/drupal_fetch_deployed_tag.py '
+                '--env {site_env} '
+                '--username $PRIVATE_ACQUIA_USERNAME '
+                '--password $PRIVATE_ACQUIA_PASSWORD '
+                '--path_name {path_name}'.format(site_env=site_env, path_name=path_name)
             ],
             working_dir='tubular'
         )
