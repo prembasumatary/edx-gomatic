@@ -140,6 +140,9 @@ def generate_run_play(pipeline,
                       manual_approval=False,
                       **kwargs):
     """
+    TODO: This currently runs from the configuration/playbooks/continuous_delivery/ directory. Need to figure out how to
+    pass in a configuration file to ansible and dump all this pathing BS
+
     Pattern assumes that generate_launch_instance stage was used launch the instance preceding this stage.
     Requires the ansible_inventory and key.pem files to be in the target/ directory
 
@@ -568,6 +571,10 @@ def generate_run_migrations(pipeline,
                             inventory_location,
                             instance_key_location,
                             launch_info_location,
+                            application_user,
+                            application_name,
+                            application_path,
+                            sub_application_name=None,
                             manual_approval=False):
     """
     Generate the stage that applies/runs migrations.
@@ -579,6 +586,10 @@ def generate_run_migrations(pipeline,
         inventory_location (ArtifactLocation): Location of inventory containing the IP address of the EC2 instance, for fetching.
         instance_key_location (ArtifactLocation): Location of SSH key used to access the EC2 instance, for fetching.
         launch_info_location (ArtifactLocation): Location of the launch_info.yml file for fetching
+        application_user (str): Username to use while running the migrations
+        application_name (str): Name of the application (e.g. edxapp, programs, etc...)
+        application_path (str): path of the application installed on the target machine
+        sub_application_name (str): any sub application to insert in to the migrations commands {cms|lms}
         manual_approval (bool): Should this stage require manual approval?
 
     Returns:
@@ -586,9 +597,9 @@ def generate_run_migrations(pipeline,
     """
     pipeline.ensure_environment_variables(
         {
-            'APPLICATION_USER': 'programs',
-            'APPLICATION_NAME': 'programs',
-            'APPLICATION_PATH': '/edx/app/programs',
+            'APPLICATION_USER': application_user,
+            'APPLICATION_NAME': application_name,
+            'APPLICATION_PATH': application_path,
             'DB_MIGRATION_USER': 'migrate',
             'ARTIFACT_PATH': artifact_path,
         }
@@ -599,7 +610,12 @@ def generate_run_migrations(pipeline,
         }
     )
 
-    stage = pipeline.ensure_stage(constants.APPLY_MIGRATIONS_STAGE)
+    if sub_application_name is not None:
+        stage_name = "{}_{}".format(constants.APPLY_MIGRATIONS_STAGE, sub_application_name)
+    else:
+        stage_name = constants.APPLY_MIGRATIONS_STAGE
+    stage = pipeline.ensure_stage(stage_name)
+
     if manual_approval:
         stage.set_has_manual_approval()
     job = stage.ensure_job(constants.APPLY_MIGRATIONS_JOB)
@@ -649,7 +665,7 @@ def generate_run_migrations(pipeline,
     )
 
     tasks.generate_requirements_install(job, 'configuration')
-    tasks.generate_run_migrations(job)
+    tasks.generate_run_migrations(job, sub_application_name)
 
     # Cleanup EC2 instance if running the migrations failed.
     # I think this should be left for the terminate instance stage

@@ -90,7 +90,7 @@ def install_pipeline(save_config_locally, dry_run, variable_files, cmd_line_vars
                                     )
 
     stages.generate_run_play(pipeline,
-                             'playbooks/edx-east/programs.yml',
+                             '../edx-east/programs.yml',
                              play='programs',
                              deployment='edx',
                              edx_environment='loadtest',
@@ -140,12 +140,16 @@ def install_pipeline(save_config_locally, dry_run, variable_files, cmd_line_vars
         constants.LAUNCH_INSTANCE_JOB_NAME,
         'launch_info.yml'
     )
-    stages.generate_run_migrations(pipeline,
-                                   config['db_migration_pass'],
-                                   artifact_path,
-                                   ansible_inventory_location,
-                                   instance_ssh_key_location,
-                                   launch_info_location)
+    stages.generate_run_migrations(pipeline=pipeline,
+                                   db_migration_pass=config['db_migration_pass'],
+                                   artifact_path=artifact_path,
+                                   inventory_location=ansible_inventory_location,
+                                   instance_key_location=instance_ssh_key_location,
+                                   launch_info_location=launch_info_location,
+                                   application_user='programs',
+                                   application_name='programs',
+                                   application_path='/edx/app/programs'
+                                   )
     #
     # Create the stage to deploy the programs AMI.
     #
