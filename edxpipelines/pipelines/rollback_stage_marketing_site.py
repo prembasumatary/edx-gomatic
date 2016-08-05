@@ -31,7 +31,7 @@ def install_pipeline(save_config_locally, dry_run, variable_files, cmd_line_vars
         HostRestClient(config['gocd_url'], config['gocd_username'], config['gocd_password'], ssl=True))
 
     pipeline = configurator \
-        .ensure_pipeline_group('Deploy') \
+        .ensure_pipeline_group(DRUPAL_PIPELINE_GROUP_NAME) \
         .ensure_replacement_of_pipeline('rollback-stage-marketing-site') \
         .set_git_material(GitMaterial('https://github.com/edx/tubular', polling=False, destination_directory='tubular')) \
         .ensure_material(PipelineMaterial(DEPLOY_MARKETING_PIPELINE_NAME, FETCH_TAG_STAGE_NAME))
