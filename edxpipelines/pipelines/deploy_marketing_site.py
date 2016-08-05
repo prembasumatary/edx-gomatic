@@ -124,6 +124,13 @@ def install_pipeline(save_config_locally, dry_run, variable_files, cmd_line_vars
     tasks.generate_requirements_install(backup_stage_database_job, 'tubular')
     tasks.generate_backup_drupal_database(backup_stage_database_job, STAGE_ENV)
 
+    # Stage to deploy to stage
+    deploy_stage_for_stage = pipeline.ensure_stage(DEPLOY_STAGE_STAGE_NAME)
+    deploy_job_for_stage = deploy_stage_for_stage.ensure_job(DEPLOY_STAGE_JOB_NAME)
+
+    tasks.generate_requirements_install(deploy_job_for_stage, 'tubular')
+    tasks.generate_target_directory(deploy_job_for_stage)
+
     # Stage to clear caches in stage
     clear_stage_caches_stage = pipeline.ensure_stage(CLEAR_STAGE_CACHES_STAGE_NAME)
     clear_stage_caches_job = clear_stage_caches_stage.ensure_job(CLEAR_STAGE_CACHES_JOB_NAME)
@@ -133,13 +140,6 @@ def install_pipeline(save_config_locally, dry_run, variable_files, cmd_line_vars
     tasks.format_RSA_key(clear_stage_caches_job, 'edx-mktg/docroot/acquia_github_key.pem', '$PRIVATE_ACQUIA_GITHUB_KEY')
     tasks.generate_flush_drupal_caches(clear_stage_caches_job, STAGE_ENV)
     tasks.generate_clear_varnish_cache(clear_stage_caches_job, STAGE_ENV)
-
-    # Stage to deploy to stage
-    deploy_stage_for_stage = pipeline.ensure_stage(DEPLOY_STAGE_STAGE_NAME)
-    deploy_job_for_stage = deploy_stage_for_stage.ensure_job(DEPLOY_STAGE_JOB_NAME)
-
-    tasks.generate_requirements_install(deploy_job_for_stage, 'tubular')
-    tasks.generate_target_directory(deploy_job_for_stage)
 
     # fetch the tag name
     new_tag_name_artifact_params = {
@@ -160,6 +160,15 @@ def install_pipeline(save_config_locally, dry_run, variable_files, cmd_line_vars
     tasks.generate_requirements_install(backup_prod_database_job, 'tubular')
     tasks.generate_backup_drupal_database(backup_prod_database_job, PROD_ENV)
 
+    # Stage to deploy to prod
+    deploy_stage_for_prod = pipeline.ensure_stage(DEPLOY_PROD_STAGE_NAME)
+    deploy_job_for_prod = deploy_stage_for_prod.ensure_job(DEPLOY_PROD_JOB_NAME)
+
+    tasks.generate_requirements_install(deploy_job_for_prod, 'tubular')
+    tasks.generate_target_directory(deploy_job_for_prod)
+    deploy_job_for_prod.add_task(FetchArtifactTask(**new_tag_name_artifact_params))
+    tasks.generate_drupal_deploy(deploy_job_for_prod, PROD_ENV, '{new_tag}.txt'.format(new_tag=NEW_TAG_NAME))
+
     # Stage to clear caches in prod
     clear_prod_caches_stage = pipeline.ensure_stage(CLEAR_PROD_CACHES_STAGE_NAME)
     clear_prod_caches_job = clear_prod_caches_stage.ensure_job(CLEAR_PROD_CACHES_JOB_NAME)
@@ -169,15 +178,6 @@ def install_pipeline(save_config_locally, dry_run, variable_files, cmd_line_vars
     tasks.format_RSA_key(clear_prod_caches_job, 'edx-mktg/docroot/acquia_github_key.pem', '$PRIVATE_ACQUIA_GITHUB_KEY')
     tasks.generate_flush_drupal_caches(clear_prod_caches_job, PROD_ENV)
     tasks.generate_clear_varnish_cache(clear_prod_caches_job, PROD_ENV)
-
-    # Stage to deploy to prod
-    deploy_stage_for_prod = pipeline.ensure_stage(DEPLOY_PROD_STAGE_NAME)
-    deploy_job_for_prod = deploy_stage_for_prod.ensure_job(DEPLOY_PROD_JOB_NAME)
-
-    tasks.generate_requirements_install(deploy_job_for_prod, 'tubular')
-    tasks.generate_target_directory(deploy_job_for_prod)
-    deploy_job_for_prod.add_task(FetchArtifactTask(**new_tag_name_artifact_params))
-    tasks.generate_drupal_deploy(deploy_job_for_prod, PROD_ENV, '{new_tag}.txt'.format(new_tag=NEW_TAG_NAME))
 
     configurator.save_updated_config(save_config_locally=save_config_locally, dry_run=dry_run)
 

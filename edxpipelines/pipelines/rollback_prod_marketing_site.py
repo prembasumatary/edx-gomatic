@@ -52,17 +52,6 @@ def install_pipeline(save_config_locally, dry_run, variable_files, cmd_line_vars
         }
     )
 
-    # Stage to clear caches in extra
-    clear_prod_caches_stage = pipeline.ensure_stage(CLEAR_PROD_CACHES_STAGE_NAME)
-    clear_prod_caches_stage.set_has_manual_approval()
-    clear_prod_caches_job = clear_prod_caches_stage.ensure_job(CLEAR_PROD_CACHES_JOB_NAME)
-
-    tasks.fetch_edx_mktg(clear_prod_caches_job, 'edx-mktg')
-    tasks.generate_requirements_install(clear_prod_caches_job, 'tubular')
-    tasks.format_RSA_key(clear_prod_caches_job, 'edx-mktg/docroot/acquia_github_key.pem', '$PRIVATE_ACQUIA_GITHUB_KEY')
-    tasks.generate_flush_drupal_caches(clear_prod_caches_job, PROD_ENV)
-    tasks.generate_clear_varnish_cache(clear_prod_caches_job, PROD_ENV)
-
     prod_tag_name_artifact_params = {
         'pipeline': DEPLOY_MARKETING_PIPELINE_NAME,
         'stage': FETCH_TAG_STAGE_NAME,
@@ -79,6 +68,17 @@ def install_pipeline(save_config_locally, dry_run, variable_files, cmd_line_vars
     tasks.generate_target_directory(rollback_job)
     rollback_job.add_task(FetchArtifactTask(**prod_tag_name_artifact_params))
     tasks.generate_drupal_deploy(rollback_job, PROD_ENV, '{prod_tag}.txt'.format(prod_tag=PROD_TAG_NAME))
+
+    # Stage to clear caches in extra
+    clear_prod_caches_stage = pipeline.ensure_stage(CLEAR_PROD_CACHES_STAGE_NAME)
+    clear_prod_caches_stage.set_has_manual_approval()
+    clear_prod_caches_job = clear_prod_caches_stage.ensure_job(CLEAR_PROD_CACHES_JOB_NAME)
+
+    tasks.fetch_edx_mktg(clear_prod_caches_job, 'edx-mktg')
+    tasks.generate_requirements_install(clear_prod_caches_job, 'tubular')
+    tasks.format_RSA_key(clear_prod_caches_job, 'edx-mktg/docroot/acquia_github_key.pem', '$PRIVATE_ACQUIA_GITHUB_KEY')
+    tasks.generate_flush_drupal_caches(clear_prod_caches_job, PROD_ENV)
+    tasks.generate_clear_varnish_cache(clear_prod_caches_job, PROD_ENV)
 
     configurator.save_updated_config(save_config_locally=save_config_locally, dry_run=dry_run)
 
