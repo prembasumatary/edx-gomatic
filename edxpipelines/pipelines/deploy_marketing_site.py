@@ -87,7 +87,8 @@ def install_pipeline(save_config_locally, dry_run, variable_files, cmd_line_vars
                 # Writing dates to a file should help with any issues dealing with a job
                 # taking place over two days (23:59:59 -> 00:00:00). Only the day can be
                 # affected since we don't use minutes or seconds.
-                'echo -n "release-$(date +%Y-%m-%d-%H:%M)" > ../target/{new_tag}.txt && '
+                # NOTE: Uses UTC
+                'echo -n "release-$(date +%Y-%m-%d-%H.%M)" > ../target/{new_tag}.txt && '
                 'TAG_NAME=$(cat ../target/{new_tag}.txt) && '
                 '/usr/bin/git config user.email "admin@edx.org" && '
                 '/usr/bin/git config user.name "edx-secure" && '
@@ -142,7 +143,7 @@ def install_pipeline(save_config_locally, dry_run, variable_files, cmd_line_vars
 
     # fetch the tag name
     new_tag_name_artifact_params = {
-        'pipeline': pipeline.name,
+        'pipeline': DEPLOY_MARKETING_PIPELINE_NAME,
         'stage': PUSH_TO_ACQUIA_STAGE_NAME,
         'job': PUSH_TO_ACQUIA_JOB_NAME,
         'src': FetchArtifactFile('{new_tag}.txt'.format(new_tag=NEW_TAG_NAME)),
