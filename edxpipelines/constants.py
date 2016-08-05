@@ -30,6 +30,7 @@ EC2_LAUNCH_INSTANCE_TIMEOUT = '300'
 EC2_EBS_VOLUME_SIZE = '50'
 
 # Drupal Constants
+DRUPAL_PIPELINE_GROUP_NAME = 'E-Commerce'
 DEPLOY_MARKETING_PIPELINE_NAME = 'deploy-marketing-site'
 FETCH_TAG_STAGE_NAME = 'fetch_current_tag_names'
 FETCH_TAG_JOB_NAME = 'fetch_current_tag_names_job'
