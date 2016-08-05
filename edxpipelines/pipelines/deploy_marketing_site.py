@@ -131,16 +131,6 @@ def install_pipeline(save_config_locally, dry_run, variable_files, cmd_line_vars
     tasks.generate_requirements_install(deploy_job_for_stage, 'tubular')
     tasks.generate_target_directory(deploy_job_for_stage)
 
-    # Stage to clear caches in stage
-    clear_stage_caches_stage = pipeline.ensure_stage(CLEAR_STAGE_CACHES_STAGE_NAME)
-    clear_stage_caches_job = clear_stage_caches_stage.ensure_job(CLEAR_STAGE_CACHES_JOB_NAME)
-
-    tasks.fetch_edx_mktg(clear_stage_caches_job, 'edx-mktg')
-    tasks.generate_requirements_install(clear_stage_caches_job, 'tubular')
-    tasks.format_RSA_key(clear_stage_caches_job, 'edx-mktg/docroot/acquia_github_key.pem', '$PRIVATE_ACQUIA_GITHUB_KEY')
-    tasks.generate_flush_drupal_caches(clear_stage_caches_job, STAGE_ENV)
-    tasks.generate_clear_varnish_cache(clear_stage_caches_job, STAGE_ENV)
-
     # fetch the tag name
     new_tag_name_artifact_params = {
         'pipeline': DEPLOY_MARKETING_PIPELINE_NAME,
@@ -151,6 +141,16 @@ def install_pipeline(save_config_locally, dry_run, variable_files, cmd_line_vars
     }
     deploy_job_for_stage.add_task(FetchArtifactTask(**new_tag_name_artifact_params))
     tasks.generate_drupal_deploy(deploy_job_for_stage, STAGE_ENV, '{new_tag}.txt'.format(new_tag=NEW_TAG_NAME))
+
+    # Stage to clear caches in stage
+    clear_stage_caches_stage = pipeline.ensure_stage(CLEAR_STAGE_CACHES_STAGE_NAME)
+    clear_stage_caches_job = clear_stage_caches_stage.ensure_job(CLEAR_STAGE_CACHES_JOB_NAME)
+
+    tasks.fetch_edx_mktg(clear_stage_caches_job, 'edx-mktg')
+    tasks.generate_requirements_install(clear_stage_caches_job, 'tubular')
+    tasks.format_RSA_key(clear_stage_caches_job, 'edx-mktg/docroot/acquia_github_key.pem', '$PRIVATE_ACQUIA_GITHUB_KEY')
+    tasks.generate_flush_drupal_caches(clear_stage_caches_job, STAGE_ENV)
+    tasks.generate_clear_varnish_cache(clear_stage_caches_job, STAGE_ENV)
 
     # Stage to backup database in prod
     backup_prod_database_stage = pipeline.ensure_stage(BACKUP_PROD_DATABASE_STAGE_NAME)
