@@ -54,6 +54,7 @@ def install_pipeline(save_config_locally, dry_run, variable_files, cmd_line_vars
 
     # Stage to fetch the current tag names from stage and prod
     fetch_tag_stage = pipeline.ensure_stage(FETCH_TAG_STAGE_NAME)
+    fetch_tag_stage.set_has_manual_approval()
     fetch_tag_job = fetch_tag_stage.ensure_job(FETCH_TAG_JOB_NAME)
     tasks.generate_requirements_install(fetch_tag_job, 'tubular')
     tasks.generate_target_directory(fetch_tag_job)
@@ -92,7 +93,7 @@ def install_pipeline(save_config_locally, dry_run, variable_files, cmd_line_vars
                 'TAG_NAME=$(cat ../target/{new_tag}.txt) && '
                 '/usr/bin/git config user.email "admin@edx.org" && '
                 '/usr/bin/git config user.name "edx-secure" && '
-                '/usr/bin/git tag -a $TAG_NAME -m "Release for $(date +%B\ %d,\ %Y). Created by $GO_TRIGGER_USER" && '
+                '/usr/bin/git tag -a $TAG_NAME -m "Release for $(date +%B\ %d,\ %Y). Created by $GO_TRIGGER_USER." && '
                 'GIT_SSH_COMMAND="/usr/bin/ssh -o StrictHostKeyChecking=no -i ../github_key.pem" '
                 '/usr/bin/git push origin $TAG_NAME'.format(new_tag=NEW_TAG_NAME)
             ],
@@ -103,7 +104,7 @@ def install_pipeline(save_config_locally, dry_run, variable_files, cmd_line_vars
     # Set up Acquia Github key for use in pushing tag to Acquia
     tasks.format_RSA_key(push_to_acquia_job, 'acquia_github_key.pem', '$PRIVATE_ACQUIA_GITHUB_KEY')
 
-    # Set up Acquia remote repo and push tag to Acquia
+    # Set up Acquia remote repo and push tag to Acquia. Change new tag file to contain "tags/" for deployment.
     push_to_acquia_job.add_task(
         ExecTask(
             [
@@ -111,7 +112,8 @@ def install_pipeline(save_config_locally, dry_run, variable_files, cmd_line_vars
                 '-c',
                 '/usr/bin/git remote add acquia $PRIVATE_ACQUIA_REMOTE && '
                 'GIT_SSH_COMMAND="/usr/bin/ssh -o StrictHostKeyChecking=no -i ../acquia_github_key.pem" '
-                '/usr/bin/git push acquia $(cat ../target/{new_tag}.txt)'.format(new_tag=NEW_TAG_NAME)
+                '/usr/bin/git push acquia $(cat ../target/{new_tag}.txt) && '
+                'echo -n "tags/" | cat - ../target/{new_tag}.txt > temp && mv temp ../target/{new_tag}.txt'.format(new_tag=NEW_TAG_NAME)
             ],
             working_dir='edx-mktg'
         )
