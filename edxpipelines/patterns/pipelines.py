@@ -1,7 +1,8 @@
 from gomatic import *
-from edxpipelines.patterns import stages
+
 import edxpipelines.utils as utils
 from edxpipelines import constants
+from edxpipelines.patterns import stages
 
 
 def generate_deploy_pipeline(configurator,
@@ -30,7 +31,7 @@ def generate_deploy_pipeline(configurator,
         .ensure_pipeline_group(pipeline_group) \
         .ensure_replacement_of_pipeline(pipeline_name) \
         .set_git_material(
-            GitMaterial("https://github.com/edx/tubular.git", polling=False, destination_directory="tubular"))
+        GitMaterial("https://github.com/edx/tubular.git", polling=False, destination_directory="tubular"))
 
     stages.generate_single_stage_deploy_ami(pipeline,
                                             asgard_api_endpoints,
@@ -52,7 +53,10 @@ def generate_multistage_pipeline(environment,
                                  config,
                                  save_config_locally,
                                  dry_run):
+    hipchat_auth_token = config['hipchat_token']
+    application_path = '/edx/app/' + service_name
     artifact_path = 'target/'
+
     gcc = GoCdConfigurator(
         HostRestClient(config['gocd_url'], config['gocd_username'], config['gocd_password'], ssl=True))
     pipeline = gcc.ensure_pipeline_group(pipeline_group) \
@@ -69,10 +73,10 @@ def generate_multistage_pipeline(environment,
                                      # CONFIGURATION_VERSION environment variable instead
                                      destination_directory='configuration')) \
         .ensure_environment_variables({
-            'APPLICATION_USER': service_name,
-            'APPLICATION_NAME': service_name,
-            'APPLICATION_PATH': '/edx/app/' + service_name,
-        })
+        'APPLICATION_USER': service_name,
+        'APPLICATION_NAME': service_name,
+        'APPLICATION_PATH': application_path,
+    })
     #
     # Create the AMI-building stage.
     #
@@ -89,6 +93,7 @@ def generate_multistage_pipeline(environment,
     kwargs = {
         version_var_name: '$APP_VERSION'
     }
+
     stages.generate_run_play(pipeline,
                              playbook_path=playbook_path,
                              play=play,
@@ -98,7 +103,7 @@ def generate_multistage_pipeline(environment,
                              app_repo=app_repo,
                              configuration_secure_repo=config['configuration_secure_repo'],
                              configuration_repo='https://github.com/edx/configuration.git',
-                             hipchat_auth_token=config['hipchat_token'],
+                             hipchat_auth_token=hipchat_auth_token,
                              hipchat_room=hipchat_room,
                              disable_edx_services='true',
                              COMMON_TAG_EC2_INSTANCE='true',
@@ -111,7 +116,7 @@ def generate_multistage_pipeline(environment,
                                              app_repo=app_repo,
                                              configuration_secure_repo=config['configuration_secure_repo'],
                                              configuration_repo='https://github.com/edx/configuration.git',
-                                             hipchat_auth_token=config['hipchat_token'],
+                                             hipchat_auth_token=hipchat_auth_token,
                                              hipchat_room=hipchat_room,
                                              aws_access_key_id=config['aws_access_key_id'],
                                              aws_secret_access_key=config['aws_secret_access_key'],
@@ -142,7 +147,22 @@ def generate_multistage_pipeline(environment,
                                    artifact_path,
                                    ansible_inventory_location,
                                    instance_ssh_key_location,
-                                   launch_info_location)
+                                   launch_info_location,
+                                   service_name,
+                                   service_name,
+                                   application_path)
+
+    stages.generate_refresh_metadata(pipeline,
+                                     ansible_inventory_location,
+                                     instance_ssh_key_location,
+                                     launch_info_location,
+                                     service_name,
+                                     service_name,
+                                     application_path,
+                                     hipchat_auth_token=hipchat_auth_token,
+                                     hipchat_room=hipchat_room
+                                     )
+
     #
     # Create the stage to deploy the AMI.
     #
@@ -175,7 +195,7 @@ def generate_multistage_pipeline(environment,
         instance_info_location,
         aws_access_key_id=config['aws_access_key_id'],
         aws_secret_access_key=config['aws_secret_access_key'],
-        hipchat_auth_token=config['hipchat_token'],
+        hipchat_auth_token=hipchat_auth_token,
         runif='any'
     )
     gcc.save_updated_config(save_config_locally=save_config_locally, dry_run=dry_run)

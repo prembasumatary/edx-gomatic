@@ -1,6 +1,7 @@
 from gomatic import *
-import edxpipelines.patterns.tasks as tasks
+
 import edxpipelines.constants as constants
+import edxpipelines.patterns.tasks as tasks
 
 
 def generate_asg_cleanup(pipeline,
@@ -528,8 +529,8 @@ def generate_edp_validation(pipeline,
                                            'HIPCHAT_CHANNELS': hipchat_channels,
                                            'ASGARD_API_ENDPOINTS': asgard_api_endpoints,
                                            'AMI_ENVIRONMENT': ami_environment,
-                                           'AMI_PLAY': ami_play})\
-            .ensure_encrypted_environment_variables({'HIPCHAT_AUTH_TOKEN': hipchat_auth_token})
+                                           'AMI_PLAY': ami_play}) \
+        .ensure_encrypted_environment_variables({'HIPCHAT_AUTH_TOKEN': hipchat_auth_token})
 
     stage = pipeline.ensure_stage("Validation")
     if manual_approval:
@@ -727,5 +728,108 @@ def generate_terminate_instance(pipeline,
     job.add_task(FetchArtifactTask(**artifact_params))
 
     tasks.generate_ami_cleanup(job, runif=runif)
+
+    return stage
+
+
+def generate_refresh_metadata(pipeline,
+                              inventory_location,
+                              instance_key_location,
+                              launch_info_location,
+                              application_user,
+                              application_name,
+                              application_path,
+                              hipchat_auth_token='',
+                              hipchat_room=constants.HIPCHAT_ROOM,
+                              manual_approval=False):
+    """
+    Generate the stage that refreshes metadata for the discovery service.
+
+    Args:
+        pipeline (gomatic.Pipeline): Pipeline to which to add the run migrations stage.
+        inventory_location (ArtifactLocation): Location of inventory containing the IP address of the EC2 instance, for fetching.
+        instance_key_location (ArtifactLocation): Location of SSH key used to access the EC2 instance, for fetching.
+        launch_info_location (ArtifactLocation): Location of the launch_info.yml file for fetching
+        application_user (str): Username to use while running the migrations
+        application_name (str): Name of the application (e.g. edxapp, programs, etc...)
+        application_path (str): path of the application installed on the target machine
+        hipchat_auth_token (str): HipChat authentication token
+        hipchat_room (str): HipChat room where announcements should be made
+        manual_approval (bool): Should this stage require manual approval?
+
+    Returns:
+        gomatic.Stage
+    """
+    pipeline.ensure_environment_variables(
+        {
+            'APPLICATION_USER': application_user,
+            'APPLICATION_NAME': application_name,
+            'APPLICATION_PATH': application_path,
+            'HIPCHAT_ROOM': hipchat_room,
+        }
+    )
+    pipeline.ensure_encrypted_environment_variables(
+        {
+            'HIPCHAT_AUTH_TOKEN': hipchat_auth_token,
+        }
+    )
+
+    stage_name = 'refresh_metadata'
+    stage = pipeline.ensure_stage(stage_name)
+
+    if manual_approval:
+        stage.set_has_manual_approval()
+    job = stage.ensure_job(stage_name + '_job')
+
+    # Check out the requested version of configuration
+    tasks.guarantee_configuration_version(job)
+
+    # Fetch the Ansible inventory to use in reaching the EC2 instance.
+    artifact_params = {
+        "pipeline": inventory_location.pipeline,
+        "stage": inventory_location.stage,
+        "job": inventory_location.job,
+        "src": FetchArtifactFile(inventory_location.file_name),
+        "dest": 'configuration'
+    }
+    job.add_task(FetchArtifactTask(**artifact_params))
+
+    # Fetch the SSH key to use in reaching the EC2 instance.
+    artifact_params = {
+        "pipeline": instance_key_location.pipeline,
+        "stage": instance_key_location.stage,
+        "job": instance_key_location.job,
+        "src": FetchArtifactFile(instance_key_location.file_name),
+        "dest": 'configuration'
+    }
+    job.add_task(FetchArtifactTask(**artifact_params))
+
+    # ensure the target directoy exists
+    tasks.generate_target_directory(job)
+
+    # fetch the launch_info.yml
+    artifact_params = {
+        "pipeline": launch_info_location.pipeline,
+        "stage": launch_info_location.stage,
+        "job": launch_info_location.job,
+        "src": FetchArtifactFile(launch_info_location.file_name),
+        "dest": "target"
+    }
+    job.add_task(FetchArtifactTask(**artifact_params))
+
+    # The SSH key used to access the EC2 instance needs specific permissions.
+    job.add_task(
+        ExecTask(
+            ['/bin/bash', '-c', 'chmod 600 {}'.format(instance_key_location.file_name)],
+            working_dir='configuration'
+        )
+    )
+
+    tasks.generate_requirements_install(job, 'configuration')
+    tasks.generate_refresh_metadata(job)
+
+    # Cleanup EC2 instance if running the migrations failed.
+    # I think this should be left for the terminate instance stage
+    # tasks.generate_ami_cleanup(job, runif='failed')
 
     return stage
