@@ -10,14 +10,19 @@ import yaml
 logging.basicConfig(stream=sys.stdout, level=logging.INFO, datefmt='%Y-%m-%d %H:%M:%S')
 
 
-def ensure_pipeline(script, input_files):
-    result = []
-    for input_file in input_files:
-        result.append('--variable_file')
-        result.append(input_file)
+def ensure_pipeline(script, input_files, dry_run=False):
+    script_args = []
 
-    logging.debug("Executing script {} with input files: {}".format(script, result))
-    return subprocess.check_output(['python', script] + result, stderr=subprocess.STDOUT)
+    if dry_run:
+        script_args.append('--dry-run')
+
+    for input_file in input_files:
+        script_args.append('--variable_file')
+        script_args.append(input_file)
+
+    command = ['python', script] + script_args
+    logging.debug("Executing script: {}".format(command))
+    return subprocess.check_output(command, stderr=subprocess.STDOUT)
 
 
 def parse_config(environment, config_file_path, script_filter=None):
@@ -61,7 +66,12 @@ def print_failure_report(failures):
 @click.option('--config_file', '-f', help='Path to the configuration file', required=True)
 @click.option('--verbose', '-v', is_flag=True)
 @click.option('--script', help='optional, specify the script to run.', default=None)
-def run_pipelines(environment, config_file, script, verbose):
+@click.option('--dry-run',
+        help='run all pipelines in dry-run mode.',
+        default=False,
+        is_flag=True,
+)
+def run_pipelines(environment, config_file, script, verbose, dry_run):
     """
 
     Args:
@@ -81,7 +91,7 @@ def run_pipelines(environment, config_file, script, verbose):
     failures = []
     for script in scripts:
         try:
-            ensure_pipeline(script['script'], script['input_files'])
+            ensure_pipeline(script['script'], script['input_files'], dry_run)
             success.append(script['script'])
         except subprocess.CalledProcessError, e:
             failures.append({'script': script['script'], 'input_files': script['input_files'], 'error': e.output})
