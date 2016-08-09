@@ -62,6 +62,7 @@ def install_pipeline(save_config_locally, dry_run, variable_files, cmd_line_vars
 
     # Stage to rollback stage to its last stable tag
     rollback_stage = pipeline.ensure_stage(ROLLBACK_STAGE_NAME)
+    rollback_stage.set_has_manual_approval()
     rollback_job = rollback_stage.ensure_job(ROLLBACK_JOB_NAME)
 
     tasks.generate_requirements_install(rollback_job, 'tubular')
@@ -71,7 +72,6 @@ def install_pipeline(save_config_locally, dry_run, variable_files, cmd_line_vars
 
     # Stage to clear caches in extra
     clear_prod_caches_stage = pipeline.ensure_stage(CLEAR_PROD_CACHES_STAGE_NAME)
-    clear_prod_caches_stage.set_has_manual_approval()
     clear_prod_caches_job = clear_prod_caches_stage.ensure_job(CLEAR_PROD_CACHES_JOB_NAME)
 
     tasks.fetch_edx_mktg(clear_prod_caches_job, 'edx-mktg')
