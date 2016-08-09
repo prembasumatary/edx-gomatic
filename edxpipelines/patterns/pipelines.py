@@ -33,11 +33,13 @@ def generate_deploy_pipeline(configurator,
         .set_git_material(
             GitMaterial("https://github.com/edx/tubular.git", polling=False, destination_directory="tubular"))
 
-    stages.generate_single_stage_deploy_ami(pipeline,
-                                            asgard_api_endpoints,
-                                            asgard_token,
-                                            aws_access_key_id,
-                                            aws_secret_access_key)
+    stages.generate_single_stage_deploy_ami(
+        pipeline,
+        asgard_api_endpoints,
+        asgard_token,
+        aws_access_key_id,
+        aws_secret_access_key
+    )
     return configurator
 
 
@@ -152,6 +154,30 @@ def generate_multistage_pipeline(environment,
         ansible_inventory_location,
         instance_ssh_key_location,
         launch_info_location
+    )
+
+    stages.generate_refresh_metadata(
+        pipeline,
+        ansible_inventory_location,
+        instance_ssh_key_location,
+        launch_info_location,
+        service_name,
+        service_name,
+        application_path,
+        hipchat_auth_token=hipchat_auth_token,
+        hipchat_room=hipchat_room
+    )
+
+    stages.generate_update_index(
+        pipeline,
+        ansible_inventory_location,
+        instance_ssh_key_location,
+        launch_info_location,
+        service_name,
+        service_name,
+        application_path,
+        hipchat_auth_token=hipchat_auth_token,
+        hipchat_room=hipchat_room
     )
 
     #

@@ -17,7 +17,7 @@ APPLY_MIGRATIONS_JOB = 'apply_migrations_job'
 # Defaults
 ARTIFACT_PATH = 'target'
 PUBLIC_CONFIGURATION_REPO_URL = 'https://github.com/edx/configuration.git'
-PUBLIC_CONFIGURATION_REPO_BRANCH = 'master'
+PUBLIC_CONFIGURATION_REPO_BRANCH = 'clintonb/discovery-update-index'
 PRIVATE_CONFIGURATION_REPO_BRANCH = 'master'
 PRIVATE_CONFIGURATION_LOCAL_DIR = 'edx-secure'
 APP_REPO_BRANCH = 'master'

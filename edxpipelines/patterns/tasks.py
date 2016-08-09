@@ -44,8 +44,8 @@ def generate_launch_instance(job, runif="passed"):
 
     """
     job.ensure_artifacts(set([BuildArtifact("target/key.pem"),
-                             BuildArtifact("target/ansible_inventory"),
-                             BuildArtifact("target/launch_info.yml")]))
+                              BuildArtifact("target/ansible_inventory"),
+                              BuildArtifact("target/launch_info.yml")]))
     return job.add_task(
         ExecTask(
             [
@@ -581,5 +581,93 @@ def generate_fetch_tag(job, site_env, path_name):
                 '--path_name {path_name}'.format(site_env=site_env, path_name=path_name)
             ],
             working_dir='tubular'
+        )
+    )
+
+
+def generate_refresh_metadata(job, runif="passed"):
+    """
+    Generates GoCD task that runs refreshes metadata (for the Catalog Service) via an Ansible script.
+
+    Args:
+        job (gomatic.job.Job): the gomatic job to which the run migrations task will be added
+        runif (str): one of ['passed', 'failed', 'any'] Default: passed
+
+    Returns:
+        The newly created task (gomatic.gocd.tasks.ExecTask)
+
+    """
+    command = ' '.join(
+        [
+            'export ANSIBLE_HOST_KEY_CHECKING=False;'
+            'export ANSIBLE_SSH_ARGS="-o ControlMaster=auto -o ControlPersist=30m";'
+            'PRIVATE_KEY=`/bin/pwd`/../../key.pem;'
+            'ansible-playbook '
+            '-vvvv '
+            '-i ../../ansible_inventory '
+            '--private-key=$PRIVATE_KEY '
+            '--user=ubuntu '
+            '-e APPLICATION_PATH=$APPLICATION_PATH '
+            '-e APPLICATION_NAME=$APPLICATION_NAME '
+            '-e APPLICATION_USER=$APPLICATION_USER '
+            '-e HIPCHAT_TOKEN=$HIPCHAT_TOKEN '
+            '-e HIPCHAT_ROOM="$HIPCHAT_ROOM" '
+            'discovery_refresh_metadata.yml '
+        ]
+    )
+
+    return job.add_task(
+        ExecTask(
+            [
+                '/bin/bash',
+                '-c',
+                command
+            ],
+            working_dir='configuration/playbooks/continuous_delivery/',
+            runif=runif
+        )
+    )
+
+
+def generate_update_index(job, runif="passed"):
+    """
+    Generates GoCD task that runs refreshes metadata (for the Catalog Service) via an Ansible script.
+
+    Args:
+        job (gomatic.job.Job): the gomatic job to which the run migrations task will be added
+        runif (str): one of ['passed', 'failed', 'any'] Default: passed
+
+    Returns:
+        The newly created task (gomatic.gocd.tasks.ExecTask)
+
+    """
+    command = ' '.join(
+        [
+            'export ANSIBLE_HOST_KEY_CHECKING=False;'
+            'export ANSIBLE_SSH_ARGS="-o ControlMaster=auto -o ControlPersist=30m";'
+            'PRIVATE_KEY=`/bin/pwd`/../../key.pem;'
+            'ansible-playbook '
+            '-vvvv '
+            '-i ../../ansible_inventory '
+            '--private-key=$PRIVATE_KEY '
+            '--user=ubuntu '
+            '-e APPLICATION_PATH=$APPLICATION_PATH '
+            '-e APPLICATION_NAME=$APPLICATION_NAME '
+            '-e APPLICATION_USER=$APPLICATION_USER '
+            '-e HIPCHAT_TOKEN=$HIPCHAT_TOKEN '
+            '-e HIPCHAT_ROOM="$HIPCHAT_ROOM" '
+            'update_index.yml '
+        ]
+    )
+
+    return job.add_task(
+        ExecTask(
+            [
+                '/bin/bash',
+                '-c',
+                command
+            ],
+            working_dir='configuration/playbooks/continuous_delivery/',
+            runif=runif
         )
     )
