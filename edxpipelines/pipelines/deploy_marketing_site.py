@@ -17,7 +17,7 @@ from edxpipelines.constants import *
               help='Save the pipeline configuration xml locally', required=False, default=False)
 @click.option('--dry-run', envvar='DRY_RUN',
               help='do a dry run of  the pipeline installation, and save the pre/post xml configurations locally',
-              required=False, default=False)
+              required=False, default=False, is_flag=True)
 @click.option('--variable_file', 'variable_files', multiple=True,
               help='path to yaml variable file with a dictionary of key/value pairs to be used as variables in the script',
               required=False, default=[])
