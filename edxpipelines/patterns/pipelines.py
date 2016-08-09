@@ -181,6 +181,32 @@ def generate_multistage_pipeline(
         application_path
     )
 
+    # TODO NOPE!!!
+    if service_name == 'discovery':
+        stages.generate_refresh_metadata(
+            pipeline,
+            ansible_inventory_location,
+            instance_ssh_key_location,
+            launch_info_location,
+            service_name,
+            service_name,
+            application_path,
+            hipchat_auth_token=hipchat_auth_token,
+            hipchat_room=hipchat_room
+        )
+
+        stages.generate_update_index(
+            pipeline,
+            ansible_inventory_location,
+            instance_ssh_key_location,
+            launch_info_location,
+            service_name,
+            service_name,
+            application_path,
+            hipchat_auth_token=hipchat_auth_token,
+            hipchat_room=hipchat_room
+        )
+
     #
     # Create the stage to deploy the AMI.
     #
