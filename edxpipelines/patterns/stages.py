@@ -124,7 +124,7 @@ def generate_launch_instance(pipeline,
 
 
 def generate_run_play(pipeline,
-                      playbook_path,
+                      playbook_with_path,
                       play,
                       deployment,
                       edx_environment,
@@ -141,14 +141,14 @@ def generate_run_play(pipeline,
                       **kwargs):
     """
     TODO: This currently runs from the configuration/playbooks/continuous_delivery/ directory. Need to figure out how to
-    pass in a configuration file to ansible and dump all this pathing BS
+    pass in a configuration file to ansible-play correctly. TE-1608
 
     Pattern assumes that generate_launch_instance stage was used launch the instance preceding this stage.
     Requires the ansible_inventory and key.pem files to be in the target/ directory
 
     Args:
         pipeline (gomatic.Pipeline):
-        playbook_path (str):
+        playbook_with_path (str):
         play (str):
         deployment (str):
         edx_environment (str):
@@ -229,7 +229,7 @@ def generate_run_play(pipeline,
     # Required if a particular SHA hash is needed.
     tasks.guarantee_configuration_version(job)
 
-    tasks.generate_run_app_playbook(job, secure_dir, playbook_path, **kwargs)
+    tasks.generate_run_app_playbook(job, secure_dir, playbook_with_path, **kwargs)
     return stage
 
 
