@@ -52,7 +52,7 @@ tools:
     input_files:
       - *tools-admin
       - "../gomatic-secure/gocd/vars/tools/environment-deployment-play/loadtest-edx-edxapp.yml"
-      - "../gomatic-secure/gocd/vars/tools/environments-deployments/loadtest-edx.yml"
+      - "../gomatic-secure/gocd/vars/tools/environment-deployments/loadtest-edx.yml"
       - "../gomatic-secure/gocd/vars/tools/plays/edxapp.yml"
       - "../gomatic-secure/gocd/vars/tools/deployments/edx.yml"
     enabled: True
