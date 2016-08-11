@@ -3,7 +3,7 @@
 test: test.sandbox test.tools
 
 test.%:
-	python deploy_pipelines.py $* -f config.yml --dry-run
+	python deploy_pipelines.py $* -f config.yml --dry-run -v
 
 requirements:
 	pip install -r requirements.txt
