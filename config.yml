@@ -227,6 +227,26 @@ tools:
       - "../gomatic-secure/gocd/vars/tools/deployments/edx.yml"
     enabled: True
 
+  # E-Commerce Apps
+  # E-Commerce Service (Otto)
+  - script: edxpipelines/pipelines/cd_ecommerce.py
+    input_files:
+      - *tools-admin
+      - "../gomatic-secure/gocd/vars/tools/environment-deployment-play/stage-edx-ecommerce.yml"
+      - "../gomatic-secure/gocd/vars/tools/environment-deployments/stage-edx.yml"
+      - "../gomatic-secure/gocd/vars/tools/plays/ecommerce.yml"
+      - "../gomatic-secure/gocd/vars/tools/deployments/edx.yml"
+    enabled: True
+
+  - script: edxpipelines/pipelines/cd_ecommerce.py
+    input_files:
+      - *tools-admin
+      - "../gomatic-secure/gocd/vars/tools/environment-deployment-play/loadtest-edx-ecommerce.yml"
+      - "../gomatic-secure/gocd/vars/tools/environment-deployments/loadtest-edx.yml"
+      - "../gomatic-secure/gocd/vars/tools/plays/ecommerce.yml"
+      - "../gomatic-secure/gocd/vars/tools/deployments/edx.yml"
+    enabled: True
+
 
 sandbox:
   - script: edxpipelines/pipelines/cd_programs_multistage.py
