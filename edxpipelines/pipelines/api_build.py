@@ -19,14 +19,14 @@ import edxpipelines.utils as utils
 @click.option('-e', '--variable', 'cmd_line_vars', multiple=True, help='key/value of a variable used as a replacement in this script', required=False, type=(str, str), nargs=2, default={})
 def install_pipeline(save_config_locally, dry_run, variable_files, cmd_line_vars):
     config = utils.merge_files_and_dicts(variable_files, list(cmd_line_vars,))
-    
+
     configurator = GoCdConfigurator(HostRestClient(config['gocd_url'], config['gocd_username'], config['gocd_password'], ssl=True))
     pipeline = configurator\
-    	.ensure_pipeline_group(config['pipeline']['group'])\
-    	.ensure_replacement_of_pipeline(config['pipeline']['name'])\
-    	.set_label_template("${api-manager}")\
-    	.set_git_material(GitMaterial(config['github']['server_uri'] + '/' + config['github']['repository'], branch="#{GIT_BRANCH}", material_name="api-manager", destination_directory="api-manager"))\
-    	.ensure_parameters({'GIT_BRANCH': config['github']['branch']})
+        .ensure_pipeline_group(config['pipeline']['group'])\
+        .ensure_replacement_of_pipeline(config['pipeline']['name'])\
+        .set_label_template("${api-manager}")\
+        .set_git_material(GitMaterial(config['github']['server_uri'] + '/' + config['github']['repository'], branch="#{GIT_BRANCH}", material_name="api-manager", destination_directory="api-manager"))\
+        .ensure_parameters({'GIT_BRANCH': config['github']['branch']})
 
     pipeline.ensure_environment_variables({
         'SWAGGER_CODEGEN_JAR': config['swagger_codegen_jar'],
@@ -51,7 +51,7 @@ def install_pipeline(save_config_locally, dry_run, variable_files, cmd_line_vars
     job.add_task(ExecTask(['make', 'build'], working_dir="api-manager"))
     job = stage.ensure_job("package-source").ensure_artifacts({BuildArtifact("api-manager")})
     job.add_task(ExecTask(['/bin/bash', '-c', '/usr/bin/pip install -t python-libs -r requirements/base.txt'], working_dir="api-manager"))
-    
+
     configurator.save_updated_config(save_config_locally=save_config_locally, dry_run=dry_run)
 
 if __name__ == "__main__":

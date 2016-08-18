@@ -20,14 +20,14 @@ import edxpipelines.utils as utils
 @click.option('-e', '--variable', 'cmd_line_vars', multiple=True, help='key/value of a variable used as a replacement in this script', required=False, type=(str, str), nargs=2, default={})
 def install_pipeline(save_config_locally, dry_run, variable_files, cmd_line_vars):
     config = utils.merge_files_and_dicts(variable_files, list(cmd_line_vars,))
-    
+
     configurator = GoCdConfigurator(HostRestClient(config['gocd_url'], config['gocd_username'], config['gocd_password'], ssl=True))
     pipeline = configurator\
-    	.ensure_pipeline_group(config['pipeline']['group'])\
-    	.ensure_replacement_of_pipeline(config['pipeline']['name'])\
-    	.set_label_template("${build}")\
-    	.set_automatic_pipeline_locking()\
-    	.ensure_material(PipelineMaterial(config['pipeline']['build'], "build", "build"))
+        .ensure_pipeline_group(config['pipeline']['group'])\
+        .ensure_replacement_of_pipeline(config['pipeline']['name'])\
+        .set_label_template("${build}")\
+        .set_automatic_pipeline_locking()\
+        .ensure_material(PipelineMaterial(config['pipeline']['build'], "build", "build"))
 
     pipeline.ensure_environment_variables({
         'ROOT_REDIRECT': config['root_redirect'],
@@ -62,7 +62,7 @@ def install_pipeline(save_config_locally, dry_run, variable_files, cmd_line_vars
     job.add_task(FetchArtifactTask("", "upload", "upload_gateway", FetchArtifactFile("next_stage.txt")))
     job.add_task(FetchArtifactTask(config['pipeline']['build'], "build", "package-source", FetchArtifactDir("api-manager")))
     job.add_task(ExecTask(['/bin/bash', '-c', 'PYTHONPATH=python-libs python scripts/aws/flip.py --api-base-domain ${API_BASE} --next-stage `cat ../next_stage.txt`'], working_dir="api-manager"))
-   
+
     configurator.save_updated_config(save_config_locally=save_config_locally, dry_run=dry_run)
 
 if __name__ == "__main__":
