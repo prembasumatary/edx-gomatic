@@ -63,7 +63,7 @@ def install_pipeline(save_config_locally, dry_run, variable_files, cmd_line_vars
 
     pipelines.generate_multistage_pipeline(
         play='analyticsapi',
-        playbook_path='playbooks/edx-east/analyticsapi.yml',
+        playbook_path='../edx-east/analyticsapi.yml',
         app_repo='https://github.com/edx/edx-analytics-data-api.git',
         service_name='analytics_api',
         hipchat_room='Analytics',

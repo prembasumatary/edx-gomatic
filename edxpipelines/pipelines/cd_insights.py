@@ -63,7 +63,7 @@ def install_pipeline(save_config_locally, dry_run, variable_files, cmd_line_vars
 
     pipelines.generate_multistage_pipeline(
         play='insights',
-        playbook_path='playbooks/edx-east/insights.yml',
+        playbook_path='../edx-east/insights.yml',
         app_repo='https://github.com/edx/edx-analytics-dashboard.git',
         service_name='insights',
         hipchat_room='Analytics',
