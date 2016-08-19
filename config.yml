@@ -57,6 +57,32 @@ tools:
       - "../gomatic-secure/gocd/vars/tools/deployments/edx.yml"
     enabled: True
 
+
+  ## start of api-manager pipeline group
+
+  # build
+  - script: edxpipelines/pipelines/api_build.py
+    input_files:
+      - *tools-admin
+      - "../gomatic-secure/gocd/vars/tools/build-edx-api.yml"
+    enabled: True
+
+  # stage deploy
+  - script: edxpipelines/pipelines/api_deploy.py
+    input_files:
+      - *tools-admin
+      - "../gomatic-secure/gocd/vars/tools/stage-edx-api.yml"
+    enabled: True
+
+  # prod deploy
+  - script: edxpipelines/pipelines/api_deploy.py
+    input_files:
+      - *tools-admin
+      - "../gomatic-secure/gocd/vars/tools/prod-edx-api.yml"
+    enabled: True
+
+    ## end of api-manager pipeline group
+
 sandbox:
   - script: edxpipelines/pipelines/cd_programs_multistage.py
     input_files:
