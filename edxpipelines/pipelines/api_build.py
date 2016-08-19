@@ -14,7 +14,7 @@ import edxpipelines.utils as utils
 SETUP_STAGE_NAME = 'setup'
 WAIT_FOR_TRAVIS_JOB_NAME = 'wait-for-travis'
 DOWNLOAD_STAGE_NAME = 'download'
-SWAGGER_CODEGEN_JOB_NAME= 'swagger-codegen'
+SWAGGER_CODEGEN_JOB_NAME = 'swagger-codegen'
 SWAGGER_JAR = 'swagger-codegen-cli.jar'
 BUILD_STAGE_NAME = 'build'
 SWAGGER_FLATTEN_JOB_NAME = 'swagger-flatten'
@@ -82,8 +82,9 @@ def install_pipeline(save_config_locally, dry_run, variable_files, cmd_line_vars
 
     # Note, need to move this Github poll hack to something less of a hack at some point.
     setup_stage = pipeline.ensure_stage(SETUP_STAGE_NAME)
-    job = setup_stage.ensure_job(WAIT_FOR_TRAVIS_JOB_NAME)
-    job.add_task(ExecTask(
+    wait_for_travis_job = setup_stage.ensure_job(WAIT_FOR_TRAVIS_JOB_NAME)
+    wait_for_travis_job.add_task(
+        ExecTask(
             [
                 '/bin/bash',
                 '-c',
@@ -93,8 +94,9 @@ def install_pipeline(save_config_locally, dry_run, variable_files, cmd_line_vars
     )
 
     download_stage = pipeline.ensure_stage(DOWNLOAD_STAGE_NAME).set_clean_working_dir()
-    job = download_stage.ensure_job(SWAGGER_CODEGEN_JOB_NAME).ensure_artifacts({BuildArtifact(SWAGGER_JAR)})
-    job.add_task(ExecTask(
+    swagger_codegen_job = download_stage.ensure_job(SWAGGER_CODEGEN_JOB_NAME).ensure_artifacts({BuildArtifact(SWAGGER_JAR)})
+    swagger_codegen_job.add_task(
+        ExecTask(
             [
                 '/bin/bash',
                 '-c',
@@ -104,11 +106,12 @@ def install_pipeline(save_config_locally, dry_run, variable_files, cmd_line_vars
     )
 
     build_stage = pipeline.ensure_stage(BUILD_STAGE_NAME).set_clean_working_dir()
-    job = build_stage.ensure_job(SWAGGER_FLATTEN_JOB_NAME).ensure_artifacts(
+    swagger_flatten_job = build_stage.ensure_job(SWAGGER_FLATTEN_JOB_NAME).ensure_artifacts(
         {
-            BuildArtifact('api-manager/swagger-build-artifacts/swagger.json' )
+            BuildArtifact('api-manager/swagger-build-artifacts/swagger.json')
         }
     )
+
     artifact_params = {
         'pipeline': pipeline.name,
         'stage': DOWNLOAD_STAGE_NAME,
@@ -116,10 +119,12 @@ def install_pipeline(save_config_locally, dry_run, variable_files, cmd_line_vars
         'src': FetchArtifactFile(SWAGGER_JAR),
         'dest': API_MANAGER_WORKING_DIR
     }
-    job.add_task(FetchArtifactTask(**artifact_params))
-    job.add_task(ExecTask(['make', 'build'], working_dir=API_MANAGER_WORKING_DIR))
-    job = build_stage.ensure_job(PACKAGE_SOURCE_JOB_NAME).ensure_artifacts({BuildArtifact('api-manager')})
-    job.add_task(ExecTask(
+    swagger_flatten_job.add_task(FetchArtifactTask(**artifact_params))
+    swagger_flatten_job.add_task(ExecTask(['make', 'build'], working_dir=API_MANAGER_WORKING_DIR))
+
+    package_source_job = build_stage.ensure_job(PACKAGE_SOURCE_JOB_NAME).ensure_artifacts({BuildArtifact('api-manager')})
+    package_source_job.add_task(
+        ExecTask(
             [
                 '/bin/bash',
                 '-c', '/usr/bin/pip install -t python-libs -r requirements/base.txt'
