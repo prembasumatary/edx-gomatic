@@ -98,7 +98,7 @@ def install_pipeline(save_config_locally, dry_run, variable_files, cmd_line_vars
             [
                 '/bin/bash',
                 '-c',
-                'wget ${SWAGGER_CODEGEN_JAR} -O {swagger_jar}'.format(swagger_jar=SWAGGER_JAR)
+                'wget ${{SWAGGER_CODEGEN_JAR}} -O {swagger_jar}'.format(swagger_jar=SWAGGER_JAR)
             ]
         )
     )
@@ -109,13 +109,14 @@ def install_pipeline(save_config_locally, dry_run, variable_files, cmd_line_vars
             BuildArtifact('api-manager/swagger-build-artifacts/swagger.json' )
         }
     )
-    job.add_task(FetchArtifactTask('' ,
-                                   DOWNLOAD_STAGE_NAME,
-                                   SWAGGER_CODEGEN_JOB_NAME,
-                                   FetchArtifactFile(SWAGGER_JAR),
-                                   dest=API_MANAGER_WORKING_DIR
-                                   )
-                 )
+    artifact_params = {
+        'pipeline': pipeline.name,
+        'stage': DOWNLOAD_STAGE_NAME,
+        'job': SWAGGER_CODEGEN_JOB_NAME,
+        'src': FetchArtifactFile(SWAGGER_JAR),
+        'dest': API_MANAGER_WORKING_DIR
+    }
+    job.add_task(FetchArtifactTask(**artifact_params))
     job.add_task(ExecTask(['make', 'build'], working_dir=API_MANAGER_WORKING_DIR))
     job = build_stage.ensure_job(PACKAGE_SOURCE_JOB_NAME).ensure_artifacts({BuildArtifact('api-manager')})
     job.add_task(ExecTask(
