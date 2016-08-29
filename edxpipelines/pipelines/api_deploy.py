@@ -19,6 +19,8 @@ TEST_STAGE_NAME = 'test'
 TEST_JOB_NAME = 'test_job'
 DEPLOY_STAGE_NAME = 'deploy'
 DEPLOY_GATEWAY_JOB_NAME = 'deploy_gateway'
+LOG_STAGE_NAME = 'log'
+LOG_JOB_NAME = 'deploy_lambda'
 
 
 @click.command()
@@ -157,6 +159,41 @@ def install_pipeline(save_config_locally, dry_run, variable_files, cmd_line_vars
             working_dir='api-manager'
         )
     )
+
+
+    # Setup the Log stage
+    log_stage = pipeline.ensure_stage(LOG_STAGE_NAME)
+    log_gateway_job = log_stage.ensure_job(LOG_JOB_NAME)
+
+    log_gateway_job.ensure_environment_variables(
+        {
+            'splunk-host': config['log_lambda']['splunk-host'],
+            'subnet-list': config['log_lambda']['subnet-list'],
+            'sg-list': config['log_lambda']['sg-list'],
+            'environment': config['log_lambda']['environment'],
+            'deployment': config['log_lambda']['deployment'],
+        }
+    )
+    log_gateway_job.ensure_encrypted_environment_variables(
+        {
+            'splunk-token': config['log_lambda']['splunk-token'],
+            'acct-id': config['log_lambda']['acct-id'],
+            'kms-key': config['log_lambda']['kms-key'],
+        }
+    )
+
+    log_gateway_job.add_task(FetchArtifactTask(**api_manager_artifact_params))
+
+    log_gateway_job.add_task(
+        ExecTask(
+            [
+                '/bin/bash', '-c',
+                'PYTHONPATH=python-libs python scripts/aws/monitor.py --api-base-domain ${API_BASE} --splunk-host ${splunk-host} --splunk-token ${splunk-token} --acct-id ${acct-id} --kms-key ${kms-key} --subnet-list ${subnet-list} --sg-list ${sg-list} --environment ${environment} --deployment ${deployment}'
+            ],
+            working_dir='api-manager'
+        )
+    )
+
 
     configurator.save_updated_config(save_config_locally=save_config_locally, dry_run=dry_run)
 
