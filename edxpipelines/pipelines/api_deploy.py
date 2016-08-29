@@ -160,7 +160,6 @@ def install_pipeline(save_config_locally, dry_run, variable_files, cmd_line_vars
         )
     )
 
-
     # Setup the Log stage
     log_stage = pipeline.ensure_stage(LOG_STAGE_NAME)
     log_gateway_job = log_stage.ensure_job(LOG_JOB_NAME)
@@ -194,9 +193,7 @@ def install_pipeline(save_config_locally, dry_run, variable_files, cmd_line_vars
         )
     )
 
-
     configurator.save_updated_config(save_config_locally=save_config_locally, dry_run=dry_run)
-
 
 if __name__ == '__main__':
     install_pipeline()
