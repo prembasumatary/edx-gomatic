@@ -490,6 +490,7 @@ def generate_single_stage_deploy_ami(pipeline,
         }
     )
     stage = pipeline.ensure_stage(constants.DEPLOY_AMI_STAGE_NAME)
+    stage.set_has_manual_approval()
 
     job = stage.ensure_job(constants.DEPLOY_AMI_JOB_NAME)
     tasks.generate_requirements_install(job, 'tubular')
