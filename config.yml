@@ -29,17 +29,35 @@ tools:
       - "../gomatic-secure/gocd/vars/tools/build-edxapp-ami.yml"
     enabled: False
 
+  ## Start of deploy pipeline group
   - script: edxpipelines/pipelines/deploy_ami.py
     input_files:
       - *tools-admin
+      - "../gomatic-secure/gocd/vars/tools/deployments/edx.yml"
+      - "../gomatic-secure/gocd/vars/tools/deploy_edx_ami.yml"
+    enabled: True
+
+  - script: edxpipelines/pipelines/deploy_ami.py
+    input_files:
+      - *tools-admin
+      - "../gomatic-secure/gocd/vars/tools/deployments/edge.yml"
       - "../gomatic-secure/gocd/vars/tools/deploy_edge_ami.yml"
-    enabled: False
+    enabled: True
+
+  - script: edxpipelines/pipelines/deploy_ami.py
+    input_files:
+      - *tools-admin
+      - "../gomatic-secure/gocd/vars/tools/deployments/mckinsey.yml"
+      - "../gomatic-secure/gocd/vars/tools/deploy_mckinsey_ami.yml"
+    enabled: True
 
   - script: edxpipelines/pipelines/deploy_gomatic_pipelines.py
     input_files:
       - *tools-admin
       - "../gomatic-secure/gocd/vars/tools/deploy_gomatic_piplines.yml"
     enabled: True
+
+  ## end of deploy pipeline group
 
   - script: edxpipelines/pipelines/deploy_marketing_site.py
     input_files:
