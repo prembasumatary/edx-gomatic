@@ -5,23 +5,28 @@ tools:
       - "../gomatic-secure/gocd/vars/tools/loadtest-multistage-programs.yml"
     enabled: True
 
+  ## Start of 'Janitors' pipeline group
   - script: edxpipelines/pipelines/asg_cleanup.py
     input_files:
       - *tools-admin
+      - &edge-deployment "../gomatic-secure/gocd/vars/tools/deployments/edge.yml"
       - "../gomatic-secure/gocd/vars/tools/asg-cleanup-edge.yml"
     enabled: True
 
   - script: edxpipelines/pipelines/asg_cleanup.py
     input_files:
       - *tools-admin
+      - &edx-deployment "../gomatic-secure/gocd/vars/tools/deployments/edx.yml"
       - "../gomatic-secure/gocd/vars/tools/asg-cleanup-edx.yml"
     enabled: True
 
   - script: edxpipelines/pipelines/asg_cleanup.py
     input_files:
       - *tools-admin
+      - &mckinsey-deployment "../gomatic-secure/gocd/vars/tools/deployments/mckinsey.yml"
       - "../gomatic-secure/gocd/vars/tools/asg-cleanup-mckinsey.yml"
     enabled: True
+  # End of 'Janitors' pipeline group
 
   - script: edxpipelines/pipelines/build_edxapp_ami.py
     input_files:
@@ -29,25 +34,25 @@ tools:
       - "../gomatic-secure/gocd/vars/tools/build-edxapp-ami.yml"
     enabled: False
 
-  ## Start of deploy pipeline group
+  ## Start of 'deploy' pipeline group
   - script: edxpipelines/pipelines/deploy_ami.py
     input_files:
       - *tools-admin
-      - "../gomatic-secure/gocd/vars/tools/deployments/edx.yml"
+      - *edx-deployment
       - "../gomatic-secure/gocd/vars/tools/deploy_edx_ami.yml"
     enabled: True
 
   - script: edxpipelines/pipelines/deploy_ami.py
     input_files:
       - *tools-admin
-      - "../gomatic-secure/gocd/vars/tools/deployments/edge.yml"
+      - *edge-deployment
       - "../gomatic-secure/gocd/vars/tools/deploy_edge_ami.yml"
     enabled: True
 
   - script: edxpipelines/pipelines/deploy_ami.py
     input_files:
       - *tools-admin
-      - "../gomatic-secure/gocd/vars/tools/deployments/mckinsey.yml"
+      - *mckinsey-deployment
       - "../gomatic-secure/gocd/vars/tools/deploy_mckinsey_ami.yml"
     enabled: True
 
