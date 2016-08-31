@@ -6,6 +6,8 @@ tools:
     enabled: True
 
   ## Start of 'Janitors' pipeline group
+
+  #ASG cleanup for edge
   - script: edxpipelines/pipelines/asg_cleanup.py
     input_files:
       - *tools-admin
@@ -13,6 +15,7 @@ tools:
       - "../gomatic-secure/gocd/vars/tools/asg-cleanup-edge.yml"
     enabled: True
 
+  #ASG cleanup for edx
   - script: edxpipelines/pipelines/asg_cleanup.py
     input_files:
       - *tools-admin
@@ -20,6 +23,7 @@ tools:
       - "../gomatic-secure/gocd/vars/tools/asg-cleanup-edx.yml"
     enabled: True
 
+  #ASG cleanup for mckinsey
   - script: edxpipelines/pipelines/asg_cleanup.py
     input_files:
       - *tools-admin
