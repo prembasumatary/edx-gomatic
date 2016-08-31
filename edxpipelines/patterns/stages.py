@@ -131,10 +131,6 @@ def generate_run_play(pipeline,
                       app_repo,
                       configuration_secure_repo,
                       private_github_key='',
-                      configuration_repo=constants.PUBLIC_CONFIGURATION_REPO_URL,
-                      app_version=constants.APP_REPO_BRANCH,
-                      configuration_version=constants.PUBLIC_CONFIGURATION_REPO_BRANCH,
-                      configuration_secure_version=constants.PRIVATE_CONFIGURATION_REPO_BRANCH,
                       hipchat_auth_token='',
                       hipchat_room=constants.HIPCHAT_ROOM,
                       manual_approval=False,
@@ -155,9 +151,7 @@ def generate_run_play(pipeline,
         app_repo(str) :
         configuration_secure_repo (str):
         private_github_key (str):
-        configuration_repo (str):
         app_version (str):
-        configuration_version (str):
         configuration_secure_version (str):
         hipchat_auth_token (str):
         hipchat_room (str):
@@ -183,11 +177,6 @@ def generate_run_play(pipeline,
             'DEPLOYMENT': deployment,
             'EDX_ENVIRONMENT': edx_environment,
             'APP_REPO': app_repo,
-            'APP_VERSION': app_version,
-            'CONFIGURATION_REPO': configuration_repo,
-            'CONFIGURATION_VERSION': configuration_version,
-            'CONFIGURATION_SECURE_REPO': configuration_secure_repo,
-            'CONFIGURATION_SECURE_VERSION': configuration_secure_version,
             'ARTIFACT_PATH': 'target/',
             'HIPCHAT_ROOM': hipchat_room
         }
@@ -221,15 +210,7 @@ def generate_run_play(pipeline,
     artifact_params['src'] = FetchArtifactFile("ansible_inventory")
     job.add_task(FetchArtifactTask(**artifact_params))
 
-    # Setup secure configuration for any needed secrets.
-    secure_dir = constants.PRIVATE_CONFIGURATION_LOCAL_DIR
-    tasks.fetch_secure_configuration(job, secure_dir)
-
-    # Check out the requested version of configuration.
-    # Required if a particular SHA hash is needed.
-    tasks.guarantee_configuration_version(job)
-
-    tasks.generate_run_app_playbook(job, secure_dir, playbook_with_path, **kwargs)
+    tasks.generate_run_app_playbook(job, constants.PRIVATE_CONFIGURATION_LOCAL_DIR, playbook_with_path, **kwargs)
     return stage
 
 
@@ -242,9 +223,6 @@ def generate_create_ami_from_instance(pipeline,
                                       aws_access_key_id,
                                       aws_secret_access_key,
                                       configuration_repo=constants.PUBLIC_CONFIGURATION_REPO_URL,
-                                      app_version=constants.APP_REPO_BRANCH,
-                                      configuration_version=constants.PUBLIC_CONFIGURATION_REPO_BRANCH,
-                                      configuration_secure_version=constants.PRIVATE_CONFIGURATION_REPO_BRANCH,
                                       ami_creation_timeout="3600",
                                       ami_wait='yes',
                                       cache_id='',
@@ -301,11 +279,8 @@ def generate_create_ami_from_instance(pipeline,
             'DEPLOYMENT': deployment,
             'EDX_ENVIRONMENT': edx_environment,
             'APP_REPO': app_repo,
-            'APP_VERSION': app_version,
             'CONFIGURATION_REPO': configuration_repo,
-            'CONFIGURATION_VERSION': configuration_version,
             'CONFIGURATION_SECURE_REPO': configuration_secure_repo,
-            'CONFIGURATION_SECURE_VERSION': configuration_secure_version,
             'AMI_CREATION_TIMEOUT': ami_creation_timeout,
             'AMI_WAIT': ami_wait,
             'CACHE_ID': cache_id,  # gocd build number
@@ -333,66 +308,6 @@ def generate_create_ami_from_instance(pipeline,
 
     # Create an AMI from the instance
     tasks.generate_create_ami(job, **kwargs)
-
-    return stage
-
-
-def generate_build_ami_single_stage(pipeline,
-                                    playbook_path,
-                                    manual_approval=False,
-                                    **kwargs):
-    """
-    Generates a stage which builds an AMI after running a particular playbook against the instance.
-
-    Args:
-        pipeline (gomatic.Pipeline):
-        playbook_path (str): path to the configuration playbook, relative to the top-level configuration dir,
-                              ex. 'playbooks/edx-east/programs.yml'
-        manual_approval (bool): does this stage require manual approval?
-        **kwargs (dict): extra options to send the ansible play that builds the app
-            k,v pairs:
-                k: the name of the option to pass to ansible
-                v: the value to use for this option
-
-    Returns:
-        gomatic.Stage
-    """
-    stage = pipeline.ensure_stage(constants.BUILD_AMI_STAGE_NAME)
-    if manual_approval:
-        stage.set_has_manual_approval()
-
-    job = stage.ensure_job(constants.BUILD_AMI_JOB_NAME)
-    job.ensure_artifacts(
-        [
-            BuildArtifact('configuration'),
-            BuildArtifact('target/config_secure_sha'),
-            BuildArtifact('tubular')
-        ]
-    )
-
-    # Install the requirements.
-    tasks.generate_requirements_install(job, 'tubular')
-    tasks.generate_requirements_install(job, 'configuration')
-
-    # Setup secure configuration for any needed secrets.
-    secure_dir = constants.PRIVATE_CONFIGURATION_LOCAL_DIR
-    tasks.fetch_secure_configuration(job, secure_dir)
-
-    # Check out the requested version of configuration.
-    # Required if a particular SHA hash is needed.
-    tasks.guarantee_configuration_version(job)
-
-    # Launch EC2 instance
-    tasks.generate_launch_instance(job)
-
-    # Run the programs playbook on the EC2 instance.
-    tasks.generate_run_app_playbook(job, secure_dir, playbook_path, **kwargs)
-
-    # Create an AMI from the instance
-    tasks.generate_create_ami(job)
-
-    # Cleanup EC2 instance if launching the instance failed.
-    tasks.generate_ami_cleanup(job, runif='failed')
 
     return stage
 
@@ -620,9 +535,6 @@ def generate_run_migrations(pipeline,
     if manual_approval:
         stage.set_has_manual_approval()
     job = stage.ensure_job(constants.APPLY_MIGRATIONS_JOB)
-
-    # Check out the requested version of configuration
-    tasks.guarantee_configuration_version(job)
 
     # Fetch the Ansible inventory to use in reaching the EC2 instance.
     artifact_params = {
