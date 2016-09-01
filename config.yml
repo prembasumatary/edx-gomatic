@@ -3,7 +3,7 @@ tools:
     input_files:
       - &tools-admin "../gomatic-secure/gocd/vars/tools/admin.yml"
       - "../gomatic-secure/gocd/vars/tools/loadtest-multistage-programs.yml"
-    enabled: True
+    enabled: False
 
   ## Start of 'Janitors' pipeline group
 
