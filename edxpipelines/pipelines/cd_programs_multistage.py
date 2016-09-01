@@ -65,18 +65,22 @@ def install_pipeline(save_config_locally, dry_run, variable_files, cmd_line_vars
 
     gcc = GoCdConfigurator(HostRestClient(config['gocd_url'], config['gocd_username'], config['gocd_password'], ssl=True))
     pipeline = gcc.ensure_pipeline_group('DeployTesting')\
-                  .ensure_replacement_of_pipeline('loadtest-multistage-edx-programs-cd')\
-                  .ensure_material(GitMaterial('https://github.com/edx/tubular',
+                  .ensure_replacement_of_pipeline('loadtest-multistage-edx-programs-cd') \
+                  .ensure_material(GitMaterial(config['tubular_url'],
+                                               branch=config.get('tubular_version', 'master'),
                                                material_name='tubular',
                                                polling=False,
-                                               destination_directory='tubular'))\
-                  .ensure_material(GitMaterial('https://github.com/edx/configuration',
-                                               branch='master',
+                                               destination_directory='tubular')) \
+                  .ensure_material(GitMaterial(config['configuration_url'],
+                                               branch=config.get('configuration_version', 'master'),
                                                material_name='configuration',
                                                polling=False,
-                                               # NOTE if you want to change this, you should set the
-                                               # CONFIGURATION_VERSION environment variable instead
-                                               destination_directory='configuration'))\
+                                               destination_directory='configuration')) \
+                  .ensure_material(GitMaterial(config['configuration_secure_repo'],
+                                               branch=config.get('configuration_secure_version', 'master'),
+                                               material_name='configuration_secure',
+                                               polling=True,
+                                               destination_directory=constants.PRIVATE_CONFIGURATION_LOCAL_DIR))
 
     #
     # Create the AMI-building stage.

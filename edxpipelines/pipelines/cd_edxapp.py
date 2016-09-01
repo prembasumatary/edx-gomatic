@@ -59,6 +59,9 @@ def install_pipeline(save_config_locally, dry_run, variable_files, cmd_line_vars
     - ec2_security_group_id
     - ec2_instance_profile_name
     - base_ami_id
+
+    Optional variables:
+    - configuration_secure_version
     """
     config = utils.merge_files_and_dicts(variable_files, list(cmd_line_vars,))
     artifact_path = 'target/'
@@ -67,22 +70,25 @@ def install_pipeline(save_config_locally, dry_run, variable_files, cmd_line_vars
     pipeline = gcc.ensure_pipeline_group(config['pipeline_group'])\
                   .ensure_replacement_of_pipeline(config['pipeline_name'])\
                   .ensure_material(GitMaterial(config['tubular_url'],
-                                               branch=config['tubular_version'],
+                                               branch=config.get('tubular_version', 'master'),
                                                material_name='tubular',
                                                polling=False,
                                                destination_directory='tubular'))\
                   .ensure_material(GitMaterial(config['configuration_url'],
-                                               branch=config['configuration_version'],
+                                               branch=config.get('configuration_version', 'master'),
                                                material_name='configuration',
                                                polling=False,
-                                               # NOTE if you want to change this, you should set the
-                                               # config['configuration_version'] environment variable instead
                                                destination_directory='configuration')) \
                   .ensure_material(GitMaterial(config['app_repo'],
-                                               branch=config['app_version'],
+                                               branch=config.get('app_version', 'master'),
                                                material_name='edx-platform',
                                                polling=True,
-                                               destination_directory='edx-platform'))
+                                               destination_directory='edx-platform')) \
+                  .ensure_material(GitMaterial(config['configuration_secure_repo'],
+                                               branch=config.get('configuration_secure_version', 'master'),
+                                               material_name='configuration_secure',
+                                               polling=True,
+                                               destination_directory=constants.PRIVATE_CONFIGURATION_LOCAL_DIR))
 
     pipeline.ensure_environment_variables(
         {
@@ -109,19 +115,19 @@ def install_pipeline(save_config_locally, dry_run, variable_files, cmd_line_vars
                              edx_environment=config['edx_environment'],
                              private_github_key=config['github_private_key'],
                              app_repo=config['app_repo'],
-                             app_version=config['app_version'],
                              configuration_secure_repo=config['configuration_secure_repo'],
                              configuration_repo=config['configuration_url'],
                              hipchat_auth_token=config['hipchat_token'],
                              hipchat_room='release pipeline',
-                             edx_platform_version='$APP_VERSION',
+                             edx_platform_version='$GO_REVISION_EDX_PLATFORM',
                              edx_platform_repo='$APP_REPO',
-                             configuration_version=config['configuration_version'],
+                             configuration_version='$GO_REVISION_CONFIGURATION',
                              edxapp_theme_source_repo='$EDX_APP_THEME_REPO',
                              edxapp_theme_version='$EDX_APP_THEME_VERSION',
                              edxapp_theme_name='$EDXAPP_THEME_NAME',
                              disable_edx_services='true',
                              COMMON_TAG_EC2_INSTANCE='true',
+                             cache_id='$GO_PIPELINE_COUNTER'
                              )
 
     stages.generate_create_ami_from_instance(pipeline,
@@ -129,14 +135,15 @@ def install_pipeline(save_config_locally, dry_run, variable_files, cmd_line_vars
                                              deployment=config['edx_deployment'],
                                              edx_environment=config['edx_environment'],
                                              app_repo=config['app_repo'],
-                                             app_version=config['app_version'],
+                                             app_version='$GO_REVISION_EDX_PLATFORM',
                                              configuration_secure_repo=config['configuration_secure_repo'],
                                              configuration_repo=config['configuration_url'],
                                              hipchat_auth_token=config['hipchat_token'],
                                              hipchat_room='release pipeline',
-                                             configuration_version=config['configuration_version'],
+                                             configuration_version='$GO_REVISION_CONFIGURATION',
+                                             configuration_secure_version='$GO_REVISION_CONFIGURATION_SECURE',
                                              aws_access_key_id=config['aws_access_key_id'],
-                                             aws_secret_access_key=config['aws_secret_access_key'],
+                                             aws_secret_access_key=config['aws_secret_access_key']
                                              )
 
     #
@@ -172,6 +179,7 @@ def install_pipeline(save_config_locally, dry_run, variable_files, cmd_line_vars
                                        application_path=config['application_path'],
                                        sub_application_name=sub_app
                                        )
+
     #
     # Create the stage to deploy the AMI.
     #
