@@ -72,7 +72,7 @@ def install_pipeline(save_config_locally, dry_run, variable_files, cmd_line_vars
         config=config,
         dry_run=dry_run,
         save_config_locally=save_config_locally,
-        version_var_name='DISCOVERY_API_VERSION'
+        version_var_name='DISCOVERY_VERSION'
     )
 
 

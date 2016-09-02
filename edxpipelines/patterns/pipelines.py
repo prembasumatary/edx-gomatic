@@ -78,6 +78,7 @@ def generate_multistage_pipeline(environment,
             'APPLICATION_USER': service_name,
             'APPLICATION_NAME': service_name,
             'APPLICATION_PATH': application_path,
+            'APP_VERSION': 'master',
         })
     #
     # Create the AMI-building stage.

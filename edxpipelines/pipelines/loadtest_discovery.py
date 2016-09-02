@@ -64,7 +64,7 @@ def install_pipeline(save_config_locally, dry_run, variable_files, cmd_line_vars
         environment='loadtest',
         deployment='edx',
         play='discovery',
-        playbook_path='playbooks/edx-east/discovery.yml',
+        playbook_path='../edx-east/discovery.yml',
         app_repo='https://github.com/edx/course-discovery.git',
         service_name='discovery',
         hipchat_room='ECOM',
