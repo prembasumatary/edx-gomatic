@@ -43,18 +43,19 @@ def generate_deploy_pipeline(configurator,
     return configurator
 
 
-def generate_multistage_pipeline(environment,
-                                 deployment,
-                                 play,
-                                 pipeline_group,
-                                 playbook_path,
-                                 app_repo,
-                                 version_var_name,
-                                 service_name,
-                                 hipchat_room,
-                                 config,
-                                 save_config_locally,
-                                 dry_run):
+def generate_multistage_pipeline(
+        environment,
+        deployment,
+        play,
+        pipeline_group,
+        playbook_path,
+        app_repo,
+        version_var_name,
+        service_name,
+        hipchat_room,
+        config,
+        save_config_locally,
+        dry_run):
     hipchat_auth_token = config['hipchat_token']
     application_path = '/edx/app/' + service_name
     artifact_path = 'target/'
@@ -63,23 +64,32 @@ def generate_multistage_pipeline(environment,
         HostRestClient(config['gocd_url'], config['gocd_username'], config['gocd_password'], ssl=True))
     pipeline = gcc.ensure_pipeline_group(pipeline_group) \
         .ensure_replacement_of_pipeline('-'.join([environment, deployment, play])) \
-        .ensure_material(GitMaterial('https://github.com/edx/tubular',
+        .ensure_material(GitMaterial(config['tubular_url'],
+                                     branch=config.get('tubular_version', 'master'),
                                      material_name='tubular',
                                      polling=False,
                                      destination_directory='tubular')) \
-        .ensure_material(GitMaterial('https://github.com/edx/configuration',
-                                     branch='master',
+        .ensure_material(GitMaterial(config['configuration_url'],
+                                     branch=config.get('configuration_version', 'master'),
                                      material_name='configuration',
                                      polling=False,
-                                     # NOTE if you want to change this, you should set the
-                                     # CONFIGURATION_VERSION environment variable instead
                                      destination_directory='configuration')) \
-        .ensure_environment_variables({
-            'APPLICATION_USER': service_name,
-            'APPLICATION_NAME': service_name,
-            'APPLICATION_PATH': application_path,
-            'APP_VERSION': 'master',
-        })
+        .ensure_material(GitMaterial(config['app_repo'],
+                                     branch=config.get('app_version', 'master'),
+                                     material_name=service_name,
+                                     polling=True,
+                                     destination_directory=service_name)) \
+        .ensure_material(GitMaterial(config['configuration_secure_repo'],
+                                     branch=config.get('configuration_secure_version', 'master'),
+                                     material_name='configuration_secure',
+                                     polling=True,
+                                     destination_directory=constants.PRIVATE_CONFIGURATION_LOCAL_DIR))
+
+    pipeline.ensure_environment_variables({
+        'APPLICATION_USER': service_name,
+        'APPLICATION_NAME': service_name,
+        'APPLICATION_PATH': application_path,
+    })
     #
     # Create the AMI-building stage.
     #
