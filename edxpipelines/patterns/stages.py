@@ -752,9 +752,6 @@ def generate_refresh_metadata(pipeline,
         stage.set_has_manual_approval()
     job = stage.ensure_job(stage_name + '_job')
 
-    # Check out the requested version of configuration
-    tasks.guarantee_configuration_version(job)
-
     # Fetch the Ansible inventory to use in reaching the EC2 instance.
     artifact_params = {
         "pipeline": inventory_location.pipeline,
@@ -855,9 +852,6 @@ def generate_update_index(
     if manual_approval:
         stage.set_has_manual_approval()
     job = stage.ensure_job(stage_name + '_job')
-
-    # Check out the requested version of configuration
-    tasks.guarantee_configuration_version(job)
 
     # Fetch the Ansible inventory to use in reaching the EC2 instance.
     artifact_params = {
