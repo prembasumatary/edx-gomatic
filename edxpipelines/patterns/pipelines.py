@@ -153,7 +153,10 @@ def generate_multistage_pipeline(environment,
         artifact_path,
         ansible_inventory_location,
         instance_ssh_key_location,
-        launch_info_location
+        launch_info_location,
+        service_name,
+        service_name,
+        application_path
     )
 
     stages.generate_refresh_metadata(
