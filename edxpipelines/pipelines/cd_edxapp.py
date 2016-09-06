@@ -82,12 +82,12 @@ def install_pipeline(save_config_locally, dry_run, variable_files, cmd_line_vars
                   .ensure_material(GitMaterial(config['app_repo'],
                                                branch=config.get('app_version', 'master'),
                                                material_name='edx-platform',
-                                               polling=True,
+                                               polling=config.get('auto_run', False),
                                                destination_directory='edx-platform')) \
                   .ensure_material(GitMaterial(config['configuration_secure_repo'],
                                                branch=config.get('configuration_secure_version', 'master'),
                                                material_name='configuration_secure',
-                                               polling=True,
+                                               polling=False,
                                                destination_directory=constants.PRIVATE_CONFIGURATION_LOCAL_DIR))
 
     pipeline.ensure_environment_variables(
@@ -99,14 +99,17 @@ def install_pipeline(save_config_locally, dry_run, variable_files, cmd_line_vars
     #
     # Create the AMI-building stage.
     #
-    stages.generate_launch_instance(pipeline,
-                                    config['aws_access_key_id'],
-                                    config['aws_secret_access_key'],
-                                    config['ec2_vpc_subnet_id'],
-                                    config['ec2_security_group_id'],
-                                    config['ec2_instance_profile_name'],
-                                    config['base_ami_id']
-                                    )
+    launch_stage = stages.generate_launch_instance(pipeline,
+                                                   config['aws_access_key_id'],
+                                                   config['aws_secret_access_key'],
+                                                   config['ec2_vpc_subnet_id'],
+                                                   config['ec2_security_group_id'],
+                                                   config['ec2_instance_profile_name'],
+                                                   config['base_ami_id']
+                                                   )
+
+    if config.get('auto_run', False):
+        launch_stage.set_has_manual_approval()
 
     stages.generate_run_play(pipeline,
                              '../edx-east/edxapp.yml',
@@ -196,7 +199,7 @@ def install_pipeline(save_config_locally, dry_run, variable_files, cmd_line_vars
         config['aws_access_key_id'],
         config['aws_secret_access_key'],
         ami_file_location,
-        manual_approval=False
+        manual_approval=config.get('deploy_manual_approval', True)
     )
 
     #
