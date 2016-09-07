@@ -1,3 +1,5 @@
+import edxpipelines.constants as constants
+
 from gomatic import *
 
 
@@ -53,19 +55,19 @@ def generate_launch_instance(job, runif="passed"):
                 '-c',
                 'ansible-playbook '
                 '-vvvv '
-                '--module-path=../library '
+                '--module-path=playbooks/library '
                 '-i "localhost," '
                 '-c local '
-                '-e artifact_path=`/bin/pwd`/../../../$ARTIFACT_PATH '
+                '-e artifact_path=`/bin/pwd`/../$ARTIFACT_PATH '
                 '-e base_ami_id=$BASE_AMI_ID '
                 '-e ec2_vpc_subnet_id=$EC2_VPC_SUBNET_ID '
                 '-e ec2_security_group_id=$EC2_SECURITY_GROUP_ID '
                 '-e ec2_instance_type=$EC2_INSTANCE_TYPE '
                 '-e ec2_instance_profile_name=$EC2_INSTANCE_PROFILE_NAME '
                 '-e ebs_volume_size=$EBS_VOLUME_SIZE '
-                'launch_instance.yml'
+                'playbooks/continuous_delivery/launch_instance.yml'
             ],
-            working_dir="configuration/playbooks/continuous_delivery/",
+            working_dir=constants.PUBLIC_CONFIGURATION_DIR,
             runif=runif
         )
     )
@@ -92,10 +94,10 @@ def generate_create_ami(job, runif="passed", **kwargs):
         [
             'ansible-playbook',
             '-vvvv',
-            '--module-path=../library',
+            '--module-path=playbooks/library',
             '-i "localhost,"',
             '-c local',
-            '-e @../../../target/launch_info.yml',
+            '-e @../target/launch_info.yml',
             '-e play=$PLAY',
             '-e deployment=$DEPLOYMENT',
             '-e edx_environment=$EDX_ENVIRONMENT',
@@ -106,7 +108,7 @@ def generate_create_ami(job, runif="passed", **kwargs):
             '-e configuration_secure_version=$GO_REVISION_CONFIGURATION_SECURE',
             '-e cache_id=$GO_PIPELINE_COUNTER',
             '-e ec2_region=$EC2_REGION',
-            '-e artifact_path=`/bin/pwd`/../../../$ARTIFACT_PATH',
+            '-e artifact_path=`/bin/pwd`/../$ARTIFACT_PATH',
             '-e hipchat_token=$HIPCHAT_TOKEN',
             '-e hipchat_room="$HIPCHAT_ROOM"',
             '-e ami_wait=$AMI_WAIT',
@@ -116,7 +118,7 @@ def generate_create_ami(job, runif="passed", **kwargs):
 
     for k, v in kwargs.iteritems():
         command += ' -e {key}={value} '.format(key=k, value=v)
-    command += 'create_ami.yml'
+    command += 'playbooks/continuous_delivery/create_ami.yml'
 
     return job.add_task(
         ExecTask(
@@ -125,7 +127,7 @@ def generate_create_ami(job, runif="passed", **kwargs):
                 '-c',
                 command
             ],
-            working_dir="configuration/playbooks/continuous_delivery/",
+            working_dir=constants.PUBLIC_CONFIGURATION_DIR,
             runif=runif
         )
     )
@@ -150,16 +152,16 @@ def generate_ami_cleanup(job, runif="passed"):
                 '-c',
                 'ansible-playbook '
                 '-vvvv '
-                '--module-path=../library '
+                '--module-path=playbooks/library '
                 '-i "localhost," '
                 '-c local '
-                '-e @../../../target/launch_info.yml '
+                '-e @../target/launch_info.yml '
                 '-e ec2_region=$EC2_REGION '
                 '-e hipchat_token=$HIPCHAT_TOKEN '
                 '-e hipchat_room="$HIPCHAT_ROOM" '
-                'cleanup.yml'
+                'playbooks/continuous_delivery/cleanup.yml'
             ],
-            working_dir="configuration/playbooks/continuous_delivery/",
+            working_dir=constants.PUBLIC_CONFIGURATION_DIR,
             runif=runif
         )
     )
@@ -168,6 +170,9 @@ def generate_ami_cleanup(job, runif="passed"):
 def generate_run_migrations(job, sub_application_name=None, runif="passed"):
     """
     Generates GoCD task that runs migrations via an Ansible script.
+
+    Assumes:
+        - The play will be run using the continuous delivery Ansible config constants.ANSIBLE_CONTINUOUS_DELIVERY_CONFIG
 
     Args:
         job (gomatic.job.Job): the gomatic job to which the run migrations task will be added
@@ -178,31 +183,36 @@ def generate_run_migrations(job, sub_application_name=None, runif="passed"):
         The newly created task (gomatic.gocd.tasks.ExecTask)
 
     """
-    job.ensure_artifacts(set([BuildArtifact('target/unapplied_migrations.yml'),
-                              BuildArtifact('target/migration_output.yml')]))
+    job.ensure_artifacts(
+        set(
+            [BuildArtifact('{ARTIFACT_PATH}/migrations/'.format(ARTIFACT_PATH=constants.ARTIFACT_PATH))]
+        )
+    )
 
     command = ' '.join(
         [
+            'mkdir -p {ARTIFACT_PATH}/migrations;'
             'export ANSIBLE_HOST_KEY_CHECKING=False;'
             'export ANSIBLE_SSH_ARGS="-o ControlMaster=auto -o ControlPersist=30m";'
-            'PRIVATE_KEY=`/bin/pwd`/../../key.pem;'
+            'PRIVATE_KEY=`/bin/pwd`/../{ARTIFACT_PATH}/key.pem;'
             'ansible-playbook '
             '-vvvv '
-            '-i ../../ansible_inventory '
+            '-i ../{ARTIFACT_PATH}/ansible_inventory '
             '--private-key=$PRIVATE_KEY '
+            '--module-path=playbooks/library '
             '--user=ubuntu '
             '-e APPLICATION_PATH=$APPLICATION_PATH '
             '-e APPLICATION_NAME=$APPLICATION_NAME '
             '-e APPLICATION_USER=$APPLICATION_USER '
-            '-e ARTIFACT_PATH=`/bin/pwd`/../../../$ARTIFACT_PATH/ '
+            '-e ARTIFACT_PATH=`/bin/pwd`/../{ARTIFACT_PATH}/migrations '
             '-e DB_MIGRATION_USER=$DB_MIGRATION_USER '
             '-e DB_MIGRATION_PASS=$DB_MIGRATION_PASS '
         ]
     )
-
+    command = command.format(ARTIFACT_PATH=constants.ARTIFACT_PATH)
     if sub_application_name is not None:
         command += '-e SUB_APPLICATION_NAME={sub_application_name} '.format(sub_application_name=sub_application_name)
-    command += 'run_migrations.yml'
+    command += 'playbooks/continuous_delivery/run_migrations.yml'
 
     return job.add_task(
         ExecTask(
@@ -211,7 +221,7 @@ def generate_run_migrations(job, sub_application_name=None, runif="passed"):
                 '-c',
                 command
             ],
-            working_dir='configuration/playbooks/continuous_delivery/',
+            working_dir=constants.PUBLIC_CONFIGURATION_DIR,
             runif=runif
         )
     )
@@ -373,17 +383,21 @@ def fetch_edx_mktg(job, secure_dir, runif="passed"):
 
 def generate_run_app_playbook(job, secure_dir, playbook_path, runif="passed", **kwargs):
     """
-    Generates a GoCD task that runs an Ansible playbook against a server inventory.
-    Expects there to be:
-        - a key file for this host in "${{ARTIFACT_PATH}}/key.pem"
-        - a ansible inventory file "${{ARTIFACT_PATH}}/ansible_inventory"
-        - a launch info file "${{ARTIFACT_PATH}}/launch_info.yml"
+    Generates:
+        a GoCD task that runs an Ansible playbook against a server inventory.
+
+    Assumes:
+        - The play will be run using the continuous delivery ansible config constants.ANSIBLE_CONTINUOUS_DELIVERY_CONFIG
+        - The play will be run from the constants.PUBLIC_CONFIGURATION_DIR directory
+        - a key file for this host in "{constants.ARTIFACT_PATH}/key.pem"
+        - a ansible inventory file "{constants.ARTIFACT_PATH}/ansible_inventory"
+        - a launch info file "{constants.ARTIFACT_PATH}/launch_info.yml"
 
     The calling pipline for this task must have the following materials:
         - edx-secure
         - configuration
 
-    These are generated by edxpipelines.patterns.stages.generate_launch_instance
+        These are generated by edxpipelines.patterns.stages.generate_launch_instance
 
     Args:
         job (gomatic.job.Job): the gomatic job to which the playbook run task will be added
@@ -401,22 +415,22 @@ def generate_run_app_playbook(job, secure_dir, playbook_path, runif="passed", **
     """
     command = ' '.join(
         [
-            'chmod 600 ../../../${{ARTIFACT_PATH}}/key.pem;',
+            'chmod 600 ../{artifact_path}/key.pem;',
             'export ANSIBLE_HOST_KEY_CHECKING=False;',
             'export ANSIBLE_SSH_ARGS="-o ControlMaster=auto -o ControlPersist=30m";',
-            'PRIVATE_KEY=$(/bin/pwd)/../../../${{ARTIFACT_PATH}}/key.pem;'
+            'PRIVATE_KEY=$(/bin/pwd)/../{artifact_path}/key.pem;'
             'ansible-playbook',
             '-vvvv',
             '--private-key=$PRIVATE_KEY',
             '--user=ubuntu',
-            '--module-path=configuration/playbooks/library ',
-            '-i ../../../target/ansible_inventory '
-            '-e @../../../target/launch_info.yml',
-            '-e @../../../{secure_dir}/ansible/vars/${{DEPLOYMENT}}.yml',
-            '-e @../../../{secure_dir}/ansible/vars/${{EDX_ENVIRONMENT}}-${{DEPLOYMENT}}.yml',
+            '--module-path=playbooks/library ',
+            '-i ../{artifact_path}/ansible_inventory '
+            '-e @../{artifact_path}/launch_info.yml',
+            '-e @../{secure_dir}/ansible/vars/${{DEPLOYMENT}}.yml',
+            '-e @../{secure_dir}/ansible/vars/${{EDX_ENVIRONMENT}}-${{DEPLOYMENT}}.yml',
         ]
     )
-    command = command.format(secure_dir=secure_dir)
+    command = command.format(secure_dir=secure_dir, artifact_path=constants.ARTIFACT_PATH)
     for k, v in kwargs.iteritems():
         command += ' -e {key}={value} '.format(key=k, value=v)
     command += playbook_path
@@ -428,7 +442,7 @@ def generate_run_app_playbook(job, secure_dir, playbook_path, runif="passed", **
                 '-c',
                 command
             ],
-            working_dir="configuration/playbooks/continuous_delivery/",
+            working_dir=constants.PUBLIC_CONFIGURATION_DIR,
             runif=runif
         )
     )
