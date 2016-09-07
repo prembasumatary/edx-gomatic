@@ -28,7 +28,7 @@ def generate_asg_cleanup(pipeline,
         {
             'ASGARD_API_TOKEN': asgard_token,
             'AWS_ACCESS_KEY_ID': aws_access_key_id,
-            'AWS_SECRET_ACCESS_KEY': aws_secret_access_key
+            'AWS_SECRET_ACCESS_KEY': aws_secret_access_key,
         }
     )
 
@@ -106,6 +106,7 @@ def generate_launch_instance(pipeline,
             'EC2_INSTANCE_PROFILE_NAME': ec2_instance_profile_name,
             'NO_REBOOT': 'no',
             'BASE_AMI_ID': base_ami_id,
+            'ANSIBLE_CONFIG': constants.ANSIBLE_CONTINUOUS_DELIVERY_CONFIG,
         }
     )
 
@@ -139,8 +140,11 @@ def generate_run_play(pipeline,
     TODO: This currently runs from the configuration/playbooks/continuous_delivery/ directory. Need to figure out how to
     pass in a configuration file to ansible-play correctly. TE-1608
 
-    Pattern assumes that generate_launch_instance stage was used launch the instance preceding this stage.
-    Requires the ansible_inventory and key.pem files to be in the target/ directory
+    Assumes:
+        - generate_launch_instance stage was used launch the instance preceding this stage.
+        - Requires the ansible_inventory and key.pem files to be in the constants.ARTIFACT_DIRECTORY path
+        - Play is run from the constants.PUBLIC_CONFIGURATION_DIR
+        - Play is run using the constants.ANSIBLE_CONFIG configuration file
 
     Args:
         pipeline (gomatic.Pipeline):
@@ -177,8 +181,9 @@ def generate_run_play(pipeline,
             'DEPLOYMENT': deployment,
             'EDX_ENVIRONMENT': edx_environment,
             'APP_REPO': app_repo,
-            'ARTIFACT_PATH': 'target/',
-            'HIPCHAT_ROOM': hipchat_room
+            'ARTIFACT_PATH': '{}/'.format(constants.ARTIFACT_PATH),
+            'HIPCHAT_ROOM': hipchat_room,
+            'ANSIBLE_CONFIG': constants.ANSIBLE_CONTINUOUS_DELIVERY_CONFIG,
         }
     )
 
@@ -194,20 +199,20 @@ def generate_run_play(pipeline,
 
     # fetch the key material
     artifact_params = {
-        "pipeline": pipeline.name,
-        "stage": constants.LAUNCH_INSTANCE_STAGE_NAME,
-        "job": constants.LAUNCH_INSTANCE_JOB_NAME,
-        "src": FetchArtifactFile("key.pem"),
-        "dest": "target"
+        'pipeline': pipeline.name,
+        'stage': constants.LAUNCH_INSTANCE_STAGE_NAME,
+        'job': constants.LAUNCH_INSTANCE_JOB_NAME,
+        'src': FetchArtifactFile("key.pem"),
+        'dest': constants.ARTIFACT_PATH
     }
     job.add_task(FetchArtifactTask(**artifact_params))
 
     # fetch the launch_info.yml
-    artifact_params['src'] = FetchArtifactFile("launch_info.yml")
+    artifact_params['src'] = FetchArtifactFile('launch_info.yml')
     job.add_task(FetchArtifactTask(**artifact_params))
 
     # fetch the inventory file
-    artifact_params['src'] = FetchArtifactFile("ansible_inventory")
+    artifact_params['src'] = FetchArtifactFile('ansible_inventory')
     job.add_task(FetchArtifactTask(**artifact_params))
 
     tasks.generate_run_app_playbook(job, constants.PRIVATE_CONFIGURATION_LOCAL_DIR, playbook_with_path, **kwargs)
@@ -286,6 +291,7 @@ def generate_create_ami_from_instance(pipeline,
             'CACHE_ID': cache_id,  # gocd build number
             'ARTIFACT_PATH': artifact_path,
             'HIPCHAT_ROOM': hipchat_room,
+            'ANSIBLE_CONFIG': constants.ANSIBLE_CONTINUOUS_DELIVERY_CONFIG,
         }
     )
 
@@ -298,11 +304,11 @@ def generate_create_ami_from_instance(pipeline,
 
     # fetch the key material
     artifact_params = {
-        "pipeline": pipeline.name,
-        "stage": constants.LAUNCH_INSTANCE_STAGE_NAME,
-        "job": constants.LAUNCH_INSTANCE_JOB_NAME,
-        "src": FetchArtifactFile("launch_info.yml"),
-        "dest": 'target'
+        'pipeline': pipeline.name,
+        'stage': constants.LAUNCH_INSTANCE_STAGE_NAME,
+        'job': constants.LAUNCH_INSTANCE_JOB_NAME,
+        'src': FetchArtifactFile("launch_info.yml"),
+        'dest': constants.ARTIFACT_PATH
     }
     job.add_task(FetchArtifactTask(**artifact_params))
 
@@ -518,6 +524,7 @@ def generate_run_migrations(pipeline,
             'APPLICATION_PATH': application_path,
             'DB_MIGRATION_USER': 'migrate',
             'ARTIFACT_PATH': artifact_path,
+            'ANSIBLE_CONFIG': constants.ANSIBLE_CONTINUOUS_DELIVERY_CONFIG,
         }
     )
     pipeline.ensure_encrypted_environment_variables(
@@ -542,7 +549,7 @@ def generate_run_migrations(pipeline,
         "stage": inventory_location.stage,
         "job": inventory_location.job,
         "src": FetchArtifactFile(inventory_location.file_name),
-        "dest": 'configuration'
+        "dest": constants.ARTIFACT_PATH
     }
     job.add_task(FetchArtifactTask(**artifact_params))
 
@@ -552,7 +559,7 @@ def generate_run_migrations(pipeline,
         "stage": instance_key_location.stage,
         "job": instance_key_location.job,
         "src": FetchArtifactFile(instance_key_location.file_name),
-        "dest": 'configuration'
+        "dest": constants.ARTIFACT_PATH
     }
     job.add_task(FetchArtifactTask(**artifact_params))
 
@@ -565,7 +572,7 @@ def generate_run_migrations(pipeline,
         "stage": launch_info_location.stage,
         "job": launch_info_location.job,
         "src": FetchArtifactFile(launch_info_location.file_name),
-        "dest": "target"
+        "dest": constants.ARTIFACT_PATH
     }
     job.add_task(FetchArtifactTask(**artifact_params))
 
@@ -573,7 +580,7 @@ def generate_run_migrations(pipeline,
     job.add_task(
         ExecTask(
             ['/bin/bash', '-c', 'chmod 600 {}'.format(instance_key_location.file_name)],
-            working_dir='configuration'
+            working_dir=constants.ARTIFACT_PATH
         )
     )
 
@@ -630,11 +637,11 @@ def generate_terminate_instance(pipeline,
 
     # Fetch the instance info to use in reaching the EC2 instance.
     artifact_params = {
-        "pipeline": instance_info_location.pipeline,
-        "stage": instance_info_location.stage,
-        "job": instance_info_location.job,
-        "src": FetchArtifactFile(instance_info_location.file_name),
-        "dest": 'target'
+        'pipeline': instance_info_location.pipeline,
+        'stage': instance_info_location.stage,
+        'job': instance_info_location.job,
+        'src': FetchArtifactFile(instance_info_location.file_name),
+        'dest': constants.ARTIFACT_PATH
     }
     job = stage.ensure_job(constants.TERMINATE_INSTANCE_JOB_NAME)
     job.add_task(FetchArtifactTask(**artifact_params))
