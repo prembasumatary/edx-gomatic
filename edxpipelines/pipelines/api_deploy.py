@@ -166,18 +166,18 @@ def install_pipeline(save_config_locally, dry_run, variable_files, cmd_line_vars
 
     log_gateway_job.ensure_environment_variables(
         {
-            'splunk-host': config['log_lambda']['splunk-host'],
-            'subnet-list': config['log_lambda']['subnet-list'],
-            'sg-list': config['log_lambda']['sg-list'],
+            'splunk_host': config['log_lambda']['splunk_host'],
+            'subnet_list': config['log_lambda']['subnet_list'],
+            'sg_list': config['log_lambda']['sg_list'],
             'environment': config['log_lambda']['environment'],
             'deployment': config['log_lambda']['deployment'],
         }
     )
     log_gateway_job.ensure_encrypted_environment_variables(
         {
-            'splunk-token': config['log_lambda']['splunk-token'],
-            'acct-id': config['log_lambda']['acct-id'],
-            'kms-key': config['log_lambda']['kms-key'],
+            'splunk_token': config['log_lambda']['splunk_token'],
+            'acct_id': config['log_lambda']['acct_id'],
+            'kms_key': config['log_lambda']['kms_key'],
         }
     )
 
@@ -187,7 +187,7 @@ def install_pipeline(save_config_locally, dry_run, variable_files, cmd_line_vars
         ExecTask(
             [
                 '/bin/bash', '-c',
-                'PYTHONPATH=python-libs python scripts/aws/monitor.py --api-base-domain ${API_BASE} --splunk-host ${splunk-host} --splunk-token ${splunk-token} --acct-id ${acct-id} --kms-key ${kms-key} --subnet-list ${subnet-list} --sg-list ${sg-list} --environment ${environment} --deployment ${deployment}'
+                'PYTHONPATH=python-libs python scripts/aws/monitor.py --api-base-domain ${API_BASE} --splunk-host ${splunk_host} --splunk-token ${splunk_token} --acct-id ${acct_id} --kms-key ${kms_key} --subnet-list ${subnet_list} --sg-list ${sg_list} --environment ${environment} --deployment ${deployment}'
             ],
             working_dir='api-manager'
         )
