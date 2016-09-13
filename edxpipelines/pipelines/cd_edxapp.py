@@ -112,7 +112,7 @@ def install_pipeline(save_config_locally, dry_run, variable_files, cmd_line_vars
         launch_stage.set_has_manual_approval()
 
     stages.generate_run_play(pipeline,
-                             '../edx-east/edxapp.yml',
+                             'playbooks/edx-east/edxapp.yml',
                              play=config['play_name'],
                              deployment=config['edx_deployment'],
                              edx_environment=config['edx_environment'],
