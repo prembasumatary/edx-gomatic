@@ -25,7 +25,8 @@ import edxpipelines.constants as constants
     envvar='DRY_RUN',
     help='Perform a dry run of the pipeline installation, and save the pre/post xml configurations locally.',
     required=False,
-    default=False
+    default=False,
+    is_flag=True
 )
 @click.option(
     '--variable_file', 'variable_files',
@@ -61,9 +62,9 @@ def install_pipeline(save_config_locally, dry_run, variable_files, cmd_line_vars
     """
     config = utils.merge_files_and_dicts(variable_files, list(cmd_line_vars,))
 
-    pipelines.generate_multistage_pipeline(
+    pipelines.generate_basic_multistage_pipeline(
         play='analyticsapi',
-        playbook_path='../edx-east/analyticsapi.yml',
+        playbook_path='playbooks/edx-east/analyticsapi.yml',
         app_repo='https://github.com/edx/edx-analytics-data-api.git',
         service_name='analytics_api',
         hipchat_room='Analytics',
@@ -71,7 +72,7 @@ def install_pipeline(save_config_locally, dry_run, variable_files, cmd_line_vars
         config=config,
         dry_run=dry_run,
         save_config_locally=save_config_locally,
-        version_var_name='ANALYTICS_API_VERSION'
+        app_version='$GO_REVISION_ANALYTICSAPI'
     )
 
 

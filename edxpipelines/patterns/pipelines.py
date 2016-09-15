@@ -40,16 +40,16 @@ def generate_deploy_pipeline(configurator,
     return configurator
 
 
-def generate_multistage_pipeline(play,
-                                 pipeline_group,
-                                 playbook_path,
-                                 app_repo,
-                                 version_var_name,
-                                 service_name,
-                                 hipchat_room,
-                                 config,
-                                 save_config_locally,
-                                 dry_run):
+def generate_basic_multistage_pipeline(play,
+                                       pipeline_group,
+                                       playbook_path,
+                                       app_repo,
+                                       service_name,
+                                       hipchat_room,
+                                       config,
+                                       save_config_locally,
+                                       dry_run,
+                                       **kwargs):
     environment = config['edx_environment']
     deployment = config['edx_deployment']
     artifact_path = 'target/'
@@ -57,17 +57,26 @@ def generate_multistage_pipeline(play,
         HostRestClient(config['gocd_url'], config['gocd_username'], config['gocd_password'], ssl=True))
     pipeline = gcc.ensure_pipeline_group(pipeline_group) \
         .ensure_replacement_of_pipeline('-'.join([environment, deployment, play])) \
-        .ensure_material(GitMaterial('https://github.com/edx/tubular',
+        .ensure_material(GitMaterial(config['tubular_url'],
+                                     branch=config.get('tubular_version', 'master'),
                                      material_name='tubular',
                                      polling=False,
                                      destination_directory='tubular')) \
-        .ensure_material(GitMaterial('https://github.com/edx/configuration',
-                                     branch='master',
+        .ensure_material(GitMaterial(config['configuration_url'],
+                                     branch=config.get('configuration_version', 'master'),
                                      material_name='configuration',
                                      polling=False,
-                                     # NOTE if you want to change this, you should set the
-                                     # CONFIGURATION_VERSION environment variable instead
                                      destination_directory='configuration')) \
+        .ensure_material(GitMaterial(config['app_repo'],
+                                     branch=config.get('app_version', 'master'),
+                                     material_name=play,
+                                     polling=config.get('auto_run', False),
+                                     destination_directory=config['app_destination_directory'])) \
+        .ensure_material(GitMaterial(config['configuration_secure_repo'],
+                                     branch=config.get('configuration_secure_version', 'master'),
+                                     material_name='configuration_secure',
+                                     polling=False,
+                                     destination_directory=constants.PRIVATE_CONFIGURATION_LOCAL_DIR)) \
         .ensure_environment_variables({
             'APPLICATION_USER': service_name,
             'APPLICATION_NAME': service_name,
@@ -86,9 +95,6 @@ def generate_multistage_pipeline(play,
                                     manual_approval=True
                                     )
 
-    kwargs = {
-        version_var_name: '$APP_VERSION'
-    }
     stages.generate_run_play(pipeline,
                              playbook_with_path=playbook_path,
                              play=play,
@@ -103,6 +109,7 @@ def generate_multistage_pipeline(play,
                              COMMON_TAG_EC2_INSTANCE='true',
                              **kwargs
                              )
+
     stages.generate_create_ami_from_instance(pipeline,
                                              play=play,
                                              deployment=deployment,
@@ -113,6 +120,7 @@ def generate_multistage_pipeline(play,
                                              aws_secret_access_key=config['aws_secret_access_key'],
                                              hipchat_auth_token=config['hipchat_token'],
                                              hipchat_room=hipchat_room,
+                                             **kwargs
                                              )
     #
     # Create the DB migration running stage.
