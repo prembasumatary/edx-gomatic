@@ -101,7 +101,6 @@ def install_pipeline(save_config_locally, dry_run, variable_files, cmd_line_vars
                              edx_environment='loadtest',
                              private_github_key=config['github_private_key'],
                              app_repo='https://github.com/edx/programs.git',
-                             configuration_secure_repo=config['configuration_secure_repo'],
                              configuration_repo='https://github.com/edx/configuration.git',
                              hipchat_token=config['hipchat_token'],
                              hipchat_room='release pipeline',
