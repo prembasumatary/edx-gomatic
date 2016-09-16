@@ -118,7 +118,6 @@ def install_pipeline(save_config_locally, dry_run, variable_files, cmd_line_vars
                              edx_environment=config['edx_environment'],
                              private_github_key=config['github_private_key'],
                              app_repo=config['app_repo'],
-                             configuration_secure_repo=config['configuration_secure_repo'],
                              configuration_repo=config['configuration_url'],
                              hipchat_token=config['hipchat_token'],
                              hipchat_room='release pipeline',
