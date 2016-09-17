@@ -120,7 +120,7 @@ def install_pipeline(save_config_locally, dry_run, variable_files, cmd_line_vars
                              app_repo=config['app_repo'],
                              configuration_secure_repo=config['configuration_secure_repo'],
                              configuration_repo=config['configuration_url'],
-                             hipchat_auth_token=config['hipchat_token'],
+                             hipchat_token=config['hipchat_token'],
                              hipchat_room='release pipeline',
                              edx_platform_version='$GO_REVISION_EDX_PLATFORM',
                              edx_platform_repo='$APP_REPO',

@@ -103,7 +103,7 @@ def install_pipeline(save_config_locally, dry_run, variable_files, cmd_line_vars
                              app_repo='https://github.com/edx/programs.git',
                              configuration_secure_repo=config['configuration_secure_repo'],
                              configuration_repo='https://github.com/edx/configuration.git',
-                             hipchat_auth_token=config['hipchat_token'],
+                             hipchat_token=config['hipchat_token'],
                              hipchat_room='release pipeline',
                              PROGRAMS_VERSION='$APP_VERSION',
                              programs_repo='$APP_REPO',
