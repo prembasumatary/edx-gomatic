@@ -1,6 +1,6 @@
-import edxpipelines.constants as constants
-
 from gomatic import *
+
+import edxpipelines.constants as constants
 
 
 def generate_requirements_install(job, working_dir, runif="passed"):
@@ -65,6 +65,8 @@ def generate_launch_instance(job, runif="passed"):
                 '-e ec2_instance_type=$EC2_INSTANCE_TYPE '
                 '-e ec2_instance_profile_name=$EC2_INSTANCE_PROFILE_NAME '
                 '-e ebs_volume_size=$EBS_VOLUME_SIZE '
+                '-e hipchat_token=$HIPCHAT_TOKEN '
+                '-e hipchat_room="$HIPCHAT_ROOM" '
                 'playbooks/continuous_delivery/launch_instance.yml'.format(artifact_path=constants.ARTIFACT_PATH)
             ],
             working_dir=constants.PUBLIC_CONFIGURATION_DIR,

@@ -132,7 +132,7 @@ def generate_run_play(pipeline,
                       app_repo,
                       configuration_secure_repo,
                       private_github_key='',
-                      hipchat_auth_token='',
+                      hipchat_token='',
                       hipchat_room=constants.HIPCHAT_ROOM,
                       manual_approval=False,
                       **kwargs):
@@ -157,7 +157,7 @@ def generate_run_play(pipeline,
         private_github_key (str):
         app_version (str):
         configuration_secure_version (str):
-        hipchat_auth_token (str):
+        hipchat_token (str):
         hipchat_room (str):
         manual_approval (bool):
         **kwargs (dict):
@@ -171,7 +171,7 @@ def generate_run_play(pipeline,
     # setup the necessary environment variables
     pipeline.ensure_encrypted_environment_variables(
         {
-            'HIPCHAT_AUTH_TOKEN': hipchat_auth_token,
+            'HIPCHAT_TOKEN': hipchat_token,
             'PRIVATE_GITHUB_KEY': private_github_key
         }
     )
