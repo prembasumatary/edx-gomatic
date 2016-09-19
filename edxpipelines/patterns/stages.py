@@ -1,6 +1,7 @@
 from gomatic import *
-import edxpipelines.patterns.tasks as tasks
+
 import edxpipelines.constants as constants
+import edxpipelines.patterns.tasks as tasks
 
 
 def generate_asg_cleanup(pipeline,
@@ -130,9 +131,8 @@ def generate_run_play(pipeline,
                       deployment,
                       edx_environment,
                       app_repo,
-                      configuration_secure_repo,
                       private_github_key='',
-                      hipchat_auth_token='',
+                      hipchat_token='',
                       hipchat_room=constants.HIPCHAT_ROOM,
                       manual_approval=False,
                       **kwargs):
@@ -152,12 +152,9 @@ def generate_run_play(pipeline,
         play (str):
         deployment (str):
         edx_environment (str):
-        app_repo(str) :
-        configuration_secure_repo (str):
+        app_repo (str) :
         private_github_key (str):
-        app_version (str):
-        configuration_secure_version (str):
-        hipchat_auth_token (str):
+        hipchat_token (str):
         hipchat_room (str):
         manual_approval (bool):
         **kwargs (dict):
@@ -171,7 +168,7 @@ def generate_run_play(pipeline,
     # setup the necessary environment variables
     pipeline.ensure_encrypted_environment_variables(
         {
-            'HIPCHAT_AUTH_TOKEN': hipchat_auth_token,
+            'HIPCHAT_TOKEN': hipchat_token,
             'PRIVATE_GITHUB_KEY': private_github_key
         }
     )
@@ -251,9 +248,6 @@ def generate_create_ami_from_instance(pipeline,
         aws_access_key_id (str):
         aws_secret_access_key (str):
         configuration_repo (str):
-        app_version (str):
-        configuration_version (str):
-        configuration_secure_version (str):
         ami_creation_timeout (str):
         ami_wait (str):
         cache_id (str):
@@ -450,8 +444,8 @@ def generate_edp_validation(pipeline,
                                            'HIPCHAT_CHANNELS': hipchat_channels,
                                            'ASGARD_API_ENDPOINTS': asgard_api_endpoints,
                                            'AMI_ENVIRONMENT': ami_environment,
-                                           'AMI_PLAY': ami_play})\
-            .ensure_encrypted_environment_variables({'HIPCHAT_AUTH_TOKEN': hipchat_auth_token})
+                                           'AMI_PLAY': ami_play}) \
+        .ensure_encrypted_environment_variables({'HIPCHAT_TOKEN': hipchat_auth_token})
 
     stage = pipeline.ensure_stage("Validation")
     if manual_approval:
