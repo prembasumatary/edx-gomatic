@@ -114,7 +114,8 @@ def generate_create_ami(job, runif="passed", **kwargs):
             '-e hipchat_token=$HIPCHAT_TOKEN',
             '-e hipchat_room="$HIPCHAT_ROOM"',
             '-e ami_wait=$AMI_WAIT',
-            '-e no_reboot=$NO_REBOOT'
+            '-e no_reboot=$NO_REBOOT',
+            '-e extra_name_identifier=$GO_PIPELINE_COUNTER'
         ]
     )
 

@@ -119,6 +119,28 @@ tools:
 
     ## end of api-manager pipeline group
 
+  # Analytics
+  # Stage insights
+  - script: edxpipelines/pipelines/cd_insights.py
+    input_files:
+      - *tools-admin
+      - "../gomatic-secure/gocd/vars/tools/environment-deployment-play/stage-edx-insights.yml"
+      - "../gomatic-secure/gocd/vars/tools/environment-deployments/stage-edx.yml"
+      - "../gomatic-secure/gocd/vars/tools/plays/insights.yml"
+      - "../gomatic-secure/gocd/vars/tools/deployments/edx.yml"
+    enabled: True
+
+  # Stage Analytics API
+  - script: edxpipelines/pipelines/cd_analyticsapi.py
+    input_files:
+      - *tools-admin
+      - "../gomatic-secure/gocd/vars/tools/environment-deployment-play/stage-edx-analyticsapi.yml"
+      - "../gomatic-secure/gocd/vars/tools/environment-deployments/stage-edx.yml"
+      - "../gomatic-secure/gocd/vars/tools/plays/analyticsapi.yml"
+      - "../gomatic-secure/gocd/vars/tools/deployments/edx.yml"
+    enabled: True
+
+
 sandbox:
   - script: edxpipelines/pipelines/cd_programs_multistage.py
     input_files:
