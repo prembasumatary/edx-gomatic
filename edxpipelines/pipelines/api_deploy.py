@@ -12,6 +12,7 @@ sys.path.append(path.dirname(path.dirname(path.dirname(path.abspath(__file__))))
 
 import edxpipelines.utils as utils
 import edxpipelines.pipelines.api_build as api_build
+import edxpipelines.constants as constants
 
 UPLOAD_STAGE_NAME = 'upload'
 UPLOAD_GATEWAY_JOB_NAME = 'upload_gateway'
@@ -77,9 +78,11 @@ def install_pipeline(save_config_locally, dry_run, variable_files, cmd_line_vars
             'ROTATION_ORDER': ' '.join(config['rotation_order']),
             'BURST_LIMIT': config['aws']['burst_limit'],
             'EDXAPP_HOST': config['upstream_origins']['edxapp'],
-            'CATALOG_HOST': config['upstream_origins']['catalog']
+            'CATALOG_HOST': config['upstream_origins']['catalog'],
+            'WAIT_SLEEP_TIME': config.get('tubular_sleep_wait_time', constants.TUBULAR_SLEEP_WAIT_TIME),
         }
     )
+
     pipeline.ensure_encrypted_environment_variables({
         'AWS_ACCESS_KEY_ID': config['aws']['access_key_id'],
         'AWS_SECRET_ACCESS_KEY': config['aws']['secret_access_key']
