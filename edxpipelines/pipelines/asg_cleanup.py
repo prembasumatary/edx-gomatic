@@ -8,6 +8,7 @@ from gomatic import *
 sys.path.append(path.dirname(path.dirname(path.dirname(path.abspath(__file__)))))
 
 import edxpipelines.utils as utils
+import edxpipelines.constants as constants
 from edxpipelines.patterns import stages
 
 
@@ -38,7 +39,12 @@ def install_pipeline(save_config_locally, dry_run, variable_files, cmd_line_vars
     pipeline = configurator.ensure_pipeline_group(config['pipeline_group'])\
                            .ensure_replacement_of_pipeline(config['pipeline_name'])\
                            .set_timer(config['cron_timer'])\
-                           .set_git_material(GitMaterial("https://github.com/edx/tubular.git", polling=False, destination_directory="tubular"))
+                           .set_git_material(GitMaterial("https://github.com/edx/tubular.git",
+                                                         polling=True,
+                                                         destination_directory="tubular",
+                                                         ignore_patterns=constants.MATERIAL_IGNORE_ALL_REGEX
+                                                         )
+                                             )
 
     stages.generate_asg_cleanup(pipeline, config['asgard_api_endpoints'], config['asgard_token'], config['aws_access_key_id'], config['aws_secret_access_key'])
     configurator.save_updated_config(save_config_locally=save_config_locally, dry_run=dry_run)
