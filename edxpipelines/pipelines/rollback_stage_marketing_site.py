@@ -8,6 +8,7 @@ from gomatic import *
 sys.path.append(path.dirname(path.dirname(path.dirname(path.abspath(__file__)))))
 
 import edxpipelines.utils as utils
+import edxpipelines.constants as constants
 import edxpipelines.patterns.tasks as tasks
 from edxpipelines.constants import *
 
@@ -33,7 +34,12 @@ def install_pipeline(save_config_locally, dry_run, variable_files, cmd_line_vars
     pipeline = configurator \
         .ensure_pipeline_group(DRUPAL_PIPELINE_GROUP_NAME) \
         .ensure_replacement_of_pipeline('rollback-stage-marketing-site') \
-        .set_git_material(GitMaterial('https://github.com/edx/tubular', polling=False, destination_directory='tubular')) \
+        .set_git_material(GitMaterial('https://github.com/edx/tubular',
+                                      polling=True,
+                                      destination_directory='tubular',
+                                      ignore_patterns=constants.MATERIAL_IGNORE_ALL_REGEX
+                                      )
+                          ) \
         .ensure_material(PipelineMaterial(DEPLOY_MARKETING_PIPELINE_NAME, FETCH_TAG_STAGE_NAME))
 
     pipeline.ensure_environment_variables(

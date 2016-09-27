@@ -30,7 +30,13 @@ def generate_deploy_pipeline(configurator,
         .ensure_pipeline_group(pipeline_group) \
         .ensure_replacement_of_pipeline(pipeline_name) \
         .set_git_material(
-            GitMaterial("https://github.com/edx/tubular.git", polling=False, destination_directory="tubular"))
+            GitMaterial(
+                "https://github.com/edx/tubular.git",
+                polling=True,
+                destination_directory="tubular",
+                ignore_patterns=constants.MATERIAL_IGNORE_ALL_REGEX
+            )
+        )
 
     stages.generate_single_stage_deploy_ami(pipeline,
                                             asgard_api_endpoints,
@@ -60,13 +66,15 @@ def generate_basic_multistage_pipeline(play,
         .ensure_material(GitMaterial(config['tubular_url'],
                                      branch=config.get('tubular_version', 'master'),
                                      material_name='tubular',
-                                     polling=False,
-                                     destination_directory='tubular')) \
+                                     polling=True,
+                                     destination_directory='tubular',
+                                     ignore_patterns=constants.MATERIAL_IGNORE_ALL_REGEX)) \
         .ensure_material(GitMaterial(config['configuration_url'],
                                      branch=config.get('configuration_version', 'master'),
                                      material_name='configuration',
-                                     polling=False,
-                                     destination_directory='configuration')) \
+                                     polling=True,
+                                     destination_directory='configuration',
+                                     ignore_patterns=constants.MATERIAL_IGNORE_ALL_REGEX)) \
         .ensure_material(GitMaterial(config['app_repo'],
                                      branch=config.get('app_version', 'master'),
                                      material_name=play,
@@ -75,8 +83,9 @@ def generate_basic_multistage_pipeline(play,
         .ensure_material(GitMaterial(config['configuration_secure_repo'],
                                      branch=config.get('configuration_secure_version', 'master'),
                                      material_name='configuration_secure',
-                                     polling=False,
-                                     destination_directory=constants.PRIVATE_CONFIGURATION_LOCAL_DIR)) \
+                                     polling=True,
+                                     destination_directory=constants.PRIVATE_CONFIGURATION_LOCAL_DIR,
+                                     ignore_patterns=constants.MATERIAL_IGNORE_ALL_REGEX)) \
         .ensure_environment_variables({
             'APPLICATION_USER': service_name,
             'APPLICATION_NAME': service_name,

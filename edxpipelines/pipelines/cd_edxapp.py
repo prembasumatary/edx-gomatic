@@ -72,13 +72,15 @@ def install_pipeline(save_config_locally, dry_run, variable_files, cmd_line_vars
                   .ensure_material(GitMaterial(config['tubular_url'],
                                                branch=config.get('tubular_version', 'master'),
                                                material_name='tubular',
-                                               polling=False,
-                                               destination_directory='tubular'))\
+                                               polling=True,
+                                               destination_directory='tubular',
+                                               ignore_patterns=constants.MATERIAL_IGNORE_ALL_REGEX))\
                   .ensure_material(GitMaterial(config['configuration_url'],
                                                branch=config.get('configuration_version', 'master'),
                                                material_name='configuration',
-                                               polling=False,
-                                               destination_directory='configuration')) \
+                                               polling=True,
+                                               destination_directory='configuration',
+                                               ignore_patterns=constants.MATERIAL_IGNORE_ALL_REGEX)) \
                   .ensure_material(GitMaterial(config['app_repo'],
                                                branch=config.get('app_version', 'master'),
                                                material_name='edx-platform',
@@ -87,8 +89,9 @@ def install_pipeline(save_config_locally, dry_run, variable_files, cmd_line_vars
                   .ensure_material(GitMaterial(config['configuration_secure_repo'],
                                                branch=config.get('configuration_secure_version', 'master'),
                                                material_name='configuration_secure',
-                                               polling=False,
-                                               destination_directory=constants.PRIVATE_CONFIGURATION_LOCAL_DIR))
+                                               polling=True,
+                                               destination_directory=constants.PRIVATE_CONFIGURATION_LOCAL_DIR,
+                                               ignore_patterns=constants.MATERIAL_IGNORE_ALL_REGEX))
 
     pipeline.ensure_environment_variables(
         {

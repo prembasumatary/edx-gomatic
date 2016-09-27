@@ -67,15 +67,13 @@ def install_pipeline(save_config_locally, dry_run, variable_files, cmd_line_vars
     gcc = GoCdConfigurator(HostRestClient(config['gocd_url'], config['gocd_username'], config['gocd_password'], ssl=True))
     pipeline = gcc.ensure_pipeline_group(config['pipeline_group'])\
                   .ensure_replacement_of_pipeline(config['pipeline_name'])\
-                  .ensure_material(GitMaterial('https://github.com/edx/tubular',
-                                               material_name='tubular',
-                                               polling=False,
-                                               destination_directory='tubular'))\
                   .ensure_material(GitMaterial('https://github.com/edx/edx-gomatic',
                                                material_name='edx-gomatic',
                                                polling=True,
                                                destination_directory='edx-gomatic',
-                                               branch='master'))
+                                               branch='master'
+                                               )
+                                   )
 
     pipeline.ensure_environment_variables(
         {
