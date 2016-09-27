@@ -73,26 +73,25 @@ def install_pipeline(save_config_locally, dry_run, variable_files, cmd_line_vars
                                                destination_directory='edx-gomatic',
                                                branch='master'
                                                )
+                                   ) \
+                  .ensure_material(GitMaterial('git@github.com:edx-ops/gomatic-secure.git',
+                                               material_name='gomatic-secure',
+                                               polling=True,
+                                               destination_directory='gomatic-secure',
+                                               branch='master',
+                                               ignore_patterns=constants.MATERIAL_IGNORE_ALL_REGEX
+                                               )
                                    )
-
-    pipeline.ensure_environment_variables(
-        {
-            'GOMATIC_SECURE_REPO': config['gomatic_secure_repo'],
-            'GOMATIC_SECURE_VERSION': config['gomatic_secure_version']
-        }
-    )
 
     pipeline.ensure_encrypted_environment_variables(
         {
             'GOMATIC_USER': config['gomatic_user'],
-            'GOMATIC_PASSWORD': config['gomatic_password'],
-            'PRIVATE_GITHUB_KEY': config['github_private_key']
+            'GOMATIC_PASSWORD': config['gomatic_password']
         }
     )
 
     stage = pipeline.ensure_stage('deploy_gomatic_stage')
     job = stage.ensure_job('deploy_gomatic_scripts_job')
-    tasks.fetch_gomatic_secure(job, 'gomatic-secure')
     tasks.generate_requirements_install(job, 'edx-gomatic')
 
     job.add_task(
