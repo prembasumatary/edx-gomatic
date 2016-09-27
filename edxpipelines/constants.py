@@ -14,6 +14,9 @@ RUN_PLAY_JOB_NAME = "run_play_job"
 APPLY_MIGRATIONS_STAGE = 'apply_migrations'
 APPLY_MIGRATIONS_JOB = 'apply_migrations_job'
 
+# Tubular configuration
+TUBULAR_SLEEP_WAIT_TIME = "15"
+
 # Defaults
 ARTIFACT_PATH = 'target'
 PUBLIC_CONFIGURATION_REPO_URL = 'https://github.com/edx/configuration.git'
