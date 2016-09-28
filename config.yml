@@ -74,6 +74,8 @@ tools:
       - "../gomatic-secure/gocd/vars/tools/deploy_drupal.yml"
     enabled: False
 
+
+  ## Start Edxapp
   # loadtest of edxapp
   - script: edxpipelines/pipelines/cd_edxapp.py
     input_files:
@@ -123,6 +125,61 @@ tools:
       - *play-edxapp
       - &deployment-mckinsey "../gomatic-secure/gocd/vars/tools/deployments/mckinsey.yml"
     enabled: True
+
+    ## End Edxapp
+
+    ## Start Edxapp-private
+    # loadtest of edxapp
+  - script: edxpipelines/pipelines/cd_edxapp.py
+    input_files:
+      - *tools-admin
+      - "../gomatic-secure/gocd/vars/tools/environment-deployment-play/loadtest-edx-edxapp-private.yml"
+      - "../gomatic-secure/gocd/vars/tools/environment-deployments/loadtest-edx.yml"
+      - *play-edxapp
+      - *deployment-edx
+    enabled: True
+
+  # Stage edxapp
+  - script: edxpipelines/pipelines/cd_edxapp.py
+    input_files:
+      - *tools-admin
+      - "../gomatic-secure/gocd/vars/tools/environment-deployment-play/stage-edx-edxapp-private.yml"
+      - "../gomatic-secure/gocd/vars/tools/environment-deployments/stage-edx.yml"
+      - *play-edxapp
+      - *deployment-edx
+    enabled: True
+
+  # Prod edx of edxapp
+  - script: edxpipelines/pipelines/cd_edxapp.py
+    input_files:
+      - *tools-admin
+      - "../gomatic-secure/gocd/vars/tools/environment-deployment-play/prod-edx-edxapp-private.yml"
+      - "../gomatic-secure/gocd/vars/tools/environment-deployments/prod-edx.yml"
+      - *play-edxapp
+      - *deployment-edx
+    enabled: True
+
+  # Prod EDGE of edxapp
+  - script: edxpipelines/pipelines/cd_edxapp.py
+    input_files:
+      - *tools-admin
+      - "../gomatic-secure/gocd/vars/tools/environment-deployment-play/prod-edge-edxapp-private.yml"
+      - "../gomatic-secure/gocd/vars/tools/environment-deployments/prod-edge.yml"
+      - *play-edxapp
+      - *deployment-edge
+    enabled: True
+
+  # Prod McKinsey of edxapp
+  - script: edxpipelines/pipelines/cd_edxapp.py
+    input_files:
+      - *tools-admin
+      - "../gomatic-secure/gocd/vars/tools/environment-deployment-play/prod-mckinsey-edxapp-private.yml"
+      - "../gomatic-secure/gocd/vars/tools/environment-deployments/prod-mckinsey.yml"
+      - *play-edxapp
+      - *deployment-mckinsey
+    enabled: True
+
+  ## END Edxapp-private
 
   ## start of api-manager pipeline group
 
