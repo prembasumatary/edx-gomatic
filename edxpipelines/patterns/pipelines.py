@@ -56,6 +56,22 @@ def generate_basic_multistage_pipeline(play,
                                        save_config_locally,
                                        dry_run,
                                        **kwargs):
+    """
+    This pattern generates a pipeline that is suitable for the majority of edX's independently-deployable applications
+    (IDAs).
+
+    The generated pipeline will includes stages that do the following:
+
+        1. Launch a new instance on which we will build an AMI.
+        2. Run the Ansible play for the service.
+        3. Create an AMI based on the instance.
+        4. Run migrations.
+        5. Deploy the AMI (after manual intervention)
+        6. Destroy the instance on which the AMI was built.
+
+    Notes:
+        The instance launched/destroyed is NEVER inserted into the load balancer or serving user requests.
+    """
     environment = config['edx_environment']
     deployment = config['edx_deployment']
     artifact_path = 'target/'
@@ -91,9 +107,8 @@ def generate_basic_multistage_pipeline(play,
             'APPLICATION_NAME': service_name,
             'APPLICATION_PATH': '/edx/app/' + service_name,
         })
-    #
-    # Create the AMI-building stage.
-    #
+
+    # Launch a new instance on which to build the AMI
     stages.generate_launch_instance(pipeline,
                                     config['aws_access_key_id'],
                                     config['aws_secret_access_key'],
@@ -104,6 +119,7 @@ def generate_basic_multistage_pipeline(play,
                                     manual_approval=True
                                     )
 
+    # Run the Ansible play for the service
     stages.generate_run_play(pipeline,
                              playbook_with_path=playbook_path,
                              play=play,
@@ -119,6 +135,7 @@ def generate_basic_multistage_pipeline(play,
                              **kwargs
                              )
 
+    # Create an AMI
     stages.generate_create_ami_from_instance(pipeline,
                                              play=play,
                                              deployment=deployment,
@@ -131,9 +148,8 @@ def generate_basic_multistage_pipeline(play,
                                              hipchat_room=hipchat_room,
                                              **kwargs
                                              )
-    #
-    # Create the DB migration running stage.
-    #
+
+    # Run database migrations
     ansible_inventory_location = utils.ArtifactLocation(
         pipeline.name,
         constants.LAUNCH_INSTANCE_STAGE_NAME,
@@ -162,9 +178,8 @@ def generate_basic_multistage_pipeline(play,
                                    application_name=service_name,
                                    application_path='/edx/app/' + service_name
                                    )
-    #
-    # Create the stage to deploy the AMI.
-    #
+
+    # Deploy the AMI (after user manually approves)
     ami_file_location = utils.ArtifactLocation(
         pipeline.name,
         constants.BUILD_AMI_STAGE_NAME,
@@ -180,9 +195,9 @@ def generate_basic_multistage_pipeline(play,
         ami_file_location,
         True
     )
-    #
-    # Create the stage to terminate the EC2 instance used to both build the AMI and run DB migrations.
-    #
+
+    # Terminate the instance used to create the AMI and run migrations. It was never inserted into the
+    # load balancer, or serving requests, so this is safe.
     instance_info_location = utils.ArtifactLocation(
         pipeline.name,
         constants.LAUNCH_INSTANCE_STAGE_NAME,
