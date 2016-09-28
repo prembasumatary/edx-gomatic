@@ -135,8 +135,8 @@ tools:
       - *tools-admin
       - "../gomatic-secure/gocd/vars/tools/environment-deployment-play/loadtest-edx-edxapp-private.yml"
       - "../gomatic-secure/gocd/vars/tools/environment-deployments/loadtest-edx.yml"
-      - &play-edxapp "../gomatic-secure/gocd/vars/tools/plays/edxapp.yml"
-      - &deployment-edx "../gomatic-secure/gocd/vars/tools/deployments/edx.yml"
+      - *play-edxapp
+      - *deployment-edx
     enabled: True
 
   # Stage edxapp
@@ -166,7 +166,7 @@ tools:
       - "../gomatic-secure/gocd/vars/tools/environment-deployment-play/prod-edge-edxapp-private.yml"
       - "../gomatic-secure/gocd/vars/tools/environment-deployments/prod-edge.yml"
       - *play-edxapp
-      - &deployment-edge "../gomatic-secure/gocd/vars/tools/deployments/edge.yml"
+      - *deployment-edge
     enabled: True
 
   # Prod McKinsey of edxapp
@@ -176,7 +176,7 @@ tools:
       - "../gomatic-secure/gocd/vars/tools/environment-deployment-play/prod-mckinsey-edxapp-private.yml"
       - "../gomatic-secure/gocd/vars/tools/environment-deployments/prod-mckinsey.yml"
       - *play-edxapp
-      - &deployment-mckinsey "../gomatic-secure/gocd/vars/tools/deployments/mckinsey.yml"
+      - *deployment-mckinsey
     enabled: True
 
   ## END Edxapp-private
