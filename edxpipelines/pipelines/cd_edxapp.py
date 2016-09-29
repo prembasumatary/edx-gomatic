@@ -90,7 +90,15 @@ def install_pipeline(save_config_locally, dry_run, variable_files, cmd_line_vars
                                                material_name='configuration_secure',
                                                polling=True,
                                                destination_directory=constants.PRIVATE_CONFIGURATION_LOCAL_DIR,
+                                               ignore_patterns=constants.MATERIAL_IGNORE_ALL_REGEX)) \
+                  .ensure_material(GitMaterial(config['theme_url'],
+                                               branch=config.get('theme_version', 'release'),
+                                               material_name='edx_theme',
+                                               polling=True,
+                                               destination_directory=constants.EDX_THEME_DIR,
                                                ignore_patterns=constants.MATERIAL_IGNORE_ALL_REGEX))
+
+    gcc = GoCdConfigurator(HostRestClient(config['gocd_url'], config['gocd_username'], config['gocd_password'], ssl=True))
 
     pipeline.ensure_environment_variables(
         {
@@ -126,8 +134,8 @@ def install_pipeline(save_config_locally, dry_run, variable_files, cmd_line_vars
                              edx_platform_version='$GO_REVISION_EDX_PLATFORM',
                              edx_platform_repo='$APP_REPO',
                              configuration_version='$GO_REVISION_CONFIGURATION',
-                             edxapp_theme_source_repo='$EDX_APP_THEME_REPO',
-                             edxapp_theme_version='$EDX_APP_THEME_VERSION',
+                             edxapp_theme_source_repo=config['theme_url'],
+                             edxapp_theme_version='$GO_REVISION_EDX_THEME',
                              edxapp_theme_name='$EDXAPP_THEME_NAME',
                              disable_edx_services='true',
                              COMMON_TAG_EC2_INSTANCE='true',
@@ -147,7 +155,9 @@ def install_pipeline(save_config_locally, dry_run, variable_files, cmd_line_vars
                                              configuration_version='$GO_REVISION_CONFIGURATION',
                                              configuration_secure_version='$GO_REVISION_CONFIGURATION_SECURE',
                                              aws_access_key_id=config['aws_access_key_id'],
-                                             aws_secret_access_key=config['aws_secret_access_key']
+                                             aws_secret_access_key=config['aws_secret_access_key'],
+                                             edxapp_theme_source_repo=config['theme_url'],
+                                             edxapp_theme_version='$GO_REVISION_EDX_THEME',
                                              )
 
     #
