@@ -247,6 +247,25 @@ tools:
       - "../gomatic-secure/gocd/vars/tools/deployments/edx.yml"
     enabled: True
 
+  # Credentials Service
+  - script: edxpipelines/pipelines/cd_credentials.py
+    input_files:
+      - *tools-admin
+      - "../gomatic-secure/gocd/vars/tools/environment-deployment-play/stage-edx-credentials.yml"
+      - "../gomatic-secure/gocd/vars/tools/environment-deployments/stage-edx.yml"
+      - "../gomatic-secure/gocd/vars/tools/plays/credentials.yml"
+      - "../gomatic-secure/gocd/vars/tools/deployments/edx.yml"
+    enabled: True
+
+  - script: edxpipelines/pipelines/cd_credentials.py
+    input_files:
+      - *tools-admin
+      - "../gomatic-secure/gocd/vars/tools/environment-deployment-play/loadtest-edx-credentials.yml"
+      - "../gomatic-secure/gocd/vars/tools/environment-deployments/loadtest-edx.yml"
+      - "../gomatic-secure/gocd/vars/tools/plays/credentials.yml"
+      - "../gomatic-secure/gocd/vars/tools/deployments/edx.yml"
+    enabled: True
+
 
 sandbox:
   - script: edxpipelines/pipelines/cd_programs_multistage.py
