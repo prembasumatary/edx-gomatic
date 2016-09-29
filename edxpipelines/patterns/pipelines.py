@@ -1,7 +1,10 @@
+import re
+
 from gomatic import *
-from edxpipelines.patterns import stages
+
 import edxpipelines.utils as utils
 from edxpipelines import constants
+from edxpipelines.patterns import stages
 
 
 def generate_deploy_pipeline(configurator,
@@ -55,6 +58,7 @@ def generate_basic_multistage_pipeline(play,
                                        config,
                                        save_config_locally,
                                        dry_run,
+                                       post_migration_stages=(),
                                        **kwargs):
     """
     This pattern generates a pipeline that is suitable for the majority of edX's independently-deployable applications
@@ -76,6 +80,12 @@ def generate_basic_multistage_pipeline(play,
     deployment = config['edx_deployment']
     gcc = GoCdConfigurator(
         HostRestClient(config['gocd_url'], config['gocd_username'], config['gocd_password'], ssl=True))
+
+    application_name = service_name
+    application_path = '/edx/app/' + service_name
+    application_user = service_name
+    hipchat_token = config['hipchat_token']
+
     pipeline = gcc.ensure_pipeline_group(pipeline_group) \
         .ensure_replacement_of_pipeline('-'.join([environment, deployment, play])) \
         .ensure_material(GitMaterial(config['tubular_url'],
@@ -102,9 +112,9 @@ def generate_basic_multistage_pipeline(play,
                                      destination_directory=constants.PRIVATE_CONFIGURATION_LOCAL_DIR,
                                      ignore_patterns=constants.MATERIAL_IGNORE_ALL_REGEX)) \
         .ensure_environment_variables({
-            'APPLICATION_USER': service_name,
-            'APPLICATION_NAME': service_name,
-            'APPLICATION_PATH': '/edx/app/' + service_name,
+            'APPLICATION_USER': application_user,
+            'APPLICATION_NAME': application_name,
+            'APPLICATION_PATH': application_path,
         })
 
     # Launch a new instance on which to build the AMI
@@ -127,7 +137,7 @@ def generate_basic_multistage_pipeline(play,
                              app_repo=app_repo,
                              configuration_secure_repo=config['configuration_secure_repo'],
                              private_github_key=config['github_private_key'],
-                             hipchat_auth_token=config['hipchat_token'],
+                             hipchat_auth_token=hipchat_token,
                              hipchat_room=hipchat_room,
                              disable_edx_services='true',
                              COMMON_TAG_EC2_INSTANCE='true',
@@ -143,7 +153,7 @@ def generate_basic_multistage_pipeline(play,
                                              configuration_secure_repo=config['configuration_secure_repo'],
                                              aws_access_key_id=config['aws_access_key_id'],
                                              aws_secret_access_key=config['aws_secret_access_key'],
-                                             hipchat_auth_token=config['hipchat_token'],
+                                             hipchat_auth_token=hipchat_token,
                                              hipchat_room=hipchat_room,
                                              **kwargs
                                              )
@@ -172,10 +182,24 @@ def generate_basic_multistage_pipeline(play,
                                    ansible_inventory_location,
                                    instance_ssh_key_location,
                                    launch_info_location,
-                                   application_user=service_name,
-                                   application_name=service_name,
-                                   application_path='/edx/app/' + service_name
+                                   application_user=application_user,
+                                   application_name=application_name,
+                                   application_path=application_path
                                    )
+
+    # Run post-migration stages/tasks
+    for stage in post_migration_stages:
+        stage(
+            pipeline,
+            ansible_inventory_location,
+            instance_ssh_key_location,
+            launch_info_location,
+            application_user=application_user,
+            application_name=application_name,
+            application_path=application_path,
+            hipchat_auth_token=hipchat_token,
+            hipchat_room=hipchat_room
+        )
 
     # Deploy the AMI (after user manually approves)
     ami_file_location = utils.ArtifactLocation(
@@ -207,7 +231,7 @@ def generate_basic_multistage_pipeline(play,
         instance_info_location,
         aws_access_key_id=config['aws_access_key_id'],
         aws_secret_access_key=config['aws_secret_access_key'],
-        hipchat_auth_token=config['hipchat_token'],
+        hipchat_auth_token=hipchat_token,
         runif='any'
     )
     gcc.save_updated_config(save_config_locally=save_config_locally, dry_run=dry_run)

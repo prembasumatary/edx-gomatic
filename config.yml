@@ -279,6 +279,24 @@ tools:
       - "../gomatic-secure/gocd/vars/tools/deployments/edx.yml"
     enabled: True
 
+  # Catalog/Discovery Service
+  - script: edxpipelines/pipelines/cd_discovery.py
+    input_files:
+      - *tools-admin
+      - "../gomatic-secure/gocd/vars/tools/environment-deployment-play/stage-edx-discovery.yml"
+      - "../gomatic-secure/gocd/vars/tools/environment-deployments/stage-edx.yml"
+      - "../gomatic-secure/gocd/vars/tools/plays/discovery.yml"
+      - "../gomatic-secure/gocd/vars/tools/deployments/edx.yml"
+    enabled: True
+
+  - script: edxpipelines/pipelines/cd_discovery.py
+    input_files:
+      - *tools-admin
+      - "../gomatic-secure/gocd/vars/tools/environment-deployment-play/loadtest-edx-discovery.yml"
+      - "../gomatic-secure/gocd/vars/tools/environment-deployments/loadtest-edx.yml"
+      - "../gomatic-secure/gocd/vars/tools/plays/discovery.yml"
+      - "../gomatic-secure/gocd/vars/tools/deployments/edx.yml"
+    enabled: True
 
 sandbox:
   - script: edxpipelines/pipelines/deploy_marketing_site.py
