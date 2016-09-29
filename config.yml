@@ -1,16 +1,10 @@
 tools:
-  - script: edxpipelines/pipelines/cd_programs_multistage.py
-    input_files:
-      - &tools-admin "../gomatic-secure/gocd/vars/tools/admin.yml"
-      - "../gomatic-secure/gocd/vars/tools/loadtest-multistage-programs.yml"
-    enabled: False
-
   ## Start of 'Janitors' pipeline group
 
   #ASG cleanup for edge
   - script: edxpipelines/pipelines/asg_cleanup.py
     input_files:
-      - *tools-admin
+      - &tools-admin "../gomatic-secure/gocd/vars/tools/admin.yml"
       - &edge-deployment "../gomatic-secure/gocd/vars/tools/deployments/edge.yml"
       - "../gomatic-secure/gocd/vars/tools/asg-cleanup-edge.yml"
     enabled: True
@@ -266,14 +260,27 @@ tools:
       - "../gomatic-secure/gocd/vars/tools/deployments/edx.yml"
     enabled: True
 
-
-sandbox:
-  - script: edxpipelines/pipelines/cd_programs_multistage.py
+  # Programs Service
+  - script: edxpipelines/pipelines/cd_programs.py
     input_files:
-      - &sandbox-admin "../gomatic-secure/gocd/vars/sandbox/admin.yml"
-      - "../gomatic-secure/gocd/vars/sandbox/loadtest-multistage-programs.yml"
+      - *tools-admin
+      - "../gomatic-secure/gocd/vars/tools/environment-deployment-play/stage-edx-programs.yml"
+      - "../gomatic-secure/gocd/vars/tools/environment-deployments/stage-edx.yml"
+      - "../gomatic-secure/gocd/vars/tools/plays/programs.yml"
+      - "../gomatic-secure/gocd/vars/tools/deployments/edx.yml"
     enabled: True
 
+  - script: edxpipelines/pipelines/cd_programs.py
+    input_files:
+      - *tools-admin
+      - "../gomatic-secure/gocd/vars/tools/environment-deployment-play/loadtest-edx-programs.yml"
+      - "../gomatic-secure/gocd/vars/tools/environment-deployments/loadtest-edx.yml"
+      - "../gomatic-secure/gocd/vars/tools/plays/programs.yml"
+      - "../gomatic-secure/gocd/vars/tools/deployments/edx.yml"
+    enabled: True
+
+
+sandbox:
   - script: edxpipelines/pipelines/deploy_marketing_site.py
     input_files:
       - *sandbox-admin
