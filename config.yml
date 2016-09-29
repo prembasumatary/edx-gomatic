@@ -320,7 +320,7 @@ tools:
 sandbox:
   - script: edxpipelines/pipelines/deploy_marketing_site.py
     input_files:
-      - *sandbox-admin
+      - &sandbox-admin "../gomatic-secure/gocd/vars/sandbox/admin.yml"
       - "../gomatic-secure/gocd/vars/sandbox/deploy_drupal.yml"
     enabled: False
 
