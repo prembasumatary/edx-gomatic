@@ -74,7 +74,6 @@ def generate_basic_multistage_pipeline(play,
     """
     environment = config['edx_environment']
     deployment = config['edx_deployment']
-    artifact_path = 'target/'
     gcc = GoCdConfigurator(
         HostRestClient(config['gocd_url'], config['gocd_username'], config['gocd_password'], ssl=True))
     pipeline = gcc.ensure_pipeline_group(pipeline_group) \
@@ -170,7 +169,6 @@ def generate_basic_multistage_pipeline(play,
     )
     stages.generate_run_migrations(pipeline,
                                    config['db_migration_pass'],
-                                   artifact_path,
                                    ansible_inventory_location,
                                    instance_ssh_key_location,
                                    launch_info_location,

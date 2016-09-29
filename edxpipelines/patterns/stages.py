@@ -483,7 +483,6 @@ def generate_edp_validation(pipeline,
 
 def generate_run_migrations(pipeline,
                             db_migration_pass,
-                            artifact_path,
                             inventory_location,
                             instance_key_location,
                             launch_info_location,
@@ -498,7 +497,6 @@ def generate_run_migrations(pipeline,
     Args:
         pipeline (gomatic.Pipeline): Pipeline to which to add the run migrations stage.
         db_migration_pass (str): Password for the DB user used to run migrations.
-        artifact_path (str): Path where the artifacts can be found.
         inventory_location (ArtifactLocation): Location of inventory containing the IP address of the EC2 instance, for fetching.
         instance_key_location (ArtifactLocation): Location of SSH key used to access the EC2 instance, for fetching.
         launch_info_location (ArtifactLocation): Location of the launch_info.yml file for fetching
@@ -517,7 +515,7 @@ def generate_run_migrations(pipeline,
             'APPLICATION_NAME': application_name,
             'APPLICATION_PATH': application_path,
             'DB_MIGRATION_USER': 'migrate',
-            'ARTIFACT_PATH': artifact_path,
+            'ARTIFACT_PATH': constants.ARTIFACT_PATH,
             'ANSIBLE_CONFIG': constants.ANSIBLE_CONTINUOUS_DELIVERY_CONFIG,
         }
     )

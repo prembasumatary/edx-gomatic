@@ -61,7 +61,6 @@ def install_pipeline(save_config_locally, dry_run, variable_files, cmd_line_vars
     - base_ami_id
     """
     config = utils.merge_files_and_dicts(variable_files, list(cmd_line_vars,))
-    artifact_path = 'target/'
 
     gcc = GoCdConfigurator(HostRestClient(config['gocd_url'], config['gocd_username'], config['gocd_password'], ssl=True))
     pipeline = gcc.ensure_pipeline_group('DeployTesting')\
@@ -149,7 +148,6 @@ def install_pipeline(save_config_locally, dry_run, variable_files, cmd_line_vars
     )
     stages.generate_run_migrations(pipeline=pipeline,
                                    db_migration_pass=config['db_migration_pass'],
-                                   artifact_path=artifact_path,
                                    inventory_location=ansible_inventory_location,
                                    instance_key_location=instance_ssh_key_location,
                                    launch_info_location=launch_info_location,
