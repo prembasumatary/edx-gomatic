@@ -18,7 +18,8 @@ import edxpipelines.constants as constants
     envvar='SAVE_CONFIG',
     help='Save the pipeline configuration xml locally.',
     required=False,
-    default=False
+    default=False,
+    is_flag=True
 )
 @click.option(
     '--dry-run',
@@ -97,8 +98,6 @@ def install_pipeline(save_config_locally, dry_run, variable_files, cmd_line_vars
                                                polling=True,
                                                destination_directory=constants.EDX_THEME_DIR,
                                                ignore_patterns=constants.MATERIAL_IGNORE_ALL_REGEX))
-
-    gcc = GoCdConfigurator(HostRestClient(config['gocd_url'], config['gocd_username'], config['gocd_password'], ssl=True))
 
     pipeline.ensure_environment_variables(
         {
