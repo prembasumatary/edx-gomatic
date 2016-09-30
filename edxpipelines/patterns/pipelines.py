@@ -59,6 +59,7 @@ def generate_basic_multistage_pipeline(play,
                                        save_config_locally,
                                        dry_run,
                                        post_migration_stages=(),
+                                       skip_migrations=False,
                                        **kwargs):
     """
     This pattern generates a pipeline that is suitable for the majority of edX's independently-deployable applications
@@ -177,15 +178,17 @@ def generate_basic_multistage_pipeline(play,
         constants.LAUNCH_INSTANCE_JOB_NAME,
         'launch_info.yml'
     )
-    stages.generate_run_migrations(pipeline,
-                                   config['db_migration_pass'],
-                                   ansible_inventory_location,
-                                   instance_ssh_key_location,
-                                   launch_info_location,
-                                   application_user=application_user,
-                                   application_name=application_name,
-                                   application_path=application_path
-                                   )
+
+    if not skip_migrations:
+        stages.generate_run_migrations(pipeline,
+                                       config['db_migration_pass'],
+                                       ansible_inventory_location,
+                                       instance_ssh_key_location,
+                                       launch_info_location,
+                                       application_user=application_user,
+                                       application_name=application_name,
+                                       application_path=application_path
+                                       )
 
     # Run post-migration stages/tasks
     for stage in post_migration_stages:

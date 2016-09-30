@@ -71,6 +71,7 @@ def install_pipeline(save_config_locally, dry_run, variable_files, cmd_line_vars
         config=config,
         save_config_locally=save_config_locally,
         dry_run=dry_run,
+        skip_migrations=True,
         app_version=version_env_var,
         ECOMMERCE_WORKER_VERSION=version_env_var
     )
