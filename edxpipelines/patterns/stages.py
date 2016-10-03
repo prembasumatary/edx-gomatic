@@ -335,7 +335,8 @@ def generate_basic_deploy_ami(pipeline,
     """
     pipeline.ensure_environment_variables(
         {
-            'ASGARD_API_ENDPOINTS': asgard_api_endpoints
+            'ASGARD_API_ENDPOINTS': asgard_api_endpoints,
+            'WAIT_SLEEP_TIME': constants.TUBULAR_SLEEP_WAIT_TIME
         }
     ).ensure_encrypted_environment_variables(
         {
