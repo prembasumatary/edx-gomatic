@@ -15,7 +15,7 @@ APPLY_MIGRATIONS_STAGE = 'apply_migrations'
 APPLY_MIGRATIONS_JOB = 'apply_migrations_job'
 
 # Tubular configuration
-TUBULAR_SLEEP_WAIT_TIME = "15"
+TUBULAR_SLEEP_WAIT_TIME = '20'
 
 # Defaults
 ARTIFACT_PATH = 'target'
