@@ -395,7 +395,8 @@ def generate_single_stage_deploy_ami(pipeline,
     pipeline.ensure_environment_variables(
         {
             'AMI_ID': None,
-            'ASGARD_API_ENDPOINTS': asgard_api_endpoints
+            'ASGARD_API_ENDPOINTS': asgard_api_endpoints,
+            'WAIT_SLEEP_TIME': constants.TUBULAR_SLEEP_WAIT_TIME
         }
     )
     pipeline.ensure_encrypted_environment_variables(
