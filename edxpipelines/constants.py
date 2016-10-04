@@ -28,7 +28,7 @@ PRIVATE_CONFIGURATION_LOCAL_DIR = 'edx-secure'
 EDX_THEME_DIR = 'edx_theme'
 APP_REPO_BRANCH = 'master'
 HIPCHAT_ROOM = 'release'
-MATERIAL_IGNORE_ALL_REGEX = '**/*'
+MATERIAL_IGNORE_ALL_REGEX = ['**/*']
 
 # AWS Defaults
 EC2_REGION = 'us-east-1'
