@@ -126,7 +126,7 @@ def generate_basic_multistage_pipeline(play,
                                     config['ec2_security_group_id'],
                                     config['ec2_instance_profile_name'],
                                     config['base_ami_id'],
-                                    manual_approval=not config.get('auto_run', False)
+                                    manual_approval=config.get('auto_run', False)
                                     )
 
     # Run the Ansible play for the service
@@ -218,7 +218,7 @@ def generate_basic_multistage_pipeline(play,
         config['aws_access_key_id'],
         config['aws_secret_access_key'],
         ami_file_location,
-        manual_approval=not config.get('auto_deploy_ami', False)
+        manual_approval=config.get('auto_deploy_ami', False)
     )
 
     # Terminate the instance used to create the AMI and run migrations. It was never inserted into the
