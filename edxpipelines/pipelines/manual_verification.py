@@ -47,21 +47,8 @@ import edxpipelines.constants as constants
 def install_pipeline(save_config_locally, dry_run, variable_files, cmd_line_vars):
     """
     Variables needed for this pipeline:
-    - gocd_username
-    - gocd_password
-    - gocd_url
-    - configuration_secure_repo
-    - hipchat_token
-    - github_private_key
-    - aws_access_key_id
-    - aws_secret_access_key
-    - ec2_vpc_subnet_id
-    - ec2_security_group_id
-    - ec2_instance_profile_name
-    - base_ami_id
-
-    Optional variables:
-    - configuration_secure_version
+    materials: A list of dictionaries of the materials used in this pipeline
+    upstream_pipelines: a list of dictionaries of the upstream piplines that feed in to the manual verification
     """
     config = utils.merge_files_and_dicts(variable_files, list(cmd_line_vars,))
 
