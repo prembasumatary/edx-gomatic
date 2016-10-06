@@ -39,8 +39,8 @@ class TestDictMerge(unittest.TestCase):
           ({'key1': ['key11', "value11"]},
            {'key1': {'key11': "value22"}}),
 
-          ({'key1': ['key11', "value11"]},
-           {'key1': ['key11', "value12"]})
+          ({'key1': ['item1', "item2"]},
+           {'key1': ['item3', "item4"]})
           )
     @unpack
     def test_merge_collision(self, *args):
