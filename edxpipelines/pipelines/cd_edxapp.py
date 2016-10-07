@@ -68,96 +68,94 @@ def install_pipeline(save_config_locally, dry_run, variable_files, cmd_line_vars
 
     gcc = GoCdConfigurator(HostRestClient(config['gocd_url'], config['gocd_username'], config['gocd_password'], ssl=True))
     pipeline = gcc.ensure_pipeline_group(config['pipeline_group'])\
-                  .ensure_replacement_of_pipeline(config['pipeline_name'])\
-                  .ensure_material(GitMaterial(config['tubular_url'],
-                                               branch=config.get('tubular_version', 'master'),
-                                               material_name='tubular',
-                                               polling=True,
-                                               destination_directory='tubular',
-                                               ignore_patterns=constants.MATERIAL_IGNORE_ALL_REGEX))\
-                  .ensure_material(GitMaterial(config['configuration_url'],
-                                               branch=config.get('configuration_version', 'master'),
-                                               material_name='configuration',
-                                               polling=True,
-                                               destination_directory='configuration',
-                                               ignore_patterns=constants.MATERIAL_IGNORE_ALL_REGEX)) \
-                  .ensure_material(GitMaterial(config['app_repo'],
-                                               branch=config.get('app_version', 'master'),
-                                               material_name='edx-platform',
-                                               polling=config.get('auto_run', False),
-                                               destination_directory='edx-platform')) \
-                  .ensure_material(GitMaterial(config['configuration_secure_repo'],
-                                               branch=config.get('configuration_secure_version', 'master'),
-                                               material_name='configuration_secure',
-                                               polling=True,
-                                               destination_directory=constants.PRIVATE_CONFIGURATION_LOCAL_DIR,
-                                               ignore_patterns=constants.MATERIAL_IGNORE_ALL_REGEX)) \
-                  .ensure_material(GitMaterial(config['theme_url'],
-                                               branch=config.get('theme_version', 'release'),
-                                               material_name='edx_theme',
-                                               polling=True,
-                                               destination_directory=constants.EDX_THEME_DIR,
-                                               ignore_patterns=constants.MATERIAL_IGNORE_ALL_REGEX))
+                  .ensure_replacement_of_pipeline(config['pipeline_name'])
 
-    pipeline.ensure_environment_variables(
-        {
-            'WAIT_SLEEP_TIME': config['tubular_sleep_wait_time'],
-        }
-    )
+    # Example materials yaml
+    # materials:
+    #   - url: "https://github.com/edx/tubular"
+    #     branch: "master"
+    #     material_name: "tubular"
+    #     polling: "True"
+    #     destination_directory: "tubular"
+    #     ignore_patterns:
+    #     - '**/*'
+
+    for material in config['materials']:
+        pipeline.ensure_material(
+            GitMaterial(
+                url=material['url'],
+                branch=material['branch'],
+                material_name=material['material_name'],
+                polling=material['polling'],
+                destination_directory=material['destination_directory'],
+                ignore_patterns=material['ignore_patterns']
+            )
+        )
+
+    # If no upstream pipelines exist, don't install them!
+    for material in config.get('upstream_piplines', []):
+        pipeline.ensure_material(
+            PipelineMaterial(
+                pipeline_name=material['pipeline_name'],
+                stage_name=material['stage_name'],
+                material_name=material['material_name']
+            )
+        )
 
     #
     # Create the AMI-building stage.
     #
-    launch_stage = stages.generate_launch_instance(pipeline,
-                                                   config['aws_access_key_id'],
-                                                   config['aws_secret_access_key'],
-                                                   config['ec2_vpc_subnet_id'],
-                                                   config['ec2_security_group_id'],
-                                                   config['ec2_instance_profile_name'],
-                                                   config['base_ami_id']
-                                                   )
+    launch_stage = stages.generate_launch_instance(
+        pipeline,
+        config['aws_access_key_id'],
+        config['aws_secret_access_key'],
+        config['ec2_vpc_subnet_id'],
+        config['ec2_security_group_id'],
+        config['ec2_instance_profile_name'],
+        config['base_ami_id'],
+        manual_approval=not config.get('auto_run', False)
+    )
 
-    if config.get('auto_run', False):
-        launch_stage.set_has_manual_approval()
+    stages.generate_run_play(
+        pipeline,
+        'playbooks/edx-east/edxapp.yml',
+        play=config['play_name'],
+        deployment=config['edx_deployment'],
+        edx_environment=config['edx_environment'],
+        private_github_key=config['github_private_key'],
+        app_repo=config['app_repo'],
+        configuration_repo=config['{}-configuration_secure_repo'.format(config['edx_deployment'])],
+        hipchat_token=config['hipchat_token'],
+        hipchat_room='release',
+        edx_platform_version='$GO_REVISION_EDX_PLATFORM',
+        edx_platform_repo='$APP_REPO',
+        configuration_version='$GO_REVISION_CONFIGURATION',
+        edxapp_theme_source_repo=config['theme_url'],
+        edxapp_theme_version='$GO_REVISION_EDX_THEME',
+        edxapp_theme_name='$EDXAPP_THEME_NAME',
+        disable_edx_services='true',
+        COMMON_TAG_EC2_INSTANCE='true',
+        cache_id='$GO_PIPELINE_COUNTER'
+    )
 
-    stages.generate_run_play(pipeline,
-                             'playbooks/edx-east/edxapp.yml',
-                             play=config['play_name'],
-                             deployment=config['edx_deployment'],
-                             edx_environment=config['edx_environment'],
-                             private_github_key=config['github_private_key'],
-                             app_repo=config['app_repo'],
-                             configuration_repo=config['configuration_url'],
-                             hipchat_token=config['hipchat_token'],
-                             hipchat_room='release pipeline',
-                             edx_platform_version='$GO_REVISION_EDX_PLATFORM',
-                             edx_platform_repo='$APP_REPO',
-                             configuration_version='$GO_REVISION_CONFIGURATION',
-                             edxapp_theme_source_repo=config['theme_url'],
-                             edxapp_theme_version='$GO_REVISION_EDX_THEME',
-                             edxapp_theme_name='$EDXAPP_THEME_NAME',
-                             disable_edx_services='true',
-                             COMMON_TAG_EC2_INSTANCE='true',
-                             cache_id='$GO_PIPELINE_COUNTER'
-                             )
-
-    stages.generate_create_ami_from_instance(pipeline,
-                                             play=config['play_name'],
-                                             deployment=config['edx_deployment'],
-                                             edx_environment=config['edx_environment'],
-                                             app_repo=config['app_repo'],
-                                             app_version='$GO_REVISION_EDX_PLATFORM',
-                                             configuration_secure_repo=config['configuration_secure_repo'],
-                                             configuration_repo=config['configuration_url'],
-                                             hipchat_auth_token=config['hipchat_token'],
-                                             hipchat_room='release pipeline',
-                                             configuration_version='$GO_REVISION_CONFIGURATION',
-                                             configuration_secure_version='$GO_REVISION_CONFIGURATION_SECURE',
-                                             aws_access_key_id=config['aws_access_key_id'],
-                                             aws_secret_access_key=config['aws_secret_access_key'],
-                                             edxapp_theme_source_repo=config['theme_url'],
-                                             edxapp_theme_version='$GO_REVISION_EDX_THEME',
-                                             )
+    stages.generate_create_ami_from_instance(
+        pipeline,
+        play=config['play_name'],
+        deployment=config['edx_deployment'],
+        edx_environment=config['edx_environment'],
+        app_repo=config['app_repo'],
+        app_version='$GO_REVISION_EDX_PLATFORM',
+        configuration_secure_repo=config['{}-configuration_secure_repo'.format(config['edx_deployment'])],
+        configuration_repo=config['configuration_url'],
+        hipchat_auth_token=config['hipchat_token'],
+        hipchat_room='release pipeline',
+        configuration_version='$GO_REVISION_CONFIGURATION',
+        configuration_secure_version='$GO_REVISION_CONFIGURATION_SECURE',
+        aws_access_key_id=config['aws_access_key_id'],
+        aws_secret_access_key=config['aws_secret_access_key'],
+        edxapp_theme_source_repo=config['theme_url'],
+        edxapp_theme_version='$GO_REVISION_EDX_THEME',
+    )
 
     #
     # Create the DB migration running stage.
@@ -181,16 +179,17 @@ def install_pipeline(save_config_locally, dry_run, variable_files, cmd_line_vars
         'launch_info.yml'
     )
     for sub_app in config['edxapp_subapps']:
-        stages.generate_run_migrations(pipeline,
-                                       db_migration_pass=config['db_migration_pass'],
-                                       inventory_location=ansible_inventory_location,
-                                       instance_key_location=instance_ssh_key_location,
-                                       launch_info_location=launch_info_location,
-                                       application_user=config['play_name'],
-                                       application_name=config['play_name'],
-                                       application_path=config['application_path'],
-                                       sub_application_name=sub_app
-                                       )
+        stages.generate_run_migrations(
+            pipeline,
+            db_migration_pass=config['db_migration_pass'],
+            inventory_location=ansible_inventory_location,
+            instance_key_location=instance_ssh_key_location,
+            launch_info_location=launch_info_location,
+            application_user=config['play_name'],
+            application_name=config['play_name'],
+            application_path=config['application_path'],
+            sub_application_name=sub_app
+        )
 
     #
     # Create the stage to deploy the AMI.
@@ -208,7 +207,7 @@ def install_pipeline(save_config_locally, dry_run, variable_files, cmd_line_vars
         config['aws_access_key_id'],
         config['aws_secret_access_key'],
         ami_file_location,
-        manual_approval=config.get('deploy_manual_approval', True)
+        manual_approval=not config.get('auto_deploy_ami', False)
     )
 
     #

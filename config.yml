@@ -76,6 +76,7 @@ tools:
       - *tools-admin
       - "../gomatic-secure/gocd/vars/tools/environment-deployment-play/loadtest-edx-edxapp.yml"
       - "../gomatic-secure/gocd/vars/tools/environment-deployments/loadtest-edx.yml"
+      - "../gomatic-secure/gocd/vars/tools/environment-play/loadtest-edxapp.yml"
       - &play-edxapp "../gomatic-secure/gocd/vars/tools/plays/edxapp.yml"
       - &deployment-edx "../gomatic-secure/gocd/vars/tools/deployments/edx.yml"
     enabled: True
@@ -86,8 +87,17 @@ tools:
       - *tools-admin
       - "../gomatic-secure/gocd/vars/tools/environment-deployment-play/stage-edx-edxapp.yml"
       - "../gomatic-secure/gocd/vars/tools/environment-deployments/stage-edx.yml"
+      - &prod-stage-edxapp "../gomatic-secure/gocd/vars/tools/environment-play/prod-stage-edxapp.yml"
       - *play-edxapp
       - *deployment-edx
+    enabled: True
+
+  # Manual verification pipeline
+  - script: edxpipelines/pipelines/manual_verification.py
+    input_files:
+      - *tools-admin
+      - "../gomatic-secure/gocd/vars/tools/environment-deployment-play/prod-edx-edxapp-manual-verification.yml"
+      - *prod-stage-edxapp
     enabled: True
 
   # Prod edx of edxapp
@@ -96,6 +106,7 @@ tools:
       - *tools-admin
       - "../gomatic-secure/gocd/vars/tools/environment-deployment-play/prod-edx-edxapp.yml"
       - "../gomatic-secure/gocd/vars/tools/environment-deployments/prod-edx.yml"
+      - *prod-stage-edxapp
       - *play-edxapp
       - *deployment-edx
     enabled: True
@@ -106,6 +117,7 @@ tools:
       - *tools-admin
       - "../gomatic-secure/gocd/vars/tools/environment-deployment-play/prod-edge-edxapp.yml"
       - "../gomatic-secure/gocd/vars/tools/environment-deployments/prod-edge.yml"
+      - *prod-stage-edxapp
       - *play-edxapp
       - &deployment-edge "../gomatic-secure/gocd/vars/tools/deployments/edge.yml"
     enabled: True
@@ -116,6 +128,7 @@ tools:
       - *tools-admin
       - "../gomatic-secure/gocd/vars/tools/environment-deployment-play/prod-mckinsey-edxapp.yml"
       - "../gomatic-secure/gocd/vars/tools/environment-deployments/prod-mckinsey.yml"
+      - *prod-stage-edxapp
       - *play-edxapp
       - &deployment-mckinsey "../gomatic-secure/gocd/vars/tools/deployments/mckinsey.yml"
     enabled: True
@@ -129,6 +142,7 @@ tools:
       - *tools-admin
       - "../gomatic-secure/gocd/vars/tools/environment-deployment-play/loadtest-edx-edxapp-private.yml"
       - "../gomatic-secure/gocd/vars/tools/environment-deployments/loadtest-edx.yml"
+      - &prod-stage-edxapp-private "../gomatic-secure/gocd/vars/tools/environment-play/prod-stage-edxapp-private.yml"
       - *play-edxapp
       - *deployment-edx
     enabled: True
@@ -139,8 +153,18 @@ tools:
       - *tools-admin
       - "../gomatic-secure/gocd/vars/tools/environment-deployment-play/stage-edx-edxapp-private.yml"
       - "../gomatic-secure/gocd/vars/tools/environment-deployments/stage-edx.yml"
+      - *prod-stage-edxapp-private
       - *play-edxapp
       - *deployment-edx
+    enabled: True
+
+  # TODO: manual verification pipeline here for edxapp-private
+  # Manual verification pipeline
+  - script: edxpipelines/pipelines/manual_verification.py
+    input_files:
+      - *tools-admin
+      - "../gomatic-secure/gocd/vars/tools/environment-deployment-play/prod-edx-edxapp-manual-verification.yml"
+      - *prod-stage-edxapp-private
     enabled: True
 
   # Prod edx of edxapp
@@ -149,6 +173,7 @@ tools:
       - *tools-admin
       - "../gomatic-secure/gocd/vars/tools/environment-deployment-play/prod-edx-edxapp-private.yml"
       - "../gomatic-secure/gocd/vars/tools/environment-deployments/prod-edx.yml"
+      - *prod-stage-edxapp-private
       - *play-edxapp
       - *deployment-edx
     enabled: True
@@ -159,6 +184,7 @@ tools:
       - *tools-admin
       - "../gomatic-secure/gocd/vars/tools/environment-deployment-play/prod-edge-edxapp-private.yml"
       - "../gomatic-secure/gocd/vars/tools/environment-deployments/prod-edge.yml"
+      - *prod-stage-edxapp-private
       - *play-edxapp
       - *deployment-edge
     enabled: True
@@ -169,6 +195,7 @@ tools:
       - *tools-admin
       - "../gomatic-secure/gocd/vars/tools/environment-deployment-play/prod-mckinsey-edxapp-private.yml"
       - "../gomatic-secure/gocd/vars/tools/environment-deployments/prod-mckinsey.yml"
+      - *prod-stage-edxapp-private
       - *play-edxapp
       - *deployment-mckinsey
     enabled: True

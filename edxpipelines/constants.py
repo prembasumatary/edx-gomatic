@@ -13,6 +13,8 @@ RUN_PLAY_STAGE_NAME = "run_play"
 RUN_PLAY_JOB_NAME = "run_play_job"
 APPLY_MIGRATIONS_STAGE = 'apply_migrations'
 APPLY_MIGRATIONS_JOB = 'apply_migrations_job'
+MANUAL_VERIFICATION_STAGE_NAME = 'manual_verification'
+MANUAL_VERIFICATION_JOB_NAME = 'manual_verification_job'
 
 # Tubular configuration
 TUBULAR_SLEEP_WAIT_TIME = '20'
