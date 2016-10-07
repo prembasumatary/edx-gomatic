@@ -158,12 +158,11 @@ tools:
       - *deployment-edx
     enabled: True
 
-  # TODO: manual verification pipeline here for edxapp-private
   # Manual verification pipeline
   - script: edxpipelines/pipelines/manual_verification.py
     input_files:
       - *tools-admin
-      - "../gomatic-secure/gocd/vars/tools/environment-deployment-play/prod-edx-edxapp-manual-verification.yml"
+      - "../gomatic-secure/gocd/vars/tools/environment-deployment-play/prod-edx-edxapp-private-manual-verification.yml"
       - *prod-stage-edxapp-private
     enabled: True
 
