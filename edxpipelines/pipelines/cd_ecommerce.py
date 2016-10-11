@@ -24,7 +24,8 @@ from edxpipelines.patterns import pipelines
     envvar='DRY_RUN',
     help='Perform a dry run of the pipeline installation, and save the pre/post xml configurations locally.',
     required=False,
-    default=False
+    default=False,
+    is_flag=True
 )
 @click.option(
     '--variable_file', 'variable_files',
