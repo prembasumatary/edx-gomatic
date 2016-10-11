@@ -136,7 +136,7 @@ def generate_run_play(pipeline,
                       hipchat_token='',
                       hipchat_room=constants.HIPCHAT_ROOM,
                       manual_approval=False,
-                      config_secure_dir=constants.PRIVATE_CONFIGURATION_LOCAL_DIR,
+                      configuration_secure_dir=constants.PRIVATE_CONFIGURATION_LOCAL_DIR,
                       **kwargs):
     """
     TODO: This currently runs from the configuration/playbooks/continuous_delivery/ directory. Need to figure out how to
@@ -159,6 +159,7 @@ def generate_run_play(pipeline,
         hipchat_token (str):
         hipchat_room (str):
         manual_approval (bool):
+        configuration_secure_dir (str): The secure config directory to use for this play.
         **kwargs (dict):
             k,v pairs:
                 k: the name of the option to pass to ansible
@@ -214,7 +215,7 @@ def generate_run_play(pipeline,
     artifact_params['src'] = FetchArtifactFile('ansible_inventory')
     job.add_task(FetchArtifactTask(**artifact_params))
 
-    tasks.generate_run_app_playbook(job, config_secure_dir, playbook_with_path, **kwargs)
+    tasks.generate_run_app_playbook(job, configuration_secure_dir, playbook_with_path, **kwargs)
     return stage
 
 
