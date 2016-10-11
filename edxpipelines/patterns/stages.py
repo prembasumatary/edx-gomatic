@@ -39,6 +39,7 @@ def generate_asg_cleanup(pipeline,
 
     job = stage.ensure_job("Cleanup-ASGS")
     tasks.generate_requirements_install(job, 'tubular')
+    tasks.generate_requirements_install(job, 'configuration')
     job.add_task(ExecTask(
         [
             '/usr/bin/python',
