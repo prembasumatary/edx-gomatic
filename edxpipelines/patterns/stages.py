@@ -364,9 +364,24 @@ def generate_basic_deploy_ami(pipeline,
 
     job.add_task(ExecTask(
         [
+            '/bin/bash',
+            '-c',
+            'mkdir -p ../target',
+        ],
+        working_dir="tubular")
+    )
+
+    artifact_path = '{}/{}'.format(
+        constants.ARTIFACT_PATH,
+        constants.DEPLOY_AMI_OUT_FILENAME
+    )
+    job.ensure_artifacts(set([BuildArtifact(artifact_path)]))
+    job.add_task(ExecTask(
+        [
             '/usr/bin/python',
             'scripts/asgard-deploy.py',
             '--config-file', ami_file_location.file_name,
+            '--out_file', '../{}'.format(artifact_path),
         ],
         working_dir="tubular"))
     return stage
@@ -643,6 +658,90 @@ def generate_terminate_instance(pipeline,
 
     tasks.generate_ami_cleanup(job, runif=runif)
 
+    return stage
+
+
+def generate_rollback_asg_stage(
+    pipeline,
+    asgard_api_endpoints,
+    asgard_token,
+    aws_access_key_id,
+    aws_secret_access_key,
+    hipchat_auth_token,
+    hipchat_room,
+    deploy_file_location
+):
+    """
+    Generates a stage which performs rollback to a previous ASG (or ASGs) via Asgard.
+    If the previous ASG (or ASGs) fail health checks for some reason, a new ASGs with
+    the provided AMI ID is created and used as the rollback ASG(s).
+    This stage *always* requires manual approval.
+
+    Args:
+        pipeline (gomatic.Pipeline):
+        asgard_api_endpoints (str): canonical URL for asgard.
+        asgard_token (str):
+        aws_access_key_id (str):
+        aws_secret_access_key (str):
+        deploy_file_location (ArtifactLocation): The location of YAML artifact from the previous deploy
+            that has the previous ASG info along with `ami_id`, for rollback/re-deploy respectively.
+    Returns:
+        gomatic.Stage
+    """
+    pipeline.ensure_environment_variables(
+        {
+            'ASGARD_API_ENDPOINTS': asgard_api_endpoints,
+            'HIPCHAT_ROOM': hipchat_room,
+        }
+    )
+    pipeline.ensure_encrypted_environment_variables(
+        {
+            'ASGARD_API_TOKEN': asgard_token,
+            'AWS_ACCESS_KEY_ID': aws_access_key_id,
+            'AWS_SECRET_ACCESS_KEY': aws_secret_access_key,
+            'HIPCHAT_TOKEN': hipchat_auth_token,
+        }
+    )
+
+    stage = pipeline.ensure_stage(constants.ROLLBACK_ASGS_STAGE_NAME)
+    # Important: Do *not* automatically rollback! Always manual...
+    stage.set_has_manual_approval()
+    job = stage.ensure_job(constants.ROLLBACK_ASGS_JOB_NAME)
+    tasks.generate_requirements_install(job, 'tubular')
+
+    artifact_params = {
+        "pipeline": deploy_file_location.pipeline,
+        "stage": deploy_file_location.stage,
+        "job": deploy_file_location.job,
+        "src": FetchArtifactFile(deploy_file_location.file_name),
+        "dest": 'tubular'
+    }
+    job.add_task(FetchArtifactTask(**artifact_params))
+
+    job.add_task(ExecTask(
+        [
+            '/bin/bash',
+            '-c',
+            'mkdir -p ../target',
+        ],
+        working_dir="tubular")
+    )
+
+    artifact_path = '{}/{}'.format(
+        constants.ARTIFACT_PATH,
+        constants.ROLLBACK_AMI_OUT_FILENAME
+    )
+    job.ensure_artifacts(set([BuildArtifact(artifact_path)]))
+
+    job.add_task(ExecTask(
+        [
+            '/usr/bin/python',
+            'scripts/rollback_asg.py',
+            '--config_file', deploy_file_location.file_name,
+            '--out_file', '../{}'.format(artifact_path),
+        ],
+        working_dir="tubular")
+    )
     return stage
 
 

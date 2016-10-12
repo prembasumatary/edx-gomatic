@@ -9,6 +9,7 @@ sys.path.append(path.dirname(path.dirname(path.dirname(path.abspath(__file__))))
 
 import edxpipelines.utils as utils
 import edxpipelines.patterns.stages as stages
+import edxpipelines.patterns.pipelines as pipelines
 import edxpipelines.constants as constants
 
 
@@ -45,7 +46,7 @@ import edxpipelines.constants as constants
     nargs=2,
     default={}
 )
-def install_pipeline(save_config_locally, dry_run, variable_files, cmd_line_vars):
+def install_pipelines(save_config_locally, dry_run, variable_files, cmd_line_vars):
     """
     Variables needed for this pipeline:
     - gocd_username
@@ -230,5 +231,6 @@ def install_pipeline(save_config_locally, dry_run, variable_files, cmd_line_vars
 
     gcc.save_updated_config(save_config_locally=save_config_locally, dry_run=dry_run)
 
+
 if __name__ == "__main__":
-    install_pipeline()
+    install_pipelines()

@@ -15,6 +15,8 @@ APPLY_MIGRATIONS_STAGE = 'apply_migrations'
 APPLY_MIGRATIONS_JOB = 'apply_migrations_job'
 MANUAL_VERIFICATION_STAGE_NAME = 'manual_verification'
 MANUAL_VERIFICATION_JOB_NAME = 'manual_verification_job'
+ROLLBACK_ASGS_STAGE_NAME = 'rollback_asgs'
+ROLLBACK_ASGS_JOB_NAME = 'rollback_asgs_job'
 
 # Tubular configuration
 TUBULAR_SLEEP_WAIT_TIME = '20'
@@ -31,6 +33,8 @@ EDX_THEME_DIR = 'edx_theme'
 APP_REPO_BRANCH = 'master'
 HIPCHAT_ROOM = 'release'
 MATERIAL_IGNORE_ALL_REGEX = ['**/*']
+DEPLOY_AMI_OUT_FILENAME = 'ami_deploy_info.yml'
+ROLLBACK_AMI_OUT_FILENAME = 'rollback_info.yml'
 
 # AWS Defaults
 EC2_REGION = 'us-east-1'
