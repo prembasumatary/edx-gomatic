@@ -138,6 +138,7 @@ def generate_basic_multistage_pipeline(play,
                              edx_environment=environment,
                              app_repo=app_repo,
                              configuration_secure_repo=config['configuration_secure_repo'],
+                             configuration_secure_dir='{}-secure'.format(config['edx_deployment']),
                              private_github_key=config['github_private_key'],
                              hipchat_auth_token=hipchat_token,
                              hipchat_room=hipchat_room,
@@ -147,18 +148,20 @@ def generate_basic_multistage_pipeline(play,
                              )
 
     # Create an AMI
-    stages.generate_create_ami_from_instance(pipeline,
-                                             play=play,
-                                             deployment=deployment,
-                                             edx_environment=environment,
-                                             app_repo=app_repo,
-                                             configuration_secure_repo=config['configuration_secure_repo'],
-                                             aws_access_key_id=config['aws_access_key_id'],
-                                             aws_secret_access_key=config['aws_secret_access_key'],
-                                             hipchat_auth_token=hipchat_token,
-                                             hipchat_room=hipchat_room,
-                                             **kwargs
-                                             )
+    stages.generate_create_ami_from_instance(
+        pipeline,
+        play=play,
+        deployment=deployment,
+        edx_environment=environment,
+        app_repo=app_repo,
+        configuration_secure_repo=config['configuration_secure_repo'],
+        aws_access_key_id=config['aws_access_key_id'],
+        aws_secret_access_key=config['aws_secret_access_key'],
+        hipchat_auth_token=hipchat_token,
+        hipchat_room=hipchat_room,
+        configuration_secure_version='$GO_REVISION_{}_SECURE'.format(config['edx_deployment'].upper()),
+        **kwargs
+    )
 
     # Run database migrations
     ansible_inventory_location = utils.ArtifactLocation(
