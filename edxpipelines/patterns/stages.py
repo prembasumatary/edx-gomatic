@@ -39,7 +39,6 @@ def generate_asg_cleanup(pipeline,
 
     job = stage.ensure_job("Cleanup-ASGS")
     tasks.generate_requirements_install(job, 'tubular')
-    tasks.generate_requirements_install(job, 'configuration')
     job.add_task(ExecTask(
         [
             '/usr/bin/python',
@@ -640,6 +639,7 @@ def generate_terminate_instance(pipeline,
         'dest': constants.ARTIFACT_PATH
     }
     job = stage.ensure_job(constants.TERMINATE_INSTANCE_JOB_NAME)
+    tasks.generate_requirements_install(job, 'configuration')
     job.add_task(FetchArtifactTask(**artifact_params))
 
     tasks.generate_ami_cleanup(job, runif=runif)
