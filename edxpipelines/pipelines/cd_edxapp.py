@@ -93,7 +93,7 @@ def install_pipeline(save_config_locally, dry_run, variable_files, cmd_line_vars
         )
 
     # If no upstream pipelines exist, don't install them!
-    for material in config.get('upstream_piplines', []):
+    for material in config.get('upstream_pipelines', []):
         pipeline.ensure_material(
             PipelineMaterial(
                 pipeline_name=material['pipeline_name'],

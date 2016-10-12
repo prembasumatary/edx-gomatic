@@ -68,7 +68,7 @@ def install_pipeline(save_config_locally, dry_run, variable_files, cmd_line_vars
             )
         )
 
-    for material in config['upstream_piplines']:
+    for material in config['upstream_pipelines']:
         pipeline.ensure_material(
             PipelineMaterial(
                 pipeline_name=material['pipeline_name'],
