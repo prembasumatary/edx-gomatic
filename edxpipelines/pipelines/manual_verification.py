@@ -48,7 +48,7 @@ def install_pipeline(save_config_locally, dry_run, variable_files, cmd_line_vars
     """
     Variables needed for this pipeline:
     materials: A list of dictionaries of the materials used in this pipeline
-    upstream_pipelines: a list of dictionaries of the upstream piplines that feed in to the manual verification
+    upstream_pipelines: a list of dictionaries of the upstream pipelines that feed in to the manual verification
     """
     config = utils.merge_files_and_dicts(variable_files, list(cmd_line_vars,))
 
@@ -77,9 +77,31 @@ def install_pipeline(save_config_locally, dry_run, variable_files, cmd_line_vars
             )
         )
 
+    # What this accomplishes:
+    # When a pipeline such as edx stage runs this pipeline is downstream. Since the first stage is automatic
+    # the git materials will be carried over from the first pipeline.
+    #
+    # The second stage in this pipeline requires manual approval.
+    #
+    # This allows the overall workflow to remain paused while manual verification is completed and allows the git
+    # materials to stay pinned.
+    #
+    # Once the second phase is approved, the workflow will continue and pipelines downstream will continue to execute
+    # with the same pinned materials from the upstream pipeline.
+    initial_verfication_stage = pipeline.ensure_stage(constants.INITIAL_VERIFICATION_STAGE_NAME)
+    initial_verfication_job = initial_verfication_stage.ensure_job(constants.INITIAL_VERIFICATION_JOB_NAME)
+    initial_verfication_job.add_task(
+        ExecTask(
+            [
+                '/bin/bash',
+                '-c',
+                'echo Initial Verification run number $GO_PIPELINE_COUNTER started by $GO_TRIGGER_USER'
+            ],
+        )
+    )
+
     manual_verification_stage = pipeline.ensure_stage(constants.MANUAL_VERIFICATION_STAGE_NAME)
     manual_verification_stage.set_has_manual_approval()
-
     manual_verification_job = manual_verification_stage.ensure_job(constants.MANUAL_VERIFICATION_JOB_NAME)
     manual_verification_job.add_task(
         ExecTask(
