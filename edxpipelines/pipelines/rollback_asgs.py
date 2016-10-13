@@ -71,6 +71,7 @@ def install_pipeline(save_config_locally, dry_run, variable_files, cmd_line_vars
         )
 
     # Specify the upstream deploy pipeline material for this rollback pipeline.
+    # Assumes there's only a single upstream pipeline material for this pipeline.
     rollback_material = config['upstream_pipeline']
     pipeline.ensure_material(
         PipelineMaterial(
@@ -81,6 +82,7 @@ def install_pipeline(save_config_locally, dry_run, variable_files, cmd_line_vars
     )
 
     # Specify the artifact that will be fetched containing the previous deployment information.
+    # Assumes there's only a single upstream artifact used by this pipeline.
     artifact_config = config['upstream_deploy_artifact']
     deploy_file_location = utils.ArtifactLocation(
         artifact_config['pipeline_name'],
