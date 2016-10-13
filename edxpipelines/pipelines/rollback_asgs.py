@@ -9,6 +9,7 @@ sys.path.append(path.dirname(path.dirname(path.dirname(path.abspath(__file__))))
 
 import edxpipelines.utils as utils
 import edxpipelines.constants as constants
+import edxpipelines.patterns.stages as stages
 
 
 @click.command()
@@ -47,14 +48,15 @@ import edxpipelines.constants as constants
 def install_pipeline(save_config_locally, dry_run, variable_files, cmd_line_vars):
     """
     Variables needed for this pipeline:
-    materials: A list of dictionaries of the materials used in this pipeline
-    upstream_pipelines: a list of dictionaries of the upstream piplines that feed in to the manual verification
+    materials: List of dictionaries of the materials used in this pipeline
+    upstream_pipelines: List of dictionaries of the upstream piplines that feed in to the rollback pipeline.
     """
     config = utils.merge_files_and_dicts(variable_files, list(cmd_line_vars,))
 
     gcc = GoCdConfigurator(HostRestClient(config['gocd_url'], config['gocd_username'], config['gocd_password'], ssl=True))
     pipeline = gcc.ensure_pipeline_group(config['pipeline_group'])\
-                  .ensure_replacement_of_pipeline(config['pipeline_name'])
+                  .ensure_replacement_of_pipeline(config['pipeline_name'])\
+                  .ensure_environment_variables({'WAIT_SLEEP_TIME': config['tubular_sleep_wait_time']})
 
     for material in config['materials']:
         pipeline.ensure_material(
@@ -68,27 +70,37 @@ def install_pipeline(save_config_locally, dry_run, variable_files, cmd_line_vars
             )
         )
 
-    for material in config['upstream_pipelines']:
-        pipeline.ensure_material(
-            PipelineMaterial(
-                pipeline_name=material['pipeline_name'],
-                stage_name=material['stage_name'],
-                material_name=material['material_name']
-            )
+    # Specify the upstream deploy pipeline material for this rollback pipeline.
+    # Assumes there's only a single upstream pipeline material for this pipeline.
+    rollback_material = config['upstream_pipeline']
+    pipeline.ensure_material(
+        PipelineMaterial(
+            pipeline_name=rollback_material['pipeline_name'],
+            stage_name=rollback_material['stage_name'],
+            material_name=rollback_material['material_name']
         )
+    )
 
-    manual_verification_stage = pipeline.ensure_stage(constants.MANUAL_VERIFICATION_STAGE_NAME)
-    manual_verification_stage.set_has_manual_approval()
+    # Specify the artifact that will be fetched containing the previous deployment information.
+    # Assumes there's only a single upstream artifact used by this pipeline.
+    artifact_config = config['upstream_deploy_artifact']
+    deploy_file_location = utils.ArtifactLocation(
+        artifact_config['pipeline_name'],
+        artifact_config['stage_name'],
+        artifact_config['job_name'],
+        artifact_config['artifact_name']
+    )
 
-    manual_verification_job = manual_verification_stage.ensure_job(constants.MANUAL_VERIFICATION_JOB_NAME)
-    manual_verification_job.add_task(
-        ExecTask(
-            [
-                '/bin/bash',
-                '-c',
-                'echo Manual Verification run number $GO_PIPELINE_COUNTER completed by $GO_TRIGGER_USER'
-            ],
-        )
+    # Create a single stage in the pipeline which will rollback to the previous ASGs/AMI.
+    stages.generate_rollback_asg_stage(
+        pipeline,
+        config['asgard_api_endpoints'],
+        config['asgard_token'],
+        config['aws_access_key_id'],
+        config['aws_secret_access_key'],
+        config['hipchat_token'],
+        constants.HIPCHAT_ROOM,
+        deploy_file_location,
     )
 
     gcc.save_updated_config(save_config_locally=save_config_locally, dry_run=dry_run)

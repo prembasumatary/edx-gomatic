@@ -111,6 +111,15 @@ tools:
       - *deployment-edx
     enabled: True
 
+  # Rollback pipeline for prod edx
+  - script: edxpipelines/pipelines/rollback_asgs.py
+    input_files:
+      - *tools-admin
+      - "../gomatic-secure/gocd/vars/tools/environment-deployment-play/prod-edx-edxapp-rollback-asgs.yml"
+      - *prod-stage-edxapp
+      - *deployment-edx
+    enabled: True
+
   # Prod EDGE of edxapp
   - script: edxpipelines/pipelines/cd_edxapp.py
     input_files:
@@ -120,6 +129,15 @@ tools:
       - *prod-stage-edxapp
       - *play-edxapp
       - &deployment-edge "../gomatic-secure/gocd/vars/tools/deployments/edge.yml"
+    enabled: True
+
+  # Rollback pipeline for prod edge
+  - script: edxpipelines/pipelines/rollback_asgs.py
+    input_files:
+      - *tools-admin
+      - "../gomatic-secure/gocd/vars/tools/environment-deployment-play/prod-edge-edxapp-rollback-asgs.yml"
+      - *prod-stage-edxapp
+      - *deployment-edge
     enabled: True
 
   # Prod McKinsey of edxapp
@@ -177,6 +195,15 @@ tools:
       - *deployment-edx
     enabled: True
 
+  # Rollback pipeline for prod edx private
+  - script: edxpipelines/pipelines/rollback_asgs.py
+    input_files:
+      - *tools-admin
+      - "../gomatic-secure/gocd/vars/tools/environment-deployment-play/prod-edx-edxapp-private-rollback-asgs.yml"
+      - *prod-stage-edxapp-private
+      - *deployment-edx
+    enabled: True
+
   # Prod EDGE of edxapp
   - script: edxpipelines/pipelines/cd_edxapp.py
     input_files:
@@ -185,6 +212,15 @@ tools:
       - "../gomatic-secure/gocd/vars/tools/environment-deployments/prod-edge.yml"
       - *prod-stage-edxapp-private
       - *play-edxapp
+      - *deployment-edge
+    enabled: True
+
+  # Rollback pipeline for prod edge private
+  - script: edxpipelines/pipelines/rollback_asgs.py
+    input_files:
+      - *tools-admin
+      - "../gomatic-secure/gocd/vars/tools/environment-deployment-play/prod-edge-edxapp-rollback-asgs.yml"
+      - *prod-stage-edxapp-private
       - *deployment-edge
     enabled: True
 
