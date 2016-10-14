@@ -186,7 +186,7 @@ def install_pipelines(save_config_locally, dry_run, variable_files, cmd_line_var
             inventory_location=ansible_inventory_location,
             instance_key_location=instance_ssh_key_location,
             launch_info_location=launch_info_location,
-            application_user=config['play_name'],
+            application_user=config['db_migration_user'],
             application_name=config['play_name'],
             application_path=config['application_path'],
             sub_application_name=sub_app
