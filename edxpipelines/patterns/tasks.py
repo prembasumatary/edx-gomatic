@@ -107,7 +107,6 @@ def generate_create_ami(job, runif="passed", **kwargs):
             '-e configuration_repo=$CONFIGURATION_REPO',
             '-e configuration_version=$GO_REVISION_CONFIGURATION',
             '-e configuration_secure_repo=$CONFIGURATION_SECURE_REPO',
-            '-e configuration_secure_version=$GO_REVISION_CONFIGURATION_SECURE',
             '-e cache_id=$GO_PIPELINE_COUNTER',
             '-e ec2_region=$EC2_REGION',
             '-e artifact_path=`/bin/pwd`/../{artifact_path}',
