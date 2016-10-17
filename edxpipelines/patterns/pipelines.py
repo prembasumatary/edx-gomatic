@@ -138,7 +138,9 @@ def generate_basic_multistage_pipeline(play,
                              edx_environment=environment,
                              app_repo=app_repo,
                              configuration_secure_repo=config['configuration_secure_repo'],
-                             configuration_secure_dir='{}-secure'.format(config['edx_deployment']),
+                             configuration_secure_dir=constants.PRIVATE_CONFIGURATION_LOCAL_DIR,
+                             # remove above line and uncomment the below once materials are changed over to list.
+                             # configuration_secure_dir='{}-secure'.format(config['edx_deployment']),
                              private_github_key=config['github_private_key'],
                              hipchat_auth_token=hipchat_token,
                              hipchat_room=hipchat_room,
@@ -159,7 +161,9 @@ def generate_basic_multistage_pipeline(play,
         aws_secret_access_key=config['aws_secret_access_key'],
         hipchat_auth_token=hipchat_token,
         hipchat_room=hipchat_room,
-        configuration_secure_version='$GO_REVISION_{}_SECURE'.format(config['edx_deployment'].upper()),
+        configuration_secure_version='$GO_REVISION_CONFIGURATION_SECURE',
+        # remove above line and uncomment the below once materials are changed over to list.
+        # configuration_secure_version='$GO_REVISION_{}_SECURE'.format(config['edx_deployment'].upper()),
         **kwargs
     )
 
