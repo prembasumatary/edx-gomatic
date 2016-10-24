@@ -953,7 +953,7 @@ def generate_armed_stage(pipeline, stage_name):
     Using this pattern allows a pipeline to be be set as automatic, but then pause and wait for input from the user.
 
     Args:
-        pipeline (gomatic.Pipeline): Pipeline to which to add the run migrations stage.
+        pipeline (gomatic.Pipeline): Pipeline to which to add this stage.
         stage_name (str): Name of the stage.
 
     Returns:
