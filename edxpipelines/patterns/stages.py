@@ -939,3 +939,36 @@ def generate_update_index(
         hipchat_room,
         manual_approval
     )
+
+
+def generate_armed_stage(pipeline, stage_name):
+    """
+    Generates a stage that can be used to "arm" a pipeline.
+
+    When using a fan in or fan out GoCD will ensure the consistency of materials used between pipelines. To accomplish
+     this all pipelines must be set to to trigger on success. This stage generates a simple echo statement that can
+     be used to "arm" a pipeline. The stage that follows this must set the manual_approval flag via:
+     set_has_manual_approval()
+
+    Using this pattern allows a pipeline to be be set as automatic, but then pause and wait for input from the user.
+
+    Args:
+        pipeline (gomatic.Pipeline): Pipeline to which to add the run migrations stage.
+        stage_name (str): Name of the stage.
+
+    Returns:
+        gomatic.Stage
+    """
+    armed_stage = pipeline.ensure_stage(stage_name)
+    armed_job = armed_stage.ensure_job(constants.ARMED_JOB_NAME)
+    armed_job.add_task(
+        ExecTask(
+            [
+                '/bin/bash',
+                '-c',
+                'echo Pipeline run number $GO_PIPELINE_COUNTER armed by $GO_TRIGGER_USER'
+            ],
+        )
+    )
+
+    return armed_stage
