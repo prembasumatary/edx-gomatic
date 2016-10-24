@@ -9,6 +9,7 @@ sys.path.append(path.dirname(path.dirname(path.dirname(path.abspath(__file__))))
 
 import edxpipelines.utils as utils
 import edxpipelines.constants as constants
+import edxpipelines.patterns.stages as stages
 
 
 @click.command()
@@ -88,17 +89,7 @@ def install_pipeline(save_config_locally, dry_run, variable_files, cmd_line_vars
     #
     # Once the second phase is approved, the workflow will continue and pipelines downstream will continue to execute
     # with the same pinned materials from the upstream pipeline.
-    initial_verfication_stage = pipeline.ensure_stage(constants.INITIAL_VERIFICATION_STAGE_NAME)
-    initial_verfication_job = initial_verfication_stage.ensure_job(constants.INITIAL_VERIFICATION_JOB_NAME)
-    initial_verfication_job.add_task(
-        ExecTask(
-            [
-                '/bin/bash',
-                '-c',
-                'echo Initial Verification run number $GO_PIPELINE_COUNTER started by $GO_TRIGGER_USER'
-            ],
-        )
-    )
+    stages.generate_armed_stage(pipeline, constants.INITIAL_VERIFICATION_STAGE_NAME)
 
     manual_verification_stage = pipeline.ensure_stage(constants.MANUAL_VERIFICATION_STAGE_NAME)
     manual_verification_stage.set_has_manual_approval()

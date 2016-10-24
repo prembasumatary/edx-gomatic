@@ -91,8 +91,11 @@ def install_pipeline(save_config_locally, dry_run, variable_files, cmd_line_vars
         artifact_config['artifact_name']
     )
 
+    # Create the armed stage as this pipeline needs to auto-execute
+    stages.generate_armed_stage(pipeline, constants.ARMED_JOB_NAME)
+
     # Create a single stage in the pipeline which will rollback to the previous ASGs/AMI.
-    stages.generate_rollback_asg_stage(
+    rollback_stage = stages.generate_rollback_asg_stage(
         pipeline,
         config['asgard_api_endpoints'],
         config['asgard_token'],
@@ -102,6 +105,8 @@ def install_pipeline(save_config_locally, dry_run, variable_files, cmd_line_vars
         constants.HIPCHAT_ROOM,
         deploy_file_location,
     )
+    # Since we only want this stage to rollback via manual approval, ensure that it is set on this stage.
+    rollback_stage.set_has_manual_approval()
 
     gcc.save_updated_config(save_config_locally=save_config_locally, dry_run=dry_run)
 

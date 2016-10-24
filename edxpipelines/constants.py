@@ -19,6 +19,8 @@ MANUAL_VERIFICATION_STAGE_NAME = 'manual_verification'
 MANUAL_VERIFICATION_JOB_NAME = 'manual_verification_job'
 ROLLBACK_ASGS_STAGE_NAME = 'rollback_asgs'
 ROLLBACK_ASGS_JOB_NAME = 'rollback_asgs_job'
+ARMED_STAGE_NAME = 'armed_stage'
+ARMED_JOB_NAME = 'armed_job'
 
 # Tubular configuration
 TUBULAR_SLEEP_WAIT_TIME = '20'
