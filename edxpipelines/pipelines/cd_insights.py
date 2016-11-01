@@ -72,7 +72,7 @@ def install_pipeline(save_config_locally, dry_run, variable_files, cmd_line_vars
         config=config,
         dry_run=dry_run,
         save_config_locally=save_config_locally,
-        app_version='$GO_REVISION_INSIGHTS'
+        INSIGHTS_VERSION='$GO_REVISION_INSIGHTS'
     )
 
 
