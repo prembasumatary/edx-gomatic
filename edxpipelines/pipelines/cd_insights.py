@@ -52,6 +52,7 @@ def install_pipeline(save_config_locally, dry_run, variable_files, cmd_line_vars
     - gocd_password
     - gocd_url
     - configuration_secure_repo
+    - configuration_internal_repo
     - hipchat_token
     - github_private_key
     - aws_access_key_id
