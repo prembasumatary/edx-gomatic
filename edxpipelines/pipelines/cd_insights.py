@@ -18,7 +18,8 @@ import edxpipelines.constants as constants
     envvar='SAVE_CONFIG',
     help='Save the pipeline configuration xml locally.',
     required=False,
-    default=False
+    default=False,
+    is_flag=True
 )
 @click.option(
     '--dry-run',
