@@ -113,6 +113,12 @@ def generate_basic_multistage_pipeline(play,
                                      polling=True,
                                      destination_directory=constants.PRIVATE_CONFIGURATION_LOCAL_DIR,
                                      ignore_patterns=constants.MATERIAL_IGNORE_ALL_REGEX)) \
+        .ensure_material(GitMaterial(config['configuration_internal_repo'],
+                                     branch=config.get('configuration_internal_version', 'master'),
+                                     material_name='configuration_internal',
+                                     polling=True,
+                                     destination_directory=constants.INTERNAL_CONFIGURATION_LOCAL_DIR,
+                                     ignore_patterns=constants.MATERIAL_IGNORE_ALL_REGEX)) \
         .ensure_environment_variables({
             'APPLICATION_USER': application_user,
             'APPLICATION_NAME': application_name,

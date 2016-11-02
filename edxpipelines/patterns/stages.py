@@ -136,6 +136,7 @@ def generate_run_play(pipeline,
                       hipchat_room=constants.HIPCHAT_ROOM,
                       manual_approval=False,
                       configuration_secure_dir=constants.PRIVATE_CONFIGURATION_LOCAL_DIR,
+                      configuration_internal_dir=constants.INTERNAL_CONFIGURATION_LOCAL_DIR,
                       **kwargs):
     """
     TODO: This currently runs from the configuration/playbooks/continuous_delivery/ directory. Need to figure out how to
@@ -214,7 +215,7 @@ def generate_run_play(pipeline,
     artifact_params['src'] = FetchArtifactFile('ansible_inventory')
     job.add_task(FetchArtifactTask(**artifact_params))
 
-    tasks.generate_run_app_playbook(job, configuration_secure_dir, playbook_with_path, **kwargs)
+    tasks.generate_run_app_playbook(job, configuration_internal_dir, configuration_secure_dir, playbook_with_path, **kwargs)
     return stage
 
 
