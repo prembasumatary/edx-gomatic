@@ -360,35 +360,6 @@ def generate_deploy_ami(pipeline,
         stage.set_has_manual_approval()
     job = stage.ensure_job(constants.DEPLOY_AMI_JOB_NAME)
     tasks.generate_requirements_install(job, 'tubular')
-
-    # Setup the deployment output file
-    artifact_path = '{}/{}'.format(
-        constants.ARTIFACT_PATH,
-        constants.DEPLOY_AMI_OUT_FILENAME
-    )
-    job.ensure_artifacts(set([BuildArtifact(artifact_path)]))
-
-    job_command = [
-        '/usr/bin/python',
-        'scripts/asgard-deploy.py',
-        '--out_file', '../{}'.format(artifact_path)
-    ]
-
-    if upstream_ami_artifact:
-        artifact_params = {
-            "pipeline": upstream_ami_artifact.pipeline,
-            "stage": upstream_ami_artifact.stage,
-            "job": upstream_ami_artifact.job,
-            "src": FetchArtifactFile(upstream_ami_artifact.file_name),
-            "dest": 'tubular'
-        }
-        job.add_task(FetchArtifactTask(**artifact_params))
-        job_command.extend(['--config-file', upstream_ami_artifact.file_name])
-
-    else:
-        pipeline.ensure_environment_variables({'AMI_ID': None})
-        job_command.extend(['--ami_id', "$AMI_ID"])
-
     # Make the artifact directory if it does not exist
     job.add_task(ExecTask(
         [
@@ -399,8 +370,35 @@ def generate_deploy_ami(pipeline,
         working_dir="tubular")
     )
 
+    # Setup the deployment output file
+    artifact_path = '{}/{}'.format(
+        constants.ARTIFACT_PATH,
+        constants.DEPLOY_AMI_OUT_FILENAME
+    )
+    job.ensure_artifacts(set([BuildArtifact(artifact_path)]))
+
+    deploy_command =\
+        '/usr/bin/python ' \
+        'scripts/asgard-deploy.py ' \
+        '--out_file '.format(artifact_path)
+
+    if upstream_ami_artifact:
+        artifact_params = {
+            "pipeline": upstream_ami_artifact.pipeline,
+            "stage": upstream_ami_artifact.stage,
+            "job": upstream_ami_artifact.job,
+            "src": FetchArtifactFile(upstream_ami_artifact.file_name),
+            "dest": 'tubular'
+        }
+        job.add_task(FetchArtifactTask(**artifact_params))
+        deploy_command += '--config-file {}'.format(upstream_ami_artifact.file_name)
+
+    else:
+        pipeline.ensure_environment_variables({'AMI_ID': None})
+        deploy_command += '--ami_id $AMI_ID'
+
     # Execute the deployment script
-    job.add_task(ExecTask(job_command, working_dir="tubular"))
+    job.add_task(ExecTask(['/bin/bash', '-c', deploy_command], working_dir="tubular"))
     return stage
 
 
