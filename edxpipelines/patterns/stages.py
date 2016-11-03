@@ -314,15 +314,22 @@ def generate_create_ami_from_instance(pipeline,
     return stage
 
 
-def generate_basic_deploy_ami(pipeline,
-                              asgard_api_endpoints,
-                              asgard_token,
-                              aws_access_key_id,
-                              aws_secret_access_key,
-                              ami_file_location,
-                              manual_approval=False):
+def generate_deploy_ami(pipeline,
+                        asgard_api_endpoints,
+                        asgard_token,
+                        aws_access_key_id,
+                        aws_secret_access_key,
+                        upstream_ami_artifact=None,
+                        manual_approval=True
+                        ):
     """
     Generates a stage which deploys an AMI via Asgard.
+
+    if the variable upstream_ami_artifact is set information about which AMI to deploy will be pulled
+    from this pipeline/stage/file.
+
+    if upstream_ami_artifact is not set, the environment variable AMI_ID will be used to determine what
+    AMI to deploy
 
     Args:
         pipeline (gomatic.Pipeline):
@@ -330,7 +337,7 @@ def generate_basic_deploy_ami(pipeline,
         asgard_token (str):
         aws_access_key_id (str):
         aws_secret_access_key (str):
-        ami_file_location (ArtifactLocation): The location of yaml artifact that has the `ami_id`, so that we can fetch it.
+        upstream_ami_artifact (ArtifactLocation): The location of yaml artifact that has the `ami_id`
         manual_approval (bool): Should this stage require manual approval?
     Returns:
         gomatic.Stage
@@ -354,82 +361,46 @@ def generate_basic_deploy_ami(pipeline,
     job = stage.ensure_job(constants.DEPLOY_AMI_JOB_NAME)
     tasks.generate_requirements_install(job, 'tubular')
 
-    artifact_params = {
-        "pipeline": ami_file_location.pipeline,
-        "stage": ami_file_location.stage,
-        "job": ami_file_location.job,
-        "src": FetchArtifactFile(ami_file_location.file_name),
-        "dest": 'tubular'
-    }
-    job.add_task(FetchArtifactTask(**artifact_params))
-
-    job.add_task(ExecTask(
-        [
-            '/bin/bash',
-            '-c',
-            'mkdir -p ../target',
-        ],
-        working_dir="tubular")
-    )
-
+    # Setup the deployment output file
     artifact_path = '{}/{}'.format(
         constants.ARTIFACT_PATH,
         constants.DEPLOY_AMI_OUT_FILENAME
     )
     job.ensure_artifacts(set([BuildArtifact(artifact_path)]))
+
+    job_command = [
+        '/usr/bin/python',
+        'scripts/asgard-deploy.py',
+        '--out_file', '../{}'.format(artifact_path)
+    ]
+
+    if upstream_ami_artifact:
+        artifact_params = {
+            "pipeline": upstream_ami_artifact.pipeline,
+            "stage": upstream_ami_artifact.stage,
+            "job": upstream_ami_artifact.job,
+            "src": FetchArtifactFile(upstream_ami_artifact.file_name),
+            "dest": 'tubular'
+        }
+        job.add_task(FetchArtifactTask(**artifact_params))
+        job_command.extend(['--config-file', upstream_ami_artifact.file_name])
+
+    else:
+        pipeline.ensure_environment_variables({'AMI_ID': None})
+        job_command.extend(['--ami_id', "$AMI_ID"])
+
+    # Make the artifact directory if it does not exist
     job.add_task(ExecTask(
         [
-            '/usr/bin/python',
-            'scripts/asgard-deploy.py',
-            '--config-file', ami_file_location.file_name,
-            '--out_file', '../{}'.format(artifact_path),
+            '/bin/bash',
+            '-c',
+            'mkdir -p ../{}'.format(constants.ARTIFACT_PATH),
         ],
-        working_dir="tubular"))
-    return stage
-
-
-def generate_single_stage_deploy_ami(pipeline,
-                                     asgard_api_endpoints,
-                                     asgard_token,
-                                     aws_access_key_id,
-                                     aws_secret_access_key):
-    """
-    Use this when you want a single stage AMI deploy that is not dependent on other stages artifacts. The ami_id must be
-    set as an environment variable.
-
-    Generates a stage which deploys an AMI via Asgard.
-
-    Args:
-        pipeline (gomatic.Pipeline):
-        asgard_api_endpoints (str): canonical URL for asgard.
-        asgard_token (str):
-        aws_access_key_id (str):
-        aws_secret_access_key (str):
-
-    Returns:
-        gomatic.Stage
-    """
-    pipeline.ensure_environment_variables(
-        {
-            'AMI_ID': None,
-            'ASGARD_API_ENDPOINTS': asgard_api_endpoints,
-            'WAIT_SLEEP_TIME': constants.TUBULAR_SLEEP_WAIT_TIME
-        }
+        working_dir="tubular")
     )
-    pipeline.ensure_encrypted_environment_variables(
-        {
-            'ASGARD_API_TOKEN': asgard_token,
-            'AWS_ACCESS_KEY_ID': aws_access_key_id,
-            'AWS_SECRET_ACCESS_KEY': aws_secret_access_key
-        }
-    )
-    stage = pipeline.ensure_stage(constants.DEPLOY_AMI_STAGE_NAME)
-    stage.set_has_manual_approval()
 
-    job = stage.ensure_job(constants.DEPLOY_AMI_JOB_NAME)
-    tasks.generate_requirements_install(job, 'tubular')
-    job.add_task(ExecTask(['/usr/bin/python', 'scripts/asgard-deploy.py'], working_dir="tubular"))
-
+    # Execute the deployment script
+    job.add_task(ExecTask(job_command, working_dir="tubular"))
     return stage
 
 
