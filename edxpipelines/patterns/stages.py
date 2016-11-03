@@ -380,7 +380,7 @@ def generate_deploy_ami(pipeline,
     deploy_command =\
         '/usr/bin/python ' \
         'scripts/asgard-deploy.py ' \
-        '--out_file '.format(artifact_path)
+        '--out_file {} '.format(artifact_path)
 
     if upstream_ami_artifact:
         artifact_params = {
