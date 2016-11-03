@@ -201,7 +201,7 @@ def install_pipelines(save_config_locally, dry_run, variable_files, cmd_line_var
         constants.BUILD_AMI_JOB_NAME,
         'ami.yml'
     )
-    stages.generate_deploy_ami(
+    stages.generate_basic_deploy_ami(
         pipeline,
         config['asgard_api_endpoints'],
         config['asgard_token'],

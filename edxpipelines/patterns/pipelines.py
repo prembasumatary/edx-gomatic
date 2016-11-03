@@ -42,12 +42,11 @@ def generate_deploy_pipeline(configurator,
             )
         )
 
-    stages.generate_deploy_ami(pipeline,
-                               asgard_api_endpoints,
-                               asgard_token,
-                               aws_access_key_id,
-                               aws_secret_access_key,
-                               manual_approval=True)
+    stages.generate_single_stage_deploy_ami(pipeline,
+                                            asgard_api_endpoints,
+                                            asgard_token,
+                                            aws_access_key_id,
+                                            aws_secret_access_key)
     return configurator
 
 
@@ -220,7 +219,7 @@ def generate_basic_multistage_pipeline(play,
         constants.BUILD_AMI_JOB_NAME,
         'ami.yml'
     )
-    stages.generate_deploy_ami(
+    stages.generate_basic_deploy_ami(
         pipeline,
         config['asgard_api_endpoints'],
         config['asgard_token'],
