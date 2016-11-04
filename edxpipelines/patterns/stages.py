@@ -325,7 +325,7 @@ def generate_deploy_ami(pipeline,
     """
     Generates a stage which deploys an AMI via Asgard.
 
-    if the variable upstream_ami_artifact is set information about which AMI to deploy will be pulled
+    if the variable upstream_ami_artifact is set, information about which AMI to deploy will be pulled
     from this pipeline/stage/file.
 
     if upstream_ami_artifact is not set, the environment variable AMI_ID will be used to determine what
@@ -380,7 +380,7 @@ def generate_deploy_ami(pipeline,
     deploy_command =\
         '/usr/bin/python ' \
         'scripts/asgard-deploy.py ' \
-        '--out_file {} '.format(artifact_path)
+        '--out_file ../{} '.format(artifact_path)
 
     if upstream_ami_artifact:
         artifact_params = {
