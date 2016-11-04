@@ -386,7 +386,7 @@ def fetch_edx_mktg(job, secure_dir, runif="passed"):
     )
 
 
-def generate_run_app_playbook(job, secure_dir, playbook_path, runif="passed", **kwargs):
+def generate_run_app_playbook(job, internal_dir, secure_dir, playbook_path, runif="passed", **kwargs):
     """
     Generates:
         a GoCD task that runs an Ansible playbook against a server inventory.
@@ -431,11 +431,13 @@ def generate_run_app_playbook(job, secure_dir, playbook_path, runif="passed", **
             '--module-path=playbooks/library ',
             '-i ../{artifact_path}/ansible_inventory '
             '-e @../{artifact_path}/launch_info.yml',
+            '-e @../{internal_dir}/ansible/vars/${{DEPLOYMENT}}.yml',
+            '-e @../{internal_dir}/ansible/vars/${{EDX_ENVIRONMENT}}-${{DEPLOYMENT}}.yml',
             '-e @../{secure_dir}/ansible/vars/${{DEPLOYMENT}}.yml',
             '-e @../{secure_dir}/ansible/vars/${{EDX_ENVIRONMENT}}-${{DEPLOYMENT}}.yml',
         ]
     )
-    command = command.format(secure_dir=secure_dir, artifact_path=constants.ARTIFACT_PATH)
+    command = command.format(secure_dir=secure_dir, internal_dir=internal_dir, artifact_path=constants.ARTIFACT_PATH)
     for k, v in kwargs.iteritems():
         command += ' -e {key}={value} '.format(key=k, value=v)
     command += playbook_path

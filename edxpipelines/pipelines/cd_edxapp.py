@@ -53,6 +53,7 @@ def install_pipelines(save_config_locally, dry_run, variable_files, cmd_line_var
     - gocd_password
     - gocd_url
     - configuration_secure_repo
+    - configuration_internal_repo
     - hipchat_token
     - github_private_key
     - aws_access_key_id
@@ -64,6 +65,7 @@ def install_pipelines(save_config_locally, dry_run, variable_files, cmd_line_var
 
     Optional variables:
     - configuration_secure_version
+    - configuration_internal_version
     """
     config = utils.merge_files_and_dicts(variable_files, list(cmd_line_vars,))
 
@@ -126,6 +128,7 @@ def install_pipelines(save_config_locally, dry_run, variable_files, cmd_line_var
         private_github_key=config['github_private_key'],
         app_repo=config['app_repo'],
         configuration_secure_dir='{}-secure'.format(config['edx_deployment']),
+        configuration_internal_dir='{}-internal'.format(config['edx_deployment']),
         hipchat_token=config['hipchat_token'],
         hipchat_room='release',
         edx_platform_version='$GO_REVISION_EDX_PLATFORM',
@@ -147,11 +150,13 @@ def install_pipelines(save_config_locally, dry_run, variable_files, cmd_line_var
         app_repo=config['app_repo'],
         app_version='$GO_REVISION_EDX_PLATFORM',
         configuration_secure_repo=config['{}_configuration_secure_repo'.format(config['edx_deployment'])],
+        configuration_internal_repo=config['{}_configuration_internal_repo'.format(config['edx_deployment'])],
         configuration_repo=config['configuration_url'],
         hipchat_auth_token=config['hipchat_token'],
         hipchat_room='release pipeline',
         configuration_version='$GO_REVISION_CONFIGURATION',
         configuration_secure_version='$GO_REVISION_{}_SECURE'.format(config['edx_deployment'].upper()),
+        configuration_internal_version='$GO_REVISION_{}_SECURE'.format(config['edx_deployment'].upper()),
         aws_access_key_id=config['aws_access_key_id'],
         aws_secret_access_key=config['aws_secret_access_key'],
         edxapp_theme_source_repo=config['theme_url'],
