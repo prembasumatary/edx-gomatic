@@ -31,6 +31,13 @@ import edxpipelines.constants as constants
     is_flag=True
 )
 @click.option(
+    '--bmd-steps',
+    envvar='BMD_STEPS',
+    help='Specify which steps to perform of build, migrate, deploy by specifying some subset of the letters "bmd".',
+    required=False,
+    default='bmd'
+)
+@click.option(
     '--variable_file', 'variable_files',
     multiple=True,
     help='Path to yaml variable file with a dictionary of key/value pairs to be used as variables in the script.',
@@ -46,7 +53,7 @@ import edxpipelines.constants as constants
     nargs=2,
     default={}
 )
-def install_pipelines(save_config_locally, dry_run, variable_files, cmd_line_vars):
+def install_pipelines(save_config_locally, dry_run, bmd_steps, variable_files, cmd_line_vars):
     """
     Variables needed for this pipeline:
     - gocd_username
@@ -67,12 +74,28 @@ def install_pipelines(save_config_locally, dry_run, variable_files, cmd_line_var
     - configuration_secure_version
     - configuration_internal_version
     """
+    BMD_STAGES = {
+        'b': generate_build_stages,
+        'm': generate_migrate_stages,
+        'd': generate_deploy_stages
+    }
+
+    # Sort the BMD steps by the custom 'bmd' alphabet
+    bmd_steps = sort_bmd(bmd_steps.lower())
+
+    # validate the caller has requested a valid pipeline configuration
+    validate_pipeline_permutations(bmd_steps)
+
+    # Merge the configuration files/variables together
     config = utils.merge_files_and_dicts(variable_files, list(cmd_line_vars,))
 
+    # Create the pipeline
     gcc = GoCdConfigurator(HostRestClient(config['gocd_url'], config['gocd_username'], config['gocd_password'], ssl=True))
-    pipeline = gcc.ensure_pipeline_group(config['pipeline_group'])\
-                  .ensure_replacement_of_pipeline(config['pipeline_name'])
+    pipeline_group = config['pipeline_group']
+    pipeline = gcc.ensure_pipeline_group(pipeline_group)\
+                  .ensure_replacement_of_pipeline(generate_pipeline_name(config, bmd_steps))
 
+    # Setup the materials
     # Example materials yaml
     # materials:
     #   - url: "https://github.com/edx/tubular"
@@ -82,8 +105,7 @@ def install_pipelines(save_config_locally, dry_run, variable_files, cmd_line_var
     #     destination_directory: "tubular"
     #     ignore_patterns:
     #     - '**/*'
-
-    for material in config['materials']:
+    for material in config.get('materials', []):
         pipeline.ensure_material(
             GitMaterial(
                 url=material['url'],
@@ -95,7 +117,7 @@ def install_pipelines(save_config_locally, dry_run, variable_files, cmd_line_var
             )
         )
 
-    # If no upstream pipelines exist, don't install them!
+    # Setup the upstream pipeline materials
     for material in config.get('upstream_pipelines', []):
         pipeline.ensure_material(
             PipelineMaterial(
@@ -105,9 +127,7 @@ def install_pipelines(save_config_locally, dry_run, variable_files, cmd_line_var
             )
         )
 
-    #
-    # Create the AMI-building stage.
-    #
+    # We always need to launch the AMI, independent deploys are done with a different pipeline
     launch_stage = stages.generate_launch_instance(
         pipeline,
         config['aws_access_key_id'],
@@ -119,6 +139,17 @@ def install_pipelines(save_config_locally, dry_run, variable_files, cmd_line_var
         manual_approval=not config.get('auto_run', False)
     )
 
+    # Generate all the requested stages
+    for phase in bmd_steps:
+        BMD_STAGES[phase](pipeline, config)
+
+    # Add the cleanup stage
+    generate_cleanup_stages(pipeline, config)
+
+    gcc.save_updated_config(save_config_locally=save_config_locally, dry_run=dry_run)
+
+
+def generate_build_stages(pipeline, config):
     stages.generate_run_play(
         pipeline,
         'playbooks/edx-east/edxapp.yml',
@@ -163,6 +194,10 @@ def install_pipelines(save_config_locally, dry_run, variable_files, cmd_line_var
         edxapp_theme_version='$GO_REVISION_EDX_MICROSITE',
     )
 
+    return pipeline
+
+
+def generate_migrate_stages(pipeline, config):
     #
     # Create the DB migration running stage.
     #
@@ -182,7 +217,7 @@ def install_pipelines(save_config_locally, dry_run, variable_files, cmd_line_var
         pipeline.name,
         constants.LAUNCH_INSTANCE_STAGE_NAME,
         constants.LAUNCH_INSTANCE_JOB_NAME,
-        'launch_info.yml'
+        constants.LAUNCH_INSTANCE_FILENAME
     )
     for sub_app in config['edxapp_subapps']:
         stages.generate_run_migrations(
@@ -197,6 +232,10 @@ def install_pipelines(save_config_locally, dry_run, variable_files, cmd_line_var
             sub_application_name=sub_app
         )
 
+    return pipeline
+
+
+def generate_deploy_stages(pipeline, config):
     #
     # Create the stage to deploy the AMI.
     #
@@ -204,7 +243,7 @@ def install_pipelines(save_config_locally, dry_run, variable_files, cmd_line_var
         pipeline.name,
         constants.BUILD_AMI_STAGE_NAME,
         constants.BUILD_AMI_JOB_NAME,
-        'ami.yml'
+        constants.BUILD_AMI_FILENAME
     )
     stages.generate_deploy_ami(
         pipeline,
@@ -215,7 +254,10 @@ def install_pipelines(save_config_locally, dry_run, variable_files, cmd_line_var
         ami_file_location,
         manual_approval=not config.get('auto_deploy_ami', False)
     )
+    return pipeline
 
+
+def generate_cleanup_stages(pipeline, config):
     #
     # Create the stage to terminate the EC2 instance used to both build the AMI and run DB migrations.
     #
@@ -223,7 +265,7 @@ def install_pipelines(save_config_locally, dry_run, variable_files, cmd_line_var
         pipeline.name,
         constants.LAUNCH_INSTANCE_STAGE_NAME,
         constants.LAUNCH_INSTANCE_JOB_NAME,
-        'launch_info.yml'
+        constants.LAUNCH_INSTANCE_FILENAME
     )
     stages.generate_terminate_instance(
         pipeline,
@@ -233,9 +275,35 @@ def install_pipelines(save_config_locally, dry_run, variable_files, cmd_line_var
         hipchat_auth_token=config['hipchat_token'],
         runif='any'
     )
+    return pipeline
 
-    gcc.save_updated_config(save_config_locally=save_config_locally, dry_run=dry_run)
 
+# key is what is passed in
+# value is the suffix used for the pipeline name
+valid_permutations = {
+    'bmd': 'B/M/D',
+    'md': 'M/D',
+    'b': 'B'
+}
+
+
+def sort_bmd(bmd_steps):
+    alphabet = 'bmd'
+    try:
+        return sorted(bmd_steps, key=lambda pipeline_stage: alphabet.index(pipeline_stage))
+    except ValueError:
+        raise Exception('only valid stages are b, m, d and must be one of {}'.format(valid_permutations.keys()))
+
+
+def validate_pipeline_permutations(bmd_steps):
+    if bmd_steps.lower() not in valid_permutations.keys():
+        # TODO Provide a better exception than this
+        raise Exception('Only supports B/M/D, B-only, and M/D-only pipelines.')
+
+
+def generate_pipeline_name(config, bmd_steps):
+    return '{pipeline_name}_{suffix}'\
+        .format(pipeline_name=config['pipeline_name'], suffix=valid_permutations[bmd_steps])
 
 if __name__ == "__main__":
     install_pipelines()

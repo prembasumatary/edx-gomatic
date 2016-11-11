@@ -41,8 +41,10 @@ EDX_THEME_DIR = 'edx_theme'
 APP_REPO_BRANCH = 'master'
 HIPCHAT_ROOM = 'release'
 MATERIAL_IGNORE_ALL_REGEX = ['**/*']
+BUILD_AMI_FILENAME = 'ami.yml'
 DEPLOY_AMI_OUT_FILENAME = 'ami_deploy_info.yml'
 ROLLBACK_AMI_OUT_FILENAME = 'rollback_info.yml'
+LAUNCH_INSTANCE_FILENAME = 'launch_info.yml'
 
 # AWS Defaults
 EC2_REGION = 'us-east-1'

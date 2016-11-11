@@ -69,6 +69,123 @@ tools:
     enabled: False
 
 
+  ## START OF EDXAPP WHICH BUILDS PROD/EDGE AMIS in PARALLEL WITH STAGE DEPLOYMENT
+  # Starts the build of prod AMIs earlier in pipeline.
+
+  # Pre-release pipeline which includes all materials.
+  - script: edxpipelines/pipelines/prerelease_materials.py
+    input_files:
+      - *tools-admin
+      - "../gomatic-secure/gocd/vars/tools/environment-deployments/stage-edx.yml"
+      - &prod-stage-edxapp "../gomatic-secure/gocd/vars/tools/environment-play/prod-stage-edxapp.yml"
+      - "../gomatic-secure/gocd/vars/tools/prerelease_materials.yml"
+    enabled: True
+
+  # Now the three pipelines which fan-out from pre-release:
+  # - Stage B/M/D
+  # - prod-edx Build
+  # - prod-edge Build
+
+  # Stage edxapp B/M/D
+  - script: edxpipelines/pipelines/cd_edxapp.py
+    input_files:
+      - *tools-admin
+      - "../gomatic-secure/gocd/vars/tools/environment-deployment-play/stage-edx-edxapp-latest.yml"
+      - "../gomatic-secure/gocd/vars/tools/environment-deployments/stage-edx.yml"
+      - *prod-stage-edxapp
+      - &play-edxapp "../gomatic-secure/gocd/vars/tools/plays/edxapp.yml"
+      - &deployment-edx "../gomatic-secure/gocd/vars/tools/deployments/edx.yml"
+      - &prerelease_upstream "../gomatic-secure/gocd/vars/tools/environment-deployment-play/stage-edx-edxapp-prerelease-upstream.yml"
+    enabled: True
+
+  # Prod edx of edxapp - but only building!
+  - script: edxpipelines/pipelines/cd_edxapp.py
+    input_files:
+      - *tools-admin
+      - "../gomatic-secure/gocd/vars/tools/environment-deployment-play/prod-edx-edxapp-build.yml"
+      - "../gomatic-secure/gocd/vars/tools/environment-deployments/prod-edx.yml"
+      - *prod-stage-edxapp
+      - *play-edxapp
+      - *deployment-edx
+      - *prerelease_upstream
+    bmd_steps: "b"
+    enabled: True
+
+    # Prod EDGE of edxapp - but only building!
+  - script: edxpipelines/pipelines/cd_edxapp.py
+    input_files:
+      - *tools-admin
+      - "../gomatic-secure/gocd/vars/tools/environment-deployment-play/prod-edge-edxapp-build.yml"
+      - "../gomatic-secure/gocd/vars/tools/environment-deployments/prod-edge.yml"
+      - *prod-stage-edxapp
+      - *play-edxapp
+      - &deployment-edge "../gomatic-secure/gocd/vars/tools/deployments/edge.yml"
+      - *prerelease_upstream
+    bmd_steps: "b"
+    enabled: True
+
+  # The three pipelines above fan-in to the following single pipeline, which allows manual
+  # gating of when/if a release candidate is pushed to production.
+
+  # Manual verification pipeline
+  - script: edxpipelines/pipelines/manual_verification.py
+    input_files:
+      - *tools-admin
+      - "../gomatic-secure/gocd/vars/tools/environment-deployment-play/prod-edx-edxapp-manual-verification-early-ami-build.yml"
+      - *prod-stage-edxapp
+    enabled: True
+
+  # When manually triggered in the pipeline above, the following two pipelines migrate/deploy
+  # to the production EDX and EDGE environments.
+
+  # Prod edx of edxapp - only migration and deployment.
+  - script: edxpipelines/pipelines/cd_edxapp.py
+    input_files:
+      - *tools-admin
+      - "../gomatic-secure/gocd/vars/tools/environment-deployment-play/prod-edx-edxapp-migrate-deploy.yml"
+      - "../gomatic-secure/gocd/vars/tools/environment-deployments/prod-edx.yml"
+      - *prod-stage-edxapp
+      - *play-edxapp
+      - *deployment-edx
+      - "../gomatic-secure/gocd/vars/tools/environment-deployment-play/prod-edx-edxapp-gated-upstream.yml"
+    bmd_steps: "md"
+    enabled: True
+
+  # Prod EDGE of edxapp - only migration and deployment.
+  - script: edxpipelines/pipelines/cd_edxapp.py
+    input_files:
+      - *tools-admin
+      - "../gomatic-secure/gocd/vars/tools/environment-deployment-play/prod-edge-edxapp-migrate-deploy.yml"
+      - "../gomatic-secure/gocd/vars/tools/environment-deployments/prod-edge.yml"
+      - *prod-stage-edxapp
+      - *play-edxapp
+      - *deployment-edge
+      - "../gomatic-secure/gocd/vars/tools/environment-deployment-play/prod-edge-edxapp-gated-upstream.yml"
+    bmd_steps: "md"
+    enabled: True
+
+  # Then rollback pipelines for both EDX and EDGE are created below.
+
+  # Rollback pipeline for prod edx
+  - script: edxpipelines/pipelines/rollback_asgs.py
+    input_files:
+      - *tools-admin
+      - "../gomatic-secure/gocd/vars/tools/environment-deployment-play/prod-edx-edxapp-rollback-asgs-latest.yml"
+      - *prod-stage-edxapp
+      - *deployment-edx
+    enabled: True
+
+  # Rollback pipeline for prod edge
+  - script: edxpipelines/pipelines/rollback_asgs.py
+    input_files:
+      - *tools-admin
+      - "../gomatic-secure/gocd/vars/tools/environment-deployment-play/prod-edge-edxapp-rollback-asgs-latest.yml"
+      - *prod-stage-edxapp
+      - *deployment-edge
+    enabled: True
+
+  ## END OF EDXAPP WHICH BUILDS PROD/EDGE AMIS in PARALLEL WITH STAGE DEPLOYMENT
+
   ## Start Edxapp
   # loadtest of edxapp
   - script: edxpipelines/pipelines/cd_edxapp.py
@@ -77,8 +194,8 @@ tools:
       - "../gomatic-secure/gocd/vars/tools/environment-deployment-play/loadtest-edx-edxapp.yml"
       - "../gomatic-secure/gocd/vars/tools/environment-deployments/loadtest-edx.yml"
       - "../gomatic-secure/gocd/vars/tools/environment-play/loadtest-edxapp.yml"
-      - &play-edxapp "../gomatic-secure/gocd/vars/tools/plays/edxapp.yml"
-      - &deployment-edx "../gomatic-secure/gocd/vars/tools/deployments/edx.yml"
+      - *play-edxapp
+      - *deployment-edx
     enabled: True
 
   # Stage edxapp
@@ -87,7 +204,7 @@ tools:
       - *tools-admin
       - "../gomatic-secure/gocd/vars/tools/environment-deployment-play/stage-edx-edxapp.yml"
       - "../gomatic-secure/gocd/vars/tools/environment-deployments/stage-edx.yml"
-      - &prod-stage-edxapp "../gomatic-secure/gocd/vars/tools/environment-play/prod-stage-edxapp.yml"
+      - *prod-stage-edxapp
       - *play-edxapp
       - *deployment-edx
     enabled: True
@@ -128,7 +245,7 @@ tools:
       - "../gomatic-secure/gocd/vars/tools/environment-deployments/prod-edge.yml"
       - *prod-stage-edxapp
       - *play-edxapp
-      - &deployment-edge "../gomatic-secure/gocd/vars/tools/deployments/edge.yml"
+      - *deployment-edge
     enabled: True
 
   # Rollback pipeline for prod edge
