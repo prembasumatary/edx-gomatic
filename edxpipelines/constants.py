@@ -21,6 +21,8 @@ ROLLBACK_ASGS_STAGE_NAME = 'rollback_asgs'
 ROLLBACK_ASGS_JOB_NAME = 'rollback_asgs_job'
 ARMED_STAGE_NAME = 'armed_stage'
 ARMED_JOB_NAME = 'armed_job'
+PRERELEASE_MATERIALS_STAGE_NAME = 'prerelease_materials'
+PRERELEASE_MATERIALS_JOB_NAME = 'prerelease_materials_job'
 
 # Tubular configuration
 TUBULAR_SLEEP_WAIT_TIME = '20'
