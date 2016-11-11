@@ -103,18 +103,7 @@ def install_pipelines(save_config_locally, dry_run, variable_files, cmd_line_var
             )
         )
 
-    prerelease_materials_stage = pipeline.ensure_stage(constants.PRERELEASE_MATERIALS_STAGE_NAME)
-    prerelease_materials_stage.set_has_manual_approval()
-    prerelease_materials_job = prerelease_materials_stage.ensure_job(constants.PRERELEASE_MATERIALS_JOB_NAME)
-    prerelease_materials_job.add_task(
-        ExecTask(
-            [
-                '/bin/bash',
-                '-c',
-                'echo Initial prerelease stage - run number $GO_PIPELINE_COUNTER completed by $GO_TRIGGER_USER'
-            ],
-        )
-    )
+    stages.generate_armed_stage(pipeline, constants.PRERELEASE_MATERIALS_STAGE_NAME)
 
     gcc.save_updated_config(save_config_locally=save_config_locally, dry_run=dry_run)
 

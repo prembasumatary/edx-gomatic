@@ -1,5 +1,6 @@
 import yaml
 from collections import namedtuple
+from constants import VALID_PIPELINE_STEP_PERMUTATIONS
 from copy import copy
 
 
@@ -111,3 +112,60 @@ def merge_files_and_dicts(file_paths, dicts):
 
     [file_variables.append(d) for d in dict_vars]
     return dict_merge(*file_variables)
+
+
+def sort_bmd(bmd_steps):
+    """
+
+    Args:
+        bmd_steps (str): The string of letters to be sorted
+
+    Returns:
+        str: a sorted string according the the custom alphabet
+
+    Raises:
+        Exception: if any character is not part of the custom alphabet
+
+    """
+    alphabet = 'bmd'
+    try:
+        return ''.join(sorted(bmd_steps, key=lambda pipeline_stage: alphabet.index(pipeline_stage)))
+    except ValueError:
+        raise Exception(
+            'only valid stages are b, m, d and must be one of {}'.format(VALID_PIPELINE_STEP_PERMUTATIONS.keys())
+        )
+
+
+def validate_pipeline_permutations(bmd_steps):
+    """
+    Validates the bmd_steps matches one of the keys in constants.VALID_PIPELINE_STEP_PERMUTATIONS
+
+    Args:
+        bmd_steps (str): a valid bmd combination
+
+    Returns:
+        True if the permutation is valid
+
+    Raises:
+        Exception: if the bmd_steps is not a valid permutation
+
+    """
+    if bmd_steps in VALID_PIPELINE_STEP_PERMUTATIONS:
+        return True
+    else:
+        raise Exception('Only supports total Build/Migrate/Deploy, Build-only, and Migrate/Deploy-only pipelines.')
+
+
+def determine_pipeline_names(config, bmd_steps):
+    """
+    Depending on whether the BMD steps of the pipeline, read/return the correct pipeline_name config vars.
+    """
+    def _generate_pipeline_name(config, bmd_steps):
+        return '{pipeline_name}_{suffix}'\
+            .format(pipeline_name=config['pipeline_name'], suffix=VALID_PIPELINE_STEP_PERMUTATIONS[bmd_steps])
+
+    pipeline_name = _generate_pipeline_name(config, bmd_steps)
+    pipeline_name_build = _generate_pipeline_name(config, 'b')
+    if bmd_steps == 'bmd':
+        pipeline_name_build = pipeline_name
+    return pipeline_name, pipeline_name_build
