@@ -103,7 +103,12 @@ def run_pipelines(environment, config_file, script, verbose, dry_run):
             )
             success.append(script['script'])
         except subprocess.CalledProcessError, e:
-            failures.append({'script': script['script'], 'input_files': script['input_files'], 'error': e.output.split("\n")})
+            failures.append({
+                'script': script['script'],
+                'input_files': script['input_files'],
+                'bmd_steps': script.get('bmd_steps', None),
+                'error': e.output.split("\n")
+            })
 
     if len(success) > 0:
         print_success_report(success)

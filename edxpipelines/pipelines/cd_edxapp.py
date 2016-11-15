@@ -92,8 +92,16 @@ def install_pipelines(save_config_locally, dry_run, bmd_steps, variable_files, c
     # Create the pipeline
     gcc = GoCdConfigurator(HostRestClient(config['gocd_url'], config['gocd_username'], config['gocd_password'], ssl=True))
     pipeline_group = config['pipeline_group']
+
+    # Some pipelines will need to know the name of the upstream pipeline that built the AMI.
+    # Determine the build pipeline name and add it to the config.
+    pipeline_name, pipeline_name_build = determine_pipeline_names(config, bmd_steps)
+    if 'pipeline_name_build' in config:
+        raise Exception("The config 'pipeline_name_build' value exists but should only be programmatically generated!")
+    config['pipeline_name_build'] = pipeline_name_build
+
     pipeline = gcc.ensure_pipeline_group(pipeline_group)\
-                  .ensure_replacement_of_pipeline(generate_pipeline_name(config, bmd_steps))
+                  .ensure_replacement_of_pipeline(pipeline_name)
 
     # Setup the materials
     # Example materials yaml
@@ -240,7 +248,7 @@ def generate_deploy_stages(pipeline, config):
     # Create the stage to deploy the AMI.
     #
     ami_file_location = utils.ArtifactLocation(
-        pipeline.name,
+        config['pipeline_name_build'],
         constants.BUILD_AMI_STAGE_NAME,
         constants.BUILD_AMI_JOB_NAME,
         constants.BUILD_AMI_FILENAME
@@ -262,7 +270,7 @@ def generate_cleanup_stages(pipeline, config):
     # Create the stage to terminate the EC2 instance used to both build the AMI and run DB migrations.
     #
     instance_info_location = utils.ArtifactLocation(
-        pipeline.name,
+        config['pipeline_name_build'],
         constants.LAUNCH_INSTANCE_STAGE_NAME,
         constants.LAUNCH_INSTANCE_JOB_NAME,
         constants.LAUNCH_INSTANCE_FILENAME
@@ -281,29 +289,37 @@ def generate_cleanup_stages(pipeline, config):
 # key is what is passed in
 # value is the suffix used for the pipeline name
 valid_permutations = {
-    'bmd': 'B/M/D',
-    'md': 'M/D',
+    'bmd': 'B-M-D',
+    'md': 'M-D',
     'b': 'B'
 }
-
 
 def sort_bmd(bmd_steps):
     alphabet = 'bmd'
     try:
-        return sorted(bmd_steps, key=lambda pipeline_stage: alphabet.index(pipeline_stage))
+        return ''.join(sorted(bmd_steps, key=lambda pipeline_stage: alphabet.index(pipeline_stage)))
     except ValueError:
         raise Exception('only valid stages are b, m, d and must be one of {}'.format(valid_permutations.keys()))
 
-
 def validate_pipeline_permutations(bmd_steps):
-    if bmd_steps.lower() not in valid_permutations.keys():
-        # TODO Provide a better exception than this
-        raise Exception('Only supports B/M/D, B-only, and M/D-only pipelines.')
+    try:
+        valid_permutations[bmd_steps.lower()]
+    except KeyError:
+        raise Exception('Only supports total Build/Migrate/Deploy, Build-only, and Migrate/Deploy-only pipelines.')
 
+def determine_pipeline_names(config, bmd_steps):
+    """
+    Depending on whether the BMD steps of the pipeline, read/return the correct pipeline_name config vars.
+    """
+    def _generate_pipeline_name(config, bmd_steps):
+        return '{pipeline_name}_{suffix}'\
+            .format(pipeline_name=config['pipeline_name'], suffix=valid_permutations[bmd_steps])
 
-def generate_pipeline_name(config, bmd_steps):
-    return '{pipeline_name}_{suffix}'\
-        .format(pipeline_name=config['pipeline_name'], suffix=valid_permutations[bmd_steps])
+    pipeline_name = _generate_pipeline_name(config, bmd_steps)
+    pipeline_name_build = _generate_pipeline_name(config, 'b')
+    if bmd_steps == 'bmd':
+        pipeline_name_build = pipeline_name
+    return pipeline_name, pipeline_name_build
 
 if __name__ == "__main__":
     install_pipelines()
