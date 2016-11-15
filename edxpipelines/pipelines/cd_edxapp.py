@@ -294,6 +294,7 @@ valid_permutations = {
     'b': 'B'
 }
 
+
 def sort_bmd(bmd_steps):
     alphabet = 'bmd'
     try:
@@ -301,11 +302,13 @@ def sort_bmd(bmd_steps):
     except ValueError:
         raise Exception('only valid stages are b, m, d and must be one of {}'.format(valid_permutations.keys()))
 
+
 def validate_pipeline_permutations(bmd_steps):
     try:
         valid_permutations[bmd_steps.lower()]
     except KeyError:
         raise Exception('Only supports total Build/Migrate/Deploy, Build-only, and Migrate/Deploy-only pipelines.')
+
 
 def determine_pipeline_names(config, bmd_steps):
     """
