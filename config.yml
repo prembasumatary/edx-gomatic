@@ -23,7 +23,9 @@ anchors:
   - &prod-stage-edxapp         "../gomatic-secure/gocd/vars/tools/environment-play/prod-stage-edxapp.yml"
   - &prod-stage-edxapp-private "../gomatic-secure/gocd/vars/tools/environment-play/prod-stage-edxapp-private.yml"
 
-  - &prerelease_upstream "../gomatic-secure/gocd/vars/tools/environment-deployment-play/stage-edx-edxapp-prerelease-upstream.yml"
+  - &prerelease_upstream     "../gomatic-secure/gocd/vars/tools/environment-deployment-play/stage-edx-edxapp-prerelease-upstream.yml"
+  - &prod-edx-edxapp-latest  "../gomatic-secure/gocd/vars/tools/environment-deployment-play/prod-edx-edxapp-latest.yml"
+  - &prod-edge-edxapp-latest "../gomatic-secure/gocd/vars/tools/environment-deployment-play/prod-edge-edxapp-latest.yml"
 
 tools:
   ## Start of 'Janitors' pipeline group
@@ -129,7 +131,7 @@ tools:
   - script: edxpipelines/pipelines/cd_edxapp.py
     input_files:
       - *tools-admin
-      - "../gomatic-secure/gocd/vars/tools/environment-deployment-play/prod-edx-edxapp-build.yml"
+      - *prod-edx-edxapp-latest
       - *prod-edx
       - *prod-stage-edxapp
       - *play-edxapp
@@ -142,7 +144,7 @@ tools:
   - script: edxpipelines/pipelines/cd_edxapp.py
     input_files:
       - *tools-admin
-      - "../gomatic-secure/gocd/vars/tools/environment-deployment-play/prod-edge-edxapp-build.yml"
+      - *prod-edge-edxapp-latest
       - *prod-edge
       - *prod-stage-edxapp
       - *play-edxapp
@@ -169,7 +171,7 @@ tools:
   - script: edxpipelines/pipelines/cd_edxapp.py
     input_files:
       - *tools-admin
-      - "../gomatic-secure/gocd/vars/tools/environment-deployment-play/prod-edx-edxapp-migrate-deploy.yml"
+      - *prod-edx-edxapp-latest
       - *prod-edx
       - *prod-stage-edxapp
       - *play-edxapp
@@ -182,7 +184,7 @@ tools:
   - script: edxpipelines/pipelines/cd_edxapp.py
     input_files:
       - *tools-admin
-      - "../gomatic-secure/gocd/vars/tools/environment-deployment-play/prod-edge-edxapp-migrate-deploy.yml"
+      - *prod-edge-edxapp-latest
       - *prod-edge
       - *prod-stage-edxapp
       - *play-edxapp
