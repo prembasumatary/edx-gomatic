@@ -78,3 +78,11 @@ STAGE_TAG_NAME = 'test_tag_name'
 PROD_TAG_NAME = 'prod_tag_name'
 STAGE_ENV = 'test'
 PROD_ENV = 'prod'
+
+# key is what is passed in
+# value is the suffix used for the pipeline name
+valid_pipeline_step_permutations = {
+    'bmd': 'B-M-D',
+    'md': 'M-D',
+    'b': 'B'
+}

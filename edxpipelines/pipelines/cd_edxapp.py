@@ -286,43 +286,5 @@ def generate_cleanup_stages(pipeline, config):
     return pipeline
 
 
-# key is what is passed in
-# value is the suffix used for the pipeline name
-valid_permutations = {
-    'bmd': 'B-M-D',
-    'md': 'M-D',
-    'b': 'B'
-}
-
-
-def sort_bmd(bmd_steps):
-    alphabet = 'bmd'
-    try:
-        return ''.join(sorted(bmd_steps, key=lambda pipeline_stage: alphabet.index(pipeline_stage)))
-    except ValueError:
-        raise Exception('only valid stages are b, m, d and must be one of {}'.format(valid_permutations.keys()))
-
-
-def validate_pipeline_permutations(bmd_steps):
-    try:
-        valid_permutations[bmd_steps.lower()]
-    except KeyError:
-        raise Exception('Only supports total Build/Migrate/Deploy, Build-only, and Migrate/Deploy-only pipelines.')
-
-
-def determine_pipeline_names(config, bmd_steps):
-    """
-    Depending on whether the BMD steps of the pipeline, read/return the correct pipeline_name config vars.
-    """
-    def _generate_pipeline_name(config, bmd_steps):
-        return '{pipeline_name}_{suffix}'\
-            .format(pipeline_name=config['pipeline_name'], suffix=valid_permutations[bmd_steps])
-
-    pipeline_name = _generate_pipeline_name(config, bmd_steps)
-    pipeline_name_build = _generate_pipeline_name(config, 'b')
-    if bmd_steps == 'bmd':
-        pipeline_name_build = pipeline_name
-    return pipeline_name, pipeline_name_build
-
 if __name__ == "__main__":
     install_pipelines()
