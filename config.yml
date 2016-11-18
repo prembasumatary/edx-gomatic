@@ -160,7 +160,7 @@ tools:
   - script: edxpipelines/pipelines/manual_verification.py
     input_files:
       - *tools-admin
-      - "../gomatic-secure/gocd/vars/tools/environment-play/prod-stage-edxapp-manual-verification-early-ami-build.yml"
+      - "../gomatic-secure/gocd/vars/tools/environment-play/edxapp-manual-verification-latest.yml"
       - *prod-stage-edxapp
     enabled: True
 
