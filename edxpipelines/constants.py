@@ -21,6 +21,8 @@ ROLLBACK_ASGS_STAGE_NAME = 'rollback_asgs'
 ROLLBACK_ASGS_JOB_NAME = 'rollback_asgs_job'
 ARMED_STAGE_NAME = 'armed_stage'
 ARMED_JOB_NAME = 'armed_job'
+PRERELEASE_MATERIALS_STAGE_NAME = 'prerelease_materials'
+PRERELEASE_MATERIALS_JOB_NAME = 'prerelease_materials_job'
 
 # Tubular configuration
 TUBULAR_SLEEP_WAIT_TIME = '20'
@@ -39,8 +41,10 @@ EDX_THEME_DIR = 'edx_theme'
 APP_REPO_BRANCH = 'master'
 HIPCHAT_ROOM = 'release'
 MATERIAL_IGNORE_ALL_REGEX = ['**/*']
+BUILD_AMI_FILENAME = 'ami.yml'
 DEPLOY_AMI_OUT_FILENAME = 'ami_deploy_info.yml'
 ROLLBACK_AMI_OUT_FILENAME = 'rollback_info.yml'
+LAUNCH_INSTANCE_FILENAME = 'launch_info.yml'
 
 # AWS Defaults
 EC2_REGION = 'us-east-1'
@@ -74,3 +78,11 @@ STAGE_TAG_NAME = 'test_tag_name'
 PROD_TAG_NAME = 'prod_tag_name'
 STAGE_ENV = 'test'
 PROD_ENV = 'prod'
+
+# key is the steps of the desired pipeline (build/migrate/deploy)
+# value is the suffix used for the pipeline name
+VALID_PIPELINE_STEP_PERMUTATIONS = {
+    'bmd': 'B-M-D',
+    'md': 'M-D',
+    'b': 'B'
+}

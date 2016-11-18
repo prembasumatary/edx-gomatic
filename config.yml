@@ -1,11 +1,40 @@
+anchors:
+  ## This section exists to provide anchors for the pipelines below.
+  ## Place config files used multiple times as additional anchors here to avoid duplication.
+  - &tools-admin "../gomatic-secure/gocd/vars/tools/admin.yml"
+
+  - &deployment-edx      "../gomatic-secure/gocd/vars/tools/deployments/edx.yml"
+  - &deployment-edge     "../gomatic-secure/gocd/vars/tools/deployments/edge.yml"
+  - &deployment-mckinsey "../gomatic-secure/gocd/vars/tools/deployments/mckinsey.yml"
+
+  - &stage-edx     "../gomatic-secure/gocd/vars/tools/environment-deployments/stage-edx.yml"
+  - &prod-edx      "../gomatic-secure/gocd/vars/tools/environment-deployments/prod-edx.yml"
+  - &prod-edge     "../gomatic-secure/gocd/vars/tools/environment-deployments/prod-edge.yml"
+  - &prod-mckinsey "../gomatic-secure/gocd/vars/tools/environment-deployments/prod-mckinsey.yml"
+  - &loadtest-edx  "../gomatic-secure/gocd/vars/tools/environment-deployments/loadtest-edx.yml"
+
+  - &play-edxapp      "../gomatic-secure/gocd/vars/tools/plays/edxapp.yml"
+  - &play-ecommerce   "../gomatic-secure/gocd/vars/tools/plays/ecommerce.yml"
+  - &play-ecomworker  "../gomatic-secure/gocd/vars/tools/plays/ecomworker.yml"
+  - &play-credentials "../gomatic-secure/gocd/vars/tools/plays/credentials.yml"
+  - &play-programs    "../gomatic-secure/gocd/vars/tools/plays/programs.yml"
+  - &play-discovery   "../gomatic-secure/gocd/vars/tools/plays/discovery.yml"
+
+  - &prod-stage-edxapp         "../gomatic-secure/gocd/vars/tools/environment-play/prod-stage-edxapp.yml"
+  - &prod-stage-edxapp-private "../gomatic-secure/gocd/vars/tools/environment-play/prod-stage-edxapp-private.yml"
+
+  - &prerelease_upstream     "../gomatic-secure/gocd/vars/tools/environment-deployment-play/stage-edx-edxapp-prerelease-upstream.yml"
+  - &prod-edx-edxapp-latest  "../gomatic-secure/gocd/vars/tools/environment-deployment-play/prod-edx-edxapp-latest.yml"
+  - &prod-edge-edxapp-latest "../gomatic-secure/gocd/vars/tools/environment-deployment-play/prod-edge-edxapp-latest.yml"
+
 tools:
   ## Start of 'Janitors' pipeline group
 
   #ASG cleanup for edge
   - script: edxpipelines/pipelines/asg_cleanup.py
     input_files:
-      - &tools-admin "../gomatic-secure/gocd/vars/tools/admin.yml"
-      - &edge-deployment "../gomatic-secure/gocd/vars/tools/deployments/edge.yml"
+      - *tools-admin
+      - *deployment-edge
       - "../gomatic-secure/gocd/vars/tools/asg-cleanup-edge.yml"
     enabled: True
 
@@ -13,7 +42,7 @@ tools:
   - script: edxpipelines/pipelines/asg_cleanup.py
     input_files:
       - *tools-admin
-      - &edx-deployment "../gomatic-secure/gocd/vars/tools/deployments/edx.yml"
+      - *deployment-edx
       - "../gomatic-secure/gocd/vars/tools/asg-cleanup-edx.yml"
     enabled: True
 
@@ -21,7 +50,7 @@ tools:
   - script: edxpipelines/pipelines/asg_cleanup.py
     input_files:
       - *tools-admin
-      - &mckinsey-deployment "../gomatic-secure/gocd/vars/tools/deployments/mckinsey.yml"
+      - *deployment-mckinsey
       - "../gomatic-secure/gocd/vars/tools/asg-cleanup-mckinsey.yml"
     enabled: True
   # End of 'Janitors' pipeline group
@@ -36,21 +65,21 @@ tools:
   - script: edxpipelines/pipelines/deploy_ami.py
     input_files:
       - *tools-admin
-      - *edx-deployment
+      - *deployment-edx
       - "../gomatic-secure/gocd/vars/tools/deploy_edx_ami.yml"
     enabled: True
 
   - script: edxpipelines/pipelines/deploy_ami.py
     input_files:
       - *tools-admin
-      - *edge-deployment
+      - *deployment-edge
       - "../gomatic-secure/gocd/vars/tools/deploy_edge_ami.yml"
     enabled: True
 
   - script: edxpipelines/pipelines/deploy_ami.py
     input_files:
       - *tools-admin
-      - *mckinsey-deployment
+      - *deployment-mckinsey
       - "../gomatic-secure/gocd/vars/tools/deploy_mckinsey_ami.yml"
     enabled: True
 
@@ -69,30 +98,149 @@ tools:
     enabled: False
 
 
+  ## START OF EDXAPP WHICH BUILDS PROD/EDGE AMIS in PARALLEL WITH STAGE DEPLOYMENT
+  # Starts the build of prod AMIs earlier in pipeline.
+
+  # Pre-release pipeline which includes all materials.
+  - script: edxpipelines/pipelines/prerelease_materials.py
+    input_files:
+      - *tools-admin
+      - *stage-edx
+      - *prod-stage-edxapp
+      - "../gomatic-secure/gocd/vars/tools/edxapp-prerelease-materials.yml"
+    enabled: True
+
+  # Now the three pipelines which fan-out from pre-release:
+  # - Stage B/M/D
+  # - prod-edx Build
+  # - prod-edge Build
+
+  # Stage edxapp B/M/D
+  - script: edxpipelines/pipelines/cd_edxapp.py
+    input_files:
+      - *tools-admin
+      - "../gomatic-secure/gocd/vars/tools/environment-deployment-play/stage-edx-edxapp-latest.yml"
+      - *stage-edx
+      - *prod-stage-edxapp
+      - *play-edxapp
+      - *deployment-edx
+      - *prerelease_upstream
+    enabled: True
+
+  # Prod edx of edxapp - but only building!
+  - script: edxpipelines/pipelines/cd_edxapp.py
+    input_files:
+      - *tools-admin
+      - *prod-edx-edxapp-latest
+      - *prod-edx
+      - *prod-stage-edxapp
+      - *play-edxapp
+      - *deployment-edx
+      - *prerelease_upstream
+    bmd_steps: "b"
+    enabled: True
+
+    # Prod EDGE of edxapp - but only building!
+  - script: edxpipelines/pipelines/cd_edxapp.py
+    input_files:
+      - *tools-admin
+      - *prod-edge-edxapp-latest
+      - *prod-edge
+      - *prod-stage-edxapp
+      - *play-edxapp
+      - *deployment-edge
+      - *prerelease_upstream
+    bmd_steps: "b"
+    enabled: True
+
+  # The three pipelines above fan-in to the following single pipeline, which allows manual
+  # gating of when/if a release candidate is pushed to production.
+
+  # Manual verification pipeline
+  - script: edxpipelines/pipelines/manual_verification.py
+    input_files:
+      - *tools-admin
+      - "../gomatic-secure/gocd/vars/tools/environment-play/edxapp-manual-verification-latest.yml"
+      - *prod-stage-edxapp
+    enabled: True
+
+  # When manually triggered in the pipeline above, the following two pipelines migrate/deploy
+  # to the production EDX and EDGE environments.
+
+  # Prod edx of edxapp - only migration and deployment.
+  - script: edxpipelines/pipelines/cd_edxapp.py
+    input_files:
+      - *tools-admin
+      - *prod-edx-edxapp-latest
+      - *prod-edx
+      - *prod-stage-edxapp
+      - *play-edxapp
+      - *deployment-edx
+      - "../gomatic-secure/gocd/vars/tools/environment-deployment-play/prod-edx-edxapp-gated-upstream.yml"
+    bmd_steps: "md"
+    enabled: True
+
+  # Prod EDGE of edxapp - only migration and deployment.
+  - script: edxpipelines/pipelines/cd_edxapp.py
+    input_files:
+      - *tools-admin
+      - *prod-edge-edxapp-latest
+      - *prod-edge
+      - *prod-stage-edxapp
+      - *play-edxapp
+      - *deployment-edge
+      - "../gomatic-secure/gocd/vars/tools/environment-deployment-play/prod-edge-edxapp-gated-upstream.yml"
+    bmd_steps: "md"
+    enabled: True
+
+  # Then rollback pipelines for both EDX and EDGE are created below.
+
+  # Rollback pipeline for prod edx
+  - script: edxpipelines/pipelines/rollback_asgs.py
+    input_files:
+      - *tools-admin
+      - "../gomatic-secure/gocd/vars/tools/environment-deployment-play/prod-edx-edxapp-rollback-asgs-latest.yml"
+      - *prod-stage-edxapp
+      - *deployment-edx
+    enabled: True
+
+  # Rollback pipeline for prod edge
+  - script: edxpipelines/pipelines/rollback_asgs.py
+    input_files:
+      - *tools-admin
+      - "../gomatic-secure/gocd/vars/tools/environment-deployment-play/prod-edge-edxapp-rollback-asgs-latest.yml"
+      - *prod-stage-edxapp
+      - *deployment-edge
+    enabled: True
+
+  ## END OF EDXAPP WHICH BUILDS PROD/EDGE AMIS in PARALLEL WITH STAGE DEPLOYMENT
+
   ## Start Edxapp
   # loadtest of edxapp
   - script: edxpipelines/pipelines/cd_edxapp.py
     input_files:
       - *tools-admin
       - "../gomatic-secure/gocd/vars/tools/environment-deployment-play/loadtest-edx-edxapp.yml"
-      - "../gomatic-secure/gocd/vars/tools/environment-deployments/loadtest-edx.yml"
+      - *loadtest-edx
       - "../gomatic-secure/gocd/vars/tools/environment-play/loadtest-edxapp.yml"
-      - &play-edxapp "../gomatic-secure/gocd/vars/tools/plays/edxapp.yml"
-      - &deployment-edx "../gomatic-secure/gocd/vars/tools/deployments/edx.yml"
+      - *play-edxapp
+      - *deployment-edx
     enabled: True
 
   # Stage edxapp
+  # DEPRECATED
   - script: edxpipelines/pipelines/cd_edxapp.py
     input_files:
       - *tools-admin
       - "../gomatic-secure/gocd/vars/tools/environment-deployment-play/stage-edx-edxapp.yml"
-      - "../gomatic-secure/gocd/vars/tools/environment-deployments/stage-edx.yml"
-      - &prod-stage-edxapp "../gomatic-secure/gocd/vars/tools/environment-play/prod-stage-edxapp.yml"
+      - *stage-edx
+      - *prod-stage-edxapp
       - *play-edxapp
       - *deployment-edx
     enabled: True
 
   # Manual verification pipeline
+  # DEPRECATED
   - script: edxpipelines/pipelines/manual_verification.py
     input_files:
       - *tools-admin
@@ -101,17 +249,19 @@ tools:
     enabled: True
 
   # Prod edx of edxapp
+  # DEPRECATED
   - script: edxpipelines/pipelines/cd_edxapp.py
     input_files:
       - *tools-admin
       - "../gomatic-secure/gocd/vars/tools/environment-deployment-play/prod-edx-edxapp.yml"
-      - "../gomatic-secure/gocd/vars/tools/environment-deployments/prod-edx.yml"
+      - *prod-edx
       - *prod-stage-edxapp
       - *play-edxapp
       - *deployment-edx
     enabled: True
 
   # Rollback pipeline for prod edx
+  # DEPRECATED
   - script: edxpipelines/pipelines/rollback_asgs.py
     input_files:
       - *tools-admin
@@ -121,17 +271,19 @@ tools:
     enabled: True
 
   # Prod EDGE of edxapp
+  # DEPRECATED
   - script: edxpipelines/pipelines/cd_edxapp.py
     input_files:
       - *tools-admin
       - "../gomatic-secure/gocd/vars/tools/environment-deployment-play/prod-edge-edxapp.yml"
-      - "../gomatic-secure/gocd/vars/tools/environment-deployments/prod-edge.yml"
+      - *prod-edge
       - *prod-stage-edxapp
       - *play-edxapp
-      - &deployment-edge "../gomatic-secure/gocd/vars/tools/deployments/edge.yml"
+      - *deployment-edge
     enabled: True
 
   # Rollback pipeline for prod edge
+  # DEPRECATED
   - script: edxpipelines/pipelines/rollback_asgs.py
     input_files:
       - *tools-admin
@@ -145,10 +297,10 @@ tools:
     input_files:
       - *tools-admin
       - "../gomatic-secure/gocd/vars/tools/environment-deployment-play/prod-mckinsey-edxapp.yml"
-      - "../gomatic-secure/gocd/vars/tools/environment-deployments/prod-mckinsey.yml"
+      - *prod-mckinsey
       - *prod-stage-edxapp
       - *play-edxapp
-      - &deployment-mckinsey "../gomatic-secure/gocd/vars/tools/deployments/mckinsey.yml"
+      - *deployment-mckinsey
     enabled: True
 
     ## End Edxapp
@@ -159,8 +311,8 @@ tools:
     input_files:
       - *tools-admin
       - "../gomatic-secure/gocd/vars/tools/environment-deployment-play/loadtest-edx-edxapp-private.yml"
-      - "../gomatic-secure/gocd/vars/tools/environment-deployments/loadtest-edx.yml"
-      - &prod-stage-edxapp-private "../gomatic-secure/gocd/vars/tools/environment-play/prod-stage-edxapp-private.yml"
+      - *loadtest-edx
+      - *prod-stage-edxapp-private
       - *play-edxapp
       - *deployment-edx
     enabled: True
@@ -170,7 +322,7 @@ tools:
     input_files:
       - *tools-admin
       - "../gomatic-secure/gocd/vars/tools/environment-deployment-play/stage-edx-edxapp-private.yml"
-      - "../gomatic-secure/gocd/vars/tools/environment-deployments/stage-edx.yml"
+      - *stage-edx
       - *prod-stage-edxapp-private
       - *play-edxapp
       - *deployment-edx
@@ -189,7 +341,7 @@ tools:
     input_files:
       - *tools-admin
       - "../gomatic-secure/gocd/vars/tools/environment-deployment-play/prod-edx-edxapp-private.yml"
-      - "../gomatic-secure/gocd/vars/tools/environment-deployments/prod-edx.yml"
+      - *prod-edx
       - *prod-stage-edxapp-private
       - *play-edxapp
       - *deployment-edx
@@ -209,7 +361,7 @@ tools:
     input_files:
       - *tools-admin
       - "../gomatic-secure/gocd/vars/tools/environment-deployment-play/prod-edge-edxapp-private.yml"
-      - "../gomatic-secure/gocd/vars/tools/environment-deployments/prod-edge.yml"
+      - *prod-edge
       - *prod-stage-edxapp-private
       - *play-edxapp
       - *deployment-edge
@@ -229,7 +381,7 @@ tools:
     input_files:
       - *tools-admin
       - "../gomatic-secure/gocd/vars/tools/environment-deployment-play/prod-mckinsey-edxapp-private.yml"
-      - "../gomatic-secure/gocd/vars/tools/environment-deployments/prod-mckinsey.yml"
+      - *prod-mckinsey
       - *prod-stage-edxapp-private
       - *play-edxapp
       - *deployment-mckinsey
@@ -268,9 +420,9 @@ tools:
     input_files:
       - *tools-admin
       - "../gomatic-secure/gocd/vars/tools/environment-deployment-play/stage-edx-insights.yml"
-      - "../gomatic-secure/gocd/vars/tools/environment-deployments/stage-edx.yml"
+      - *stage-edx
       - "../gomatic-secure/gocd/vars/tools/plays/insights.yml"
-      - "../gomatic-secure/gocd/vars/tools/deployments/edx.yml"
+      - *deployment-edx
     enabled: True
 
   # Stage Analytics API
@@ -278,9 +430,9 @@ tools:
     input_files:
       - *tools-admin
       - "../gomatic-secure/gocd/vars/tools/environment-deployment-play/stage-edx-analyticsapi.yml"
-      - "../gomatic-secure/gocd/vars/tools/environment-deployments/stage-edx.yml"
+      - *stage-edx
       - "../gomatic-secure/gocd/vars/tools/plays/analyticsapi.yml"
-      - "../gomatic-secure/gocd/vars/tools/deployments/edx.yml"
+      - *deployment-edx
     enabled: True
 
   # E-Commerce Apps
@@ -289,18 +441,18 @@ tools:
     input_files:
       - *tools-admin
       - "../gomatic-secure/gocd/vars/tools/environment-deployment-play/stage-edx-ecommerce.yml"
-      - "../gomatic-secure/gocd/vars/tools/environment-deployments/stage-edx.yml"
-      - "../gomatic-secure/gocd/vars/tools/plays/ecommerce.yml"
-      - "../gomatic-secure/gocd/vars/tools/deployments/edx.yml"
+      - *stage-edx
+      - *play-ecommerce
+      - *deployment-edx
     enabled: True
 
   - script: edxpipelines/pipelines/cd_ecommerce.py
     input_files:
       - *tools-admin
       - "../gomatic-secure/gocd/vars/tools/environment-deployment-play/loadtest-edx-ecommerce.yml"
-      - "../gomatic-secure/gocd/vars/tools/environment-deployments/loadtest-edx.yml"
-      - "../gomatic-secure/gocd/vars/tools/plays/ecommerce.yml"
-      - "../gomatic-secure/gocd/vars/tools/deployments/edx.yml"
+      - *loadtest-edx
+      - *play-ecommerce
+      - *deployment-edx
     enabled: True
 
   # Credentials Service
@@ -308,18 +460,18 @@ tools:
     input_files:
       - *tools-admin
       - "../gomatic-secure/gocd/vars/tools/environment-deployment-play/stage-edx-credentials.yml"
-      - "../gomatic-secure/gocd/vars/tools/environment-deployments/stage-edx.yml"
-      - "../gomatic-secure/gocd/vars/tools/plays/credentials.yml"
-      - "../gomatic-secure/gocd/vars/tools/deployments/edx.yml"
+      - *stage-edx
+      - *play-credentials
+      - *deployment-edx
     enabled: True
 
   - script: edxpipelines/pipelines/cd_credentials.py
     input_files:
       - *tools-admin
       - "../gomatic-secure/gocd/vars/tools/environment-deployment-play/loadtest-edx-credentials.yml"
-      - "../gomatic-secure/gocd/vars/tools/environment-deployments/loadtest-edx.yml"
-      - "../gomatic-secure/gocd/vars/tools/plays/credentials.yml"
-      - "../gomatic-secure/gocd/vars/tools/deployments/edx.yml"
+      - *loadtest-edx
+      - *play-credentials
+      - *deployment-edx
     enabled: True
 
   # Programs Service
@@ -327,18 +479,18 @@ tools:
     input_files:
       - *tools-admin
       - "../gomatic-secure/gocd/vars/tools/environment-deployment-play/stage-edx-programs.yml"
-      - "../gomatic-secure/gocd/vars/tools/environment-deployments/stage-edx.yml"
-      - "../gomatic-secure/gocd/vars/tools/plays/programs.yml"
-      - "../gomatic-secure/gocd/vars/tools/deployments/edx.yml"
+      - *stage-edx
+      - *play-programs
+      - *deployment-edx
     enabled: True
 
   - script: edxpipelines/pipelines/cd_programs.py
     input_files:
       - *tools-admin
       - "../gomatic-secure/gocd/vars/tools/environment-deployment-play/loadtest-edx-programs.yml"
-      - "../gomatic-secure/gocd/vars/tools/environment-deployments/loadtest-edx.yml"
-      - "../gomatic-secure/gocd/vars/tools/plays/programs.yml"
-      - "../gomatic-secure/gocd/vars/tools/deployments/edx.yml"
+      - *loadtest-edx
+      - *play-programs
+      - *deployment-edx
     enabled: True
 
   # Catalog/Discovery Service
@@ -346,18 +498,18 @@ tools:
     input_files:
       - *tools-admin
       - "../gomatic-secure/gocd/vars/tools/environment-deployment-play/stage-edx-discovery.yml"
-      - "../gomatic-secure/gocd/vars/tools/environment-deployments/stage-edx.yml"
-      - "../gomatic-secure/gocd/vars/tools/plays/discovery.yml"
-      - "../gomatic-secure/gocd/vars/tools/deployments/edx.yml"
+      - *stage-edx
+      - *play-discovery
+      - *deployment-edx
     enabled: True
 
   - script: edxpipelines/pipelines/cd_discovery.py
     input_files:
       - *tools-admin
       - "../gomatic-secure/gocd/vars/tools/environment-deployment-play/loadtest-edx-discovery.yml"
-      - "../gomatic-secure/gocd/vars/tools/environment-deployments/loadtest-edx.yml"
-      - "../gomatic-secure/gocd/vars/tools/plays/discovery.yml"
-      - "../gomatic-secure/gocd/vars/tools/deployments/edx.yml"
+      - *loadtest-edx
+      - *play-discovery
+      - *deployment-edx
     enabled: True
 
   # E-Commerce Worker
@@ -365,24 +517,24 @@ tools:
     input_files:
       - *tools-admin
       - "../gomatic-secure/gocd/vars/tools/environment-deployment-play/stage-edx-ecomworker.yml"
-      - "../gomatic-secure/gocd/vars/tools/environment-deployments/stage-edx.yml"
-      - "../gomatic-secure/gocd/vars/tools/plays/ecomworker.yml"
-      - "../gomatic-secure/gocd/vars/tools/deployments/edx.yml"
+      - *stage-edx
+      - *play-ecomworker
+      - *deployment-edx
     enabled: True
 
   - script: edxpipelines/pipelines/cd_ecomworker.py
     input_files:
       - *tools-admin
       - "../gomatic-secure/gocd/vars/tools/environment-deployment-play/loadtest-edx-ecomworker.yml"
-      - "../gomatic-secure/gocd/vars/tools/environment-deployments/loadtest-edx.yml"
-      - "../gomatic-secure/gocd/vars/tools/plays/ecomworker.yml"
-      - "../gomatic-secure/gocd/vars/tools/deployments/edx.yml"
+      - *loadtest-edx
+      - *play-ecomworker
+      - *deployment-edx
     enabled: True
 
 sandbox:
   - script: edxpipelines/pipelines/deploy_marketing_site.py
     input_files:
-      - &sandbox-admin "../gomatic-secure/gocd/vars/sandbox/admin.yml"
+      - "../gomatic-secure/gocd/vars/sandbox/admin.yml"
       - "../gomatic-secure/gocd/vars/sandbox/deploy_drupal.yml"
     enabled: False
 

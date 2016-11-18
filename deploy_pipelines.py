@@ -10,11 +10,15 @@ import yaml
 logging.basicConfig(stream=sys.stdout, level=logging.INFO, datefmt='%Y-%m-%d %H:%M:%S')
 
 
-def ensure_pipeline(script, input_files, dry_run=False):
+def ensure_pipeline(script, input_files, bmd_steps, dry_run=False):
     script_args = []
 
     if dry_run:
         script_args.append('--dry-run')
+
+    if bmd_steps:
+        script_args.append('--bmd-steps')
+        script_args.append(bmd_steps)
 
     for input_file in input_files:
         script_args.append('--variable_file')
@@ -91,10 +95,20 @@ def run_pipelines(environment, config_file, script, verbose, dry_run):
     failures = []
     for script in scripts:
         try:
-            ensure_pipeline(script['script'], script['input_files'], dry_run)
+            ensure_pipeline(
+                script['script'],
+                script['input_files'],
+                script.get('bmd_steps', None),
+                dry_run
+            )
             success.append(script['script'])
         except subprocess.CalledProcessError, e:
-            failures.append({'script': script['script'], 'input_files': script['input_files'], 'error': e.output.split("\n")})
+            failures.append({
+                'script': script['script'],
+                'input_files': script['input_files'],
+                'bmd_steps': script.get('bmd_steps', None),
+                'error': e.output.split("\n")
+            })
 
     if len(success) > 0:
         print_success_report(success)
