@@ -824,3 +824,43 @@ def generate_create_branch(job,
             runif=runif
         )
     )
+
+
+def trigger_jenkins_build(job, jenkins_url, jenkins_user_name, jenkins_job_name, jenkins_param):
+    """
+    Generate a GoCD task that triggers a jenkins build and polls for its results.
+
+    Assumes:
+        secure environment variables:
+            - JENKINS_USER_TOKEN: API token for the user. Available at {url}/user/{user_name)/configure
+            - JENKINS_JOB_TOKEN: Authorization token for the job. Must match that configured in the job definition.
+
+    Args:
+        job (gomatic.job.Job): the gomatic job to which this task will be added
+        jenkins_url (str): base URL for the jenkins server
+        jenkins_user_name (str): username on the jenkins system
+        jenkins_job_name (str): name of the jenkins job to trigger
+        jenkins_param (str): serialized parameter names and values to pass to the job
+    """
+    command = ' '.join(
+        [
+            'python ',
+            'scripts/jenkins_trigger_build.py',
+            '--url {}'.format(jenkins_url),
+            '--user_name {}'.format(jenkins_user_name),
+            '--job {}'.format(jenkins_job_name),
+            '--cause "Triggered by GoCD Pipeline ${GO_PIPELINE_NAME} build ${GO_PIPELINE_LABEL}"',
+            '--param {}'.format(jenkins_param),  # Put param at the end because it's tricky and needs 2 values
+        ]
+    )
+
+    return job.add_task(
+        ExecTask(
+            [
+                '/bin/bash',
+                '-c',
+                command
+            ],
+            working_dir='tubular',
+        )
+    )
