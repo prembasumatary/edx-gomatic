@@ -63,6 +63,7 @@ def install_pipeline(save_config_locally, dry_run, variable_files, cmd_line_vars
     """
     config = utils.merge_files_and_dicts(variable_files, list(cmd_line_vars,))
 
+    analytics_api_env_var = '$GO_REVISION_ANALYTICSAPI'
     pipelines.generate_basic_multistage_pipeline(
         play='analyticsapi',
         playbook_path='playbooks/edx-east/analyticsapi.yml',
@@ -73,7 +74,8 @@ def install_pipeline(save_config_locally, dry_run, variable_files, cmd_line_vars
         config=config,
         dry_run=dry_run,
         save_config_locally=save_config_locally,
-        ANALYTICS_API_VERSION='$GO_REVISION_ANALYTICSAPI'
+        app_version=analytics_api_env_var,
+        ANALYTICS_API_VERSION=analytics_api_env_var
     )
 
 

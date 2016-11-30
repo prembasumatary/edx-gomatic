@@ -64,6 +64,7 @@ def install_pipeline(save_config_locally, dry_run, variable_files, cmd_line_vars
     """
     config = utils.merge_files_and_dicts(variable_files, list(cmd_line_vars,))
 
+    insights_version_env_var = '$GO_REVISION_INSIGHTS',
     pipelines.generate_basic_multistage_pipeline(
         play='insights',
         playbook_path='playbooks/edx-east/insights.yml',
@@ -74,8 +75,8 @@ def install_pipeline(save_config_locally, dry_run, variable_files, cmd_line_vars
         config=config,
         dry_run=dry_run,
         save_config_locally=save_config_locally,
-        app_version='$GO_REVISION_INSIGHTS',
-        INSIGHTS_VERSION='$GO_REVISION_INSIGHTS'
+        app_version=insights_version_env_var,
+        INSIGHTS_VERSION=insights_version_env_var
     )
 
 
