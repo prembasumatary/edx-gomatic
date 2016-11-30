@@ -136,6 +136,17 @@ def install_pipelines(save_config_locally, dry_run, bmd_steps, variable_files, c
         )
 
     # We always need to launch the AMI, independent deploys are done with a different pipeline
+    # if the pipeline has a migrate stage, but no building stages, look up the build information from the
+    # upstream pipeline.
+    ami_artifact = None
+    if 'm' in bmd_steps and 'b' not in bmd_steps:
+        ami_artifact = utils.ArtifactLocation(
+            config['pipeline_name_build'],
+            constants.BUILD_AMI_STAGE_NAME,
+            constants.BUILD_AMI_JOB_NAME,
+            FetchArtifactFile(constants.BUILD_AMI_FILENAME)
+        )
+
     launch_stage = stages.generate_launch_instance(
         pipeline,
         config['aws_access_key_id'],
@@ -144,6 +155,7 @@ def install_pipelines(save_config_locally, dry_run, bmd_steps, variable_files, c
         config['ec2_security_group_id'],
         config['ec2_instance_profile_name'],
         config['base_ami_id'],
+        upstream_build_artifact=ami_artifact,
         manual_approval=not config.get('auto_run', False)
     )
 
