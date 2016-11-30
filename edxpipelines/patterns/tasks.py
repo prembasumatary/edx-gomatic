@@ -72,7 +72,7 @@ def generate_launch_instance(job, optional_override_files=[], runif="passed"):
             '-e hipchat_room="$HIPCHAT_ROOM" ',
         ]
     )
-    command.format(artifact_path=constants.ARTIFACT_PATH)
+    command = command.format(artifact_path=constants.ARTIFACT_PATH)
     for override_file in optional_override_files:
         command += ' -e @../{override_file} '.format(override_file=override_file)
     command += ' playbooks/continuous_delivery/launch_instance.yml'
