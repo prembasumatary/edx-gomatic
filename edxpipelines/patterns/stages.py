@@ -61,7 +61,9 @@ def generate_launch_instance(pipeline,
                              ec2_region=constants.EC2_REGION,
                              ec2_instance_type=constants.EC2_INSTANCE_TYPE,
                              ec2_timeout=constants.EC2_LAUNCH_INSTANCE_TIMEOUT,
-                             ec2_ebs_volume_size=constants.EC2_EBS_VOLUME_SIZE):
+                             ec2_ebs_volume_size=constants.EC2_EBS_VOLUME_SIZE,
+                             upstream_build_artifact=None
+                             ):
     """
     Pattern to launch an AMI. Generates 3 artifacts:
         key.pem             - Private key material generated for this instance launch
@@ -84,6 +86,8 @@ def generate_launch_instance(pipeline,
         ec2_instance_type (str):
         ec2_timeout (str):
         ec2_ebs_volume_size (str):
+        upstream_build_artifact (edxpipelines.utils.ArtifactLocation): overrides the base_ami_id and will force
+                                                                       the task to run with the AMI built up stream.
 
     Returns:
 
@@ -120,7 +124,26 @@ def generate_launch_instance(pipeline,
     job = stage.ensure_job(constants.LAUNCH_INSTANCE_JOB_NAME)
     tasks.generate_requirements_install(job, 'tubular')
     tasks.generate_requirements_install(job, 'configuration')
-    tasks.generate_launch_instance(job)
+
+    # fetch the artifacts if there are any
+    artifacts = []
+    if upstream_build_artifact:
+        job.add_task(
+            FetchArtifactTask(
+                pipeline=upstream_build_artifact.pipeline,
+                stage=upstream_build_artifact.stage,
+                job=upstream_build_artifact.job,
+                src=upstream_build_artifact.file_name,
+            )
+        )
+        artifacts.append(
+            '{artifact_path}/{file_name}'
+            .format(
+                artifact_path=constants.ARTIFACT_PATH,
+                file_name=upstream_build_artifact.file_name
+            )
+        )
+    tasks.generate_launch_instance(job, artifacts)
 
     return stage
 

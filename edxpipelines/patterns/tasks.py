@@ -30,7 +30,7 @@ def generate_requirements_install(job, working_dir, runif="passed"):
     )
 
 
-def generate_launch_instance(job, runif="passed"):
+def generate_launch_instance(job, optional_override_files=[], runif="passed"):
     """
     Generate the launch AMI job. This ansible script generates 3 artifacts:
         key.pem             - Private key material generated for this instance launch
@@ -40,6 +40,11 @@ def generate_launch_instance(job, runif="passed"):
     Args:
         job (gomatic.job.Job): the gomatic job which to add the launch instance task
         runif (str): one of ['passed', 'failed', 'any'] Default: passed
+        optional_override_files (list): a list of additional override files to be passed to ansible.
+                                        File path should be relative to the root directory the goagent will
+                                        execute the job from
+                                        The Ansible launch job takes some overrides provided by these files:
+                                        https://github.com/edx/configuration/blob/master/playbooks/continuous_delivery/launch_instance.yml
 
     Returns:
         The newly created task (gomatic.gocd.tasks.ExecTask)
@@ -48,26 +53,36 @@ def generate_launch_instance(job, runif="passed"):
     job.ensure_artifacts(set([BuildArtifact('{}/key.pem'.format(constants.ARTIFACT_PATH)),
                              BuildArtifact('{}/ansible_inventory'.format(constants.ARTIFACT_PATH)),
                              BuildArtifact('{}/launch_info.yml'.format(constants.ARTIFACT_PATH))]))
+
+    command = ' '.join(
+        [
+            'ansible-playbook ',
+            '-vvvv ',
+            '--module-path=playbooks/library ',
+            '-i "localhost," ',
+            '-c local ',
+            '-e artifact_path=`/bin/pwd`/../{artifact_path} ',
+            '-e base_ami_id=$BASE_AMI_ID ',
+            '-e ec2_vpc_subnet_id=$EC2_VPC_SUBNET_ID ',
+            '-e ec2_security_group_id=$EC2_SECURITY_GROUP_ID ',
+            '-e ec2_instance_type=$EC2_INSTANCE_TYPE ',
+            '-e ec2_instance_profile_name=$EC2_INSTANCE_PROFILE_NAME ',
+            '-e ebs_volume_size=$EBS_VOLUME_SIZE ',
+            '-e hipchat_token=$HIPCHAT_TOKEN ',
+            '-e hipchat_room="$HIPCHAT_ROOM" ',
+        ]
+    )
+    command.format(artifact_path=constants.ARTIFACT_PATH)
+    for override_file in optional_override_files:
+        command += ' -e @../{override_file} '.format(override_file=override_file)
+    command += ' playbooks/continuous_delivery/launch_instance.yml'
+
     return job.add_task(
         ExecTask(
             [
                 '/bin/bash',
                 '-c',
-                'ansible-playbook '
-                '-vvvv '
-                '--module-path=playbooks/library '
-                '-i "localhost," '
-                '-c local '
-                '-e artifact_path=`/bin/pwd`/../{artifact_path} '
-                '-e base_ami_id=$BASE_AMI_ID '
-                '-e ec2_vpc_subnet_id=$EC2_VPC_SUBNET_ID '
-                '-e ec2_security_group_id=$EC2_SECURITY_GROUP_ID '
-                '-e ec2_instance_type=$EC2_INSTANCE_TYPE '
-                '-e ec2_instance_profile_name=$EC2_INSTANCE_PROFILE_NAME '
-                '-e ebs_volume_size=$EBS_VOLUME_SIZE '
-                '-e hipchat_token=$HIPCHAT_TOKEN '
-                '-e hipchat_room="$HIPCHAT_ROOM" '
-                'playbooks/continuous_delivery/launch_instance.yml'.format(artifact_path=constants.ARTIFACT_PATH)
+                command
             ],
             working_dir=constants.PUBLIC_CONFIGURATION_DIR,
             runif=runif
