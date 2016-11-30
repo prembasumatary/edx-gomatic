@@ -134,13 +134,15 @@ def generate_launch_instance(pipeline,
                 stage=upstream_build_artifact.stage,
                 job=upstream_build_artifact.job,
                 src=upstream_build_artifact.file_name,
+                dest=constants.ARTIFACT_PATH,
             )
         )
+        _, file_name = upstream_build_artifact.as_xml_type_and_value()
         artifacts.append(
             '{artifact_path}/{file_name}'
             .format(
                 artifact_path=constants.ARTIFACT_PATH,
-                file_name=upstream_build_artifact.file_name
+                file_name=file_name
             )
         )
     tasks.generate_launch_instance(job, artifacts)
