@@ -137,7 +137,7 @@ def generate_launch_instance(pipeline,
                 dest=constants.ARTIFACT_PATH,
             )
         )
-        _, file_name = upstream_build_artifact.as_xml_type_and_value()
+        _, file_name = upstream_build_artifact.file_name.as_xml_type_and_value
         artifacts.append(
             '{artifact_path}/{file_name}'
             .format(
