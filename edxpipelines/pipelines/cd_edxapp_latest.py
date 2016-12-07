@@ -146,6 +146,15 @@ def install_pipelines(save_config_locally, dry_run, bmd_steps, variable_files, c
             constants.BUILD_AMI_JOB_NAME,
             FetchArtifactFile(constants.BUILD_AMI_FILENAME)
         )
+    elif config['upstream_ami_selection']:
+        # If an upstream artifact is specified, use it.
+        ami_config = config['upstream_ami_selection']
+        ami_artifact = utils.ArtifactLocation(
+            ami_config['pipeline_name'],
+            ami_config['pipeline_stage'],
+            ami_config['pipeline_stage_job'],
+            FetchArtifactFile(ami_config['artifact_file'])
+        )
 
     launch_stage = stages.generate_launch_instance(
         pipeline,

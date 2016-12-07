@@ -103,7 +103,18 @@ def install_pipelines(save_config_locally, dry_run, variable_files, cmd_line_var
             )
         )
 
-    stages.generate_armed_stage(pipeline, constants.PRERELEASE_MATERIALS_STAGE_NAME)
+    base_ami_id = ''
+    if 'base_ami_id' in config:
+        base_ami_id = config['base_ami_id']
+    stages.generate_base_ami_selection(
+        pipeline,
+        config['aws_access_key_id'],
+        config['aws_secret_access_key'],
+        config['play_name'],
+        config['edx_deployment'],
+        config['edx_environment'],
+        base_ami_id
+    )
 
     gcc.save_updated_config(save_config_locally=save_config_locally, dry_run=dry_run)
 
