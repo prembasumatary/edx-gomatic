@@ -1056,3 +1056,48 @@ def generate_armed_stage(pipeline, stage_name):
     )
 
     return armed_stage
+
+
+def generate_create_pr_stage(pipeline,
+                             stage_name,
+                             org,
+                             repo,
+                             source_branch,
+                             target_branch,
+                             pr_target_branch,
+                             token):
+    """
+    Generates a stage that is used to:
+    - Create a branch (target_branch) from the source branch's head revision
+
+    create a PR for a release.
+    Args:
+        pipeline (gomatic.Pipeline): Pipeline to attach this stage to
+        stage_name (str): Name of the stage
+        org (str): Name of the github organization that holds the repository (e.g. edx)
+        repo (str): Name of repository (e.g edx-platform)
+        source_branch (str): Name of the branch to create the branch/PR from
+        target_branch (str): Name of the branch to be created (will be the head of the PR)
+        pr_target_branch (str): The base branch of the pull request (merge target_branch in to pr_target_branch)
+        token (str): the github token used to create all these things. Will be an env_var 'GIT_TOKEN'
+
+    Returns:
+        gomatic.Stage
+    """
+    pipeline.ensure_unencrypted_secure_environment_variables(
+        {
+            'GIT_TOKEN': token
+        }
+    )
+    git_stage = pipeline.ensure_stage(stage_name)
+    git_job = git_stage.ensure_job(constants.GIT_SETUP_JOB_NAME)
+    tasks.generate_create_release_candidate_branch_and_pr(
+        git_job,
+        org,
+        repo,
+        source_branch,
+        target_branch,
+        pr_target_branch
+    )
+
+    return git_stage
