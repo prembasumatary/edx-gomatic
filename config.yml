@@ -306,7 +306,7 @@ tools:
   - script: edxpipelines/pipelines/rollback_asgs.py
     input_files:
       - *tools-admin
-      - "../gomatic-secure/gocd/vars/tools/environment-deployment-play/prod-edge-edxapp-rollback-asgs.yml"
+      - "../gomatic-secure/gocd/vars/tools/environment-deployment-play/prod-edge-edxapp-private-rollback-asgs.yml"
       - *prod-stage-edxapp-private
       - *deployment-edge
     enabled: True
