@@ -1,5 +1,5 @@
 # GoMatic scripts for edX pipelines
-This repository contains Python 2.7+ code which uses the Gomatic Python module to create pipelines and their stages, jobs, and tasks in GoCD. [Gomatic](https://github.com/SpringerSBM/gomatic) is a domain-specific language (DSL) which allows pipelines to be created via code under source control instead of via the GoCD web GUI. 
+This repository contains Python 2.7.x code which uses the Gomatic Python module to create pipelines and their stages, jobs, and tasks in GoCD. [Gomatic](https://github.com/SpringerSBM/gomatic) is a domain-specific language (DSL) which allows pipelines to be created via code under source control instead of via the GoCD web GUI. 
 
 ## How to reverse-engineer a pipeline
 ```
@@ -27,4 +27,4 @@ diff config-before.xml config-after.xml
 
 ## Cautions and Caveats
 - Currently any *Secure Variables* must be hashed first by the GoCD server before putting them in the script
-- GoCD tends to mangle long strings or strings that have carrage returns in them.
+- GoCD tends to mangle long strings or strings that have carriage returns in them.
