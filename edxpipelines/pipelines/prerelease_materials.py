@@ -89,7 +89,7 @@ def install_pipelines(save_config_locally, dry_run, variable_files, cmd_line_var
                 material_name=material['material_name'],
                 polling=material['polling'],
                 destination_directory=material['destination_directory'],
-                ignore_patterns=material['ignore_patterns']
+                ignore_patterns=[] if material.get('continuous_delivery') else material['ignore_patterns']
             )
         )
 
