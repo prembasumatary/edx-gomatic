@@ -1,5 +1,5 @@
 # GoMatic scripts for edX pipelines
-This repository contains Python code which uses the Gomatic Python module to create pipelines and their stages, jobs, and tasks in GoCD. [Gomatic](https://github.com/SpringerSBM/gomatic) is a domain-specific language (DSL) which allows pipelines to be created via code under source control instead of via the GoCD web GUI. 
+This repository contains Python 2.7+ code which uses the Gomatic Python module to create pipelines and their stages, jobs, and tasks in GoCD. [Gomatic](https://github.com/SpringerSBM/gomatic) is a domain-specific language (DSL) which allows pipelines to be created via code under source control instead of via the GoCD web GUI. 
 
 ## How to reverse-engineer a pipeline
 ```
