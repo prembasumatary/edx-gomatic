@@ -127,7 +127,7 @@ def install_pipeline(save_config_locally, dry_run, variable_files, cmd_line_vars
         ExecTask(
             [
                 '/bin/bash',
-                '-c', '/usr/bin/pip install -t python-libs -r requirements/base.txt'
+                '-c', 'pip install -t python-libs -r requirements/base.txt'
             ],
             working_dir=API_MANAGER_WORKING_DIR
         )
