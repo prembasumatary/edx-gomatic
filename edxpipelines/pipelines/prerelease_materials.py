@@ -103,6 +103,8 @@ def install_pipelines(save_config_locally, dry_run, variable_files, cmd_line_var
             )
         )
 
+    stages.generate_armed_stage(pipeline, constants.PRERELEASE_MATERIALS_STAGE_NAME)
+
     gcc.save_updated_config(save_config_locally=save_config_locally, dry_run=dry_run)
 
 
