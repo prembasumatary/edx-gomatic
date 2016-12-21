@@ -105,6 +105,8 @@ tools:
   - script: edxpipelines/pipelines/prerelease_materials.py
     input_files:
       - *tools-admin
+      - *play-edxapp
+      - *deployment-edx
       - *stage-edx
       - *prod-stage-edxapp
       - "../gomatic-secure/gocd/vars/tools/edxapp-prerelease-materials.yml"

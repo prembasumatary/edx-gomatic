@@ -146,7 +146,7 @@ def install_pipelines(save_config_locally, dry_run, bmd_steps, variable_files, c
             constants.BUILD_AMI_JOB_NAME,
             FetchArtifactFile(constants.BUILD_AMI_FILENAME)
         )
-    elif config['upstream_ami_selection']:
+    elif 'upstream_ami_selection' in config:
         # If an upstream artifact is specified, use it.
         ami_config = config['upstream_ami_selection']
         ami_artifact = utils.ArtifactLocation(
