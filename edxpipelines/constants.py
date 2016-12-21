@@ -23,8 +23,6 @@ ARMED_STAGE_NAME = 'armed_stage'
 ARMED_JOB_NAME = 'armed_job'
 PRERELEASE_MATERIALS_STAGE_NAME = 'prerelease_materials'
 PRERELEASE_MATERIALS_JOB_NAME = 'prerelease_materials_job'
-BASE_AMI_SELECTION_STAGE_NAME = 'select_base_ami'
-BASE_AMI_SELECTION_JOB_NAME = 'select_base_ami_job'
 
 # Tubular configuration
 TUBULAR_SLEEP_WAIT_TIME = '20'
@@ -47,7 +45,6 @@ BUILD_AMI_FILENAME = 'ami.yml'
 DEPLOY_AMI_OUT_FILENAME = 'ami_deploy_info.yml'
 ROLLBACK_AMI_OUT_FILENAME = 'rollback_info.yml'
 LAUNCH_INSTANCE_FILENAME = 'launch_info.yml'
-BASE_AMI_OVERRIDE_FILENAME = 'ami_override.yml'
 
 # AWS Defaults
 EC2_REGION = 'us-east-1'
