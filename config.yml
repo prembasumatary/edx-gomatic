@@ -101,6 +101,13 @@ tools:
   ## START OF EDXAPP WHICH BUILDS PROD/EDGE AMIS in PARALLEL WITH STAGE DEPLOYMENT
   # Starts the build of prod AMIs earlier in pipeline.
 
+  # release-candidate branch creation
+  - script: edxpipelines/pipelines/cut_branch.py
+    input_files:
+      - *tools-admin
+      - "../gomatic-secure/gocd/vars/tools/edxapp-cutbranch.yml"
+    enabled: True
+
   # Pre-release pipeline which includes all materials.
   - script: edxpipelines/pipelines/prerelease_materials.py
     input_files:
