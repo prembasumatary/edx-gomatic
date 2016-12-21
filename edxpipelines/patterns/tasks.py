@@ -769,12 +769,12 @@ def generate_create_release_candidate_branch_and_pr(job,
     )
 
 
-def generate_create_release_candidate_branch(job,
-                                             org,
-                                             repo,
-                                             source_branch,
-                                             target_branch,
-                                             runif='passed'):
+def generate_create_branch(job,
+                           org,
+                           repo,
+                           source_branch,
+                           target_branch,
+                           runif='passed'):
     """
     Assumptions:
         Assumes a secure environment variable named "GIT_TOKEN"
