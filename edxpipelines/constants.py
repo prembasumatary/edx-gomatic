@@ -52,6 +52,7 @@ DEPLOY_AMI_OUT_FILENAME = 'ami_deploy_info.yml'
 ROLLBACK_AMI_OUT_FILENAME = 'rollback_info.yml'
 LAUNCH_INSTANCE_FILENAME = 'launch_info.yml'
 BASE_AMI_OVERRIDE_FILENAME = 'ami_override.yml'
+CREATE_BRANCH_FILENAME = 'branch.yml'
 
 # AWS Defaults
 EC2_REGION = 'us-east-1'

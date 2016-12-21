@@ -799,7 +799,8 @@ def generate_create_release_candidate_branch(job,
             '--repo {repo}',
             '--source_branch {source_branch}',
             '--target_branch {target_branch}',
-            '--token $GIT_TOKEN'
+            '--token $GIT_TOKEN',
+            '--output_file ../{artifact_path}/{output_file}'
         ]
     )
 
@@ -808,6 +809,8 @@ def generate_create_release_candidate_branch(job,
         repo=repo,
         source_branch=source_branch,
         target_branch=target_branch,
+        artifact_path=constants.ARTIFACT_PATH,
+        output_file=constants.CREATE_BRANCH_FILENAME
     )
 
     return job.add_task(

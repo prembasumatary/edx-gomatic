@@ -1091,6 +1091,7 @@ def generate_create_pr_stage(pipeline,
     )
     git_stage = pipeline.ensure_stage(stage_name)
     git_job = git_stage.ensure_job(constants.GIT_SETUP_JOB_NAME)
+    tasks.generate_target_directory(git_job)
     tasks.generate_create_release_candidate_branch_and_pr(
         git_job,
         org,
@@ -1134,6 +1135,7 @@ def generate_create_branch(pipeline,
     )
     git_stage = pipeline.ensure_stage(stage_name)
     git_job = git_stage.ensure_job(constants.GIT_CREATE_BRANCH_JOB_NAME)
+    tasks.generate_target_directory(git_job)
     tasks.generate_create_release_candidate_branch(
         git_job,
         org,
