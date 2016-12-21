@@ -709,3 +709,61 @@ def generate_update_index(job, runif='passed'):
             runif=runif
         )
     )
+
+
+def generate_create_release_candidate_branch_and_pr(job,
+                                                    org,
+                                                    repo,
+                                                    source_branch,
+                                                    target_branch,
+                                                    pr_target_branch,
+                                                    runif='passed'):
+    """
+    Assumptions:
+        Assumes a secure environment variable named "GIT_TOKEN"
+
+    Args:
+        job (gomatic.Job): the Job to attach this stage to.
+        org (str): Name of the github organization that holds the repository (e.g. edx)
+        repo (str): Name of repository (e.g edx-platform)
+        source_branch (str): Name of the branch to create the branch/PR from
+        target_branch (str): Name of the branch to be created (will be the head of the PR)
+        pr_target_branch (str): The base branch of the pull request (merge target_branch in to pr_target_branch)
+        runif (str): one of ['passed', 'failed', 'any'] Default: passed
+
+    Returns:
+        The newly created task (gomatic.gocd.tasks.ExecTask)
+
+    """
+    command = ' '.join(
+        [
+            'python',
+            'scripts/create_release_candidate.py',
+            '--org {org}',
+            '--repo {repo}',
+            '--source_branch {source_branch}',
+            '--target_branch {target_branch}',
+            '--pr_target_branch {pr_target_branch}',
+            '--token $GIT_TOKEN'
+        ]
+    )
+
+    command = command.format(
+        org=org,
+        repo=repo,
+        source_branch=source_branch,
+        target_branch=target_branch,
+        pr_target_branch=pr_target_branch
+    )
+
+    return job.add_task(
+        ExecTask(
+            [
+                '/bin/bash',
+                '-c',
+                command
+            ],
+            working_dir='tubular',
+            runif=runif
+        )
+    )
