@@ -763,7 +763,7 @@ def generate_create_release_candidate_branch_and_pr(job,
                 '-c',
                 command
             ],
-            working_dir='configuration/playbooks/continuous_delivery/',
+            working_dir='tubular',
             runif=runif
         )
     )
