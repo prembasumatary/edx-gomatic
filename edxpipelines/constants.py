@@ -27,6 +27,8 @@ BASE_AMI_SELECTION_STAGE_NAME = 'select_base_ami'
 BASE_AMI_SELECTION_JOB_NAME = 'select_base_ami_job'
 GIT_SETUP_STAGE_NAME = 'create_branch_and_pr'
 GIT_SETUP_JOB_NAME = 'create_branch_and_pr_job'
+GIT_CREATE_BRANCH_STAGE_NAME = 'create_branch'
+GIT_CREATE_BRANCH_JOB_NAME = 'create_branch_job'
 
 # Tubular configuration
 TUBULAR_SLEEP_WAIT_TIME = '20'
@@ -50,6 +52,7 @@ DEPLOY_AMI_OUT_FILENAME = 'ami_deploy_info.yml'
 ROLLBACK_AMI_OUT_FILENAME = 'rollback_info.yml'
 LAUNCH_INSTANCE_FILENAME = 'launch_info.yml'
 BASE_AMI_OVERRIDE_FILENAME = 'ami_override.yml'
+CREATE_BRANCH_FILENAME = 'branch.yml'
 
 # AWS Defaults
 EC2_REGION = 'us-east-1'
