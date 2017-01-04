@@ -91,6 +91,32 @@ def install_pipeline(save_config_locally, dry_run, variable_files, cmd_line_vars
     # with the same pinned materials from the upstream pipeline.
     stages.generate_armed_stage(pipeline, constants.INITIAL_VERIFICATION_STAGE_NAME)
 
+    # For now, you can only trigger builds on a single jenkins server, because you can only
+    # define a single username/token.
+    # And all the jobs that you want to trigger need the same job token defined.
+    # TODO: refactor when required so that each job can define their own user and job tokens
+    pipeline.ensure_unencrypted_secure_environment_variables(
+        {
+            'JENKINS_USER_TOKEN': config['jenkins_user_token'],
+            'JENKINS_JOB_TOKEN': config['jenkins_job_token']
+        }
+    )
+
+    # Create the stage with the Jenkins jobs
+    jenkins_stage = pipeline.ensure_stage(constants.JENKINS_VERIFICATION_STAGE_NAME)
+    jenkins_stage.set_has_manual_approval()
+    jenkins_user_name = config['jenkins_user_name']
+
+    for jenkins in config['jenkins_verifications']:
+        pipeline_job_name = jenkins['pipeline_job_name']
+        jenkins_url = jenkins['url']
+        jenkins_job_name = jenkins['job_name']
+        jenkins_param = jenkins['param']
+
+        job = jenkins_stage.ensure_job(pipeline_job_name)
+        tasks.generate_requirements_install(job, 'tubular')
+        tasks.trigger_jenkins_build(job, jenkins_url, jenkins_user_name, jenkins_job_name, jenkins_param)
+
     manual_verification_stage = pipeline.ensure_stage(constants.MANUAL_VERIFICATION_STAGE_NAME)
     manual_verification_stage.set_has_manual_approval()
     manual_verification_job = manual_verification_stage.ensure_job(constants.MANUAL_VERIFICATION_JOB_NAME)
