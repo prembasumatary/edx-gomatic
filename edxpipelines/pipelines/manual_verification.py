@@ -10,6 +10,7 @@ sys.path.append(path.dirname(path.dirname(path.dirname(path.abspath(__file__))))
 import edxpipelines.utils as utils
 import edxpipelines.constants as constants
 import edxpipelines.patterns.stages as stages
+import edxpipelines.patterns.tasks as tasks
 
 
 @click.command()
