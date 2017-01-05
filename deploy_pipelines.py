@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 import logging
+import os.path
 import subprocess
 import sys
 import pprint
@@ -26,7 +27,10 @@ def ensure_pipeline(script, input_files, bmd_steps, dry_run=False):
 
     command = ['python', script] + script_args
     logging.debug("Executing script: {}".format(command))
-    return subprocess.check_output(command, stderr=subprocess.STDOUT)
+    result = subprocess.check_output(command, stderr=subprocess.STDOUT)
+    if dry_run and os.environ.get('SAVE_CONFIG'):
+        subprocess.call(['git', '--no-pager', 'diff', '--no-index', '--color-words', 'config-before.xml', 'config-after.xml'])
+    return result
 
 
 def parse_config(environment, config_file_path, script_filter=None):
