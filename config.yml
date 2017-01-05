@@ -128,7 +128,7 @@ tools:
   # - prod-edge Build
 
   # Stage edxapp B/M/D
-  - script: edxpipelines/pipelines/cd_edxapp_latest.py
+  - script: edxpipelines/pipelines/cd_edxapp_stage_bmd.py
     input_files:
       - *tools-admin
       - "edxpipelines/pipelines/config/stage-edx-edxapp-latest.yml"
@@ -141,7 +141,7 @@ tools:
     enabled: True
 
   # Prod edx of edxapp - but only building!
-  - script: edxpipelines/pipelines/cd_edxapp_latest.py
+  - script: edxpipelines/pipelines/cd_edxapp_edx_b.py
     input_files:
       - *tools-admin
       - *prod-edx-edxapp-latest
@@ -155,7 +155,7 @@ tools:
     enabled: True
 
     # Prod EDGE of edxapp - but only building!
-  - script: edxpipelines/pipelines/cd_edxapp_latest.py
+  - script: edxpipelines/pipelines/cd_edxapp_edge_b.py
     input_files:
       - *tools-admin
       - *prod-edge-edxapp-latest
@@ -184,7 +184,7 @@ tools:
   # to the production EDX and EDGE environments.
 
   # Prod edx of edxapp - only migration and deployment.
-  - script: edxpipelines/pipelines/cd_edxapp_latest.py
+  - script: edxpipelines/pipelines/cd_edxapp_edx_md.py
     input_files:
       - *tools-admin
       - *prod-edx-edxapp-latest
@@ -198,7 +198,7 @@ tools:
     enabled: True
 
   # Prod EDGE of edxapp - only migration and deployment.
-  - script: edxpipelines/pipelines/cd_edxapp_latest.py
+  - script: edxpipelines/pipelines/cd_edxapp_edge_md.py
     input_files:
       - *tools-admin
       - *prod-edge-edxapp-latest
