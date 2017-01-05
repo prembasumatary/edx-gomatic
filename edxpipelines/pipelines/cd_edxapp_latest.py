@@ -212,7 +212,7 @@ def generate_build_stages(pipeline, config):
         configuration_secure_repo=config['{}_configuration_secure_repo'.format(config['edx_deployment'])],
         configuration_internal_repo=config['{}_configuration_internal_repo'.format(config['edx_deployment'])],
         configuration_repo=config['configuration_url'],
-        hipchat_auth_token=config['hipchat_token'],
+        hipchat_token=config['hipchat_token'],
         hipchat_room='release pipeline',
         configuration_version='$GO_REVISION_CONFIGURATION',
         configuration_secure_version='$GO_REVISION_{}_SECURE'.format(config['edx_deployment'].upper()),
@@ -301,7 +301,7 @@ def generate_cleanup_stages(pipeline, config):
         instance_info_location,
         aws_access_key_id=config['aws_access_key_id'],
         aws_secret_access_key=config['aws_secret_access_key'],
-        hipchat_auth_token=config['hipchat_token'],
+        hipchat_token=config['hipchat_token'],
         runif='any'
     )
     return pipeline
