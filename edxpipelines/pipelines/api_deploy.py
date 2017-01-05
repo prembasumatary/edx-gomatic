@@ -14,15 +14,6 @@ import edxpipelines.utils as utils
 import edxpipelines.pipelines.api_build as api_build
 import edxpipelines.constants as constants
 
-UPLOAD_STAGE_NAME = 'upload'
-UPLOAD_GATEWAY_JOB_NAME = 'upload_gateway'
-TEST_STAGE_NAME = 'test'
-TEST_JOB_NAME = 'test_job'
-DEPLOY_STAGE_NAME = 'deploy'
-DEPLOY_GATEWAY_JOB_NAME = 'deploy_gateway'
-LOG_STAGE_NAME = 'log'
-LOG_JOB_NAME = 'deploy_lambda'
-
 
 @click.command()
 @click.option('--save-config',
@@ -66,7 +57,38 @@ def install_pipeline(save_config_locally, dry_run, variable_files, cmd_line_vars
         .set_label_template('${build}') \
         .set_automatic_pipeline_locking()
 
-    pipeline.ensure_material(PipelineMaterial(config['pipeline']['build'], api_build.BUILD_STAGE_NAME, 'build'))
+    # Allow for a multi-stage deployment
+    if 'previous_deployment' in config['upstream_pipelines']:
+        build_material = {
+            'pipeline': config['upstream_pipelines']['previous_deployment'],
+            'stage': 'forward_build',
+            'jobs': {
+                'swagger': 'forward_build',
+                'source': 'forward_build'
+            }
+        }
+
+    elif 'build' in config['upstream_pipelines']:
+        build_material = {
+            'pipeline': config['upstream_pipelines']['build'],
+            'stage': api_build.BUILD_STAGE_NAME,
+            'jobs': {
+                'swagger': 'swagger-flatten',
+                'source': 'package-source'
+            }
+        }
+
+    else:
+        build_material = {
+            'pipeline': config['pipeline']['build'],
+            'stage': api_build.BUILD_STAGE_NAME,
+            'jobs': {
+                'swagger': 'swagger-flatten',
+                'source': 'package-source'
+            }
+        }
+
+    pipeline.ensure_material(PipelineMaterial(build_material['pipeline'], build_material['stage'], 'build'))
 
     pipeline.ensure_environment_variables(
         {
@@ -89,30 +111,27 @@ def install_pipeline(save_config_locally, dry_run, variable_files, cmd_line_vars
     })
 
     # Setup the Upload stage
-    upload_stage = pipeline.ensure_stage(UPLOAD_STAGE_NAME).set_clean_working_dir()
+    upload_stage = pipeline.ensure_stage('upload').set_clean_working_dir()
 
-    if config.get('manual_approval_required', False):
-        upload_stage.set_has_manual_approval()
-
-    upload_gateway_job = upload_stage.ensure_job(UPLOAD_GATEWAY_JOB_NAME)
+    upload_gateway_job = upload_stage.ensure_job('upload_gateway')
     upload_gateway_job.ensure_tab(Tab('output.txt', 'output.txt'))
     upload_gateway_job.ensure_tab(Tab('next_stage.txt', 'next_stage.txt'))
 
     upload_gateway_job.ensure_artifacts({BuildArtifact('next_stage.txt')})
 
     swagger_flatten_artifact_params = {
-        'pipeline': config['pipeline']['build'],
-        'stage': api_build.BUILD_STAGE_NAME,
-        'job': api_build.SWAGGER_FLATTEN_JOB_NAME,
+        'pipeline': build_material['pipeline'],
+        'stage': build_material['stage'],
+        'job': build_material['jobs']['swagger'],
         'src': FetchArtifactFile('swagger.json')
     }
     upload_gateway_job.add_task(FetchArtifactTask(**swagger_flatten_artifact_params))
 
     api_manager_artifact_params = {
-        'pipeline': config['pipeline']['build'],
-        'stage': api_build.BUILD_STAGE_NAME,
-        'job': api_build.PACKAGE_SOURCE_JOB_NAME,
-        'src': FetchArtifactDir(api_build.API_MANAGER_WORKING_DIR)
+        'pipeline': build_material['pipeline'],
+        'stage': build_material['stage'],
+        'job': build_material['jobs']['source'],
+        'src': FetchArtifactDir('api-manager')
     }
     upload_gateway_job.add_task(FetchArtifactTask(**api_manager_artifact_params))
 
@@ -127,8 +146,8 @@ def install_pipeline(save_config_locally, dry_run, variable_files, cmd_line_vars
     )
 
     # Setup the test stage
-    test_stage = pipeline.ensure_stage(TEST_STAGE_NAME)
-    test_job = test_stage.ensure_job(TEST_JOB_NAME)
+    test_stage = pipeline.ensure_stage('test')
+    test_job = test_stage.ensure_job('test_job')
     test_job.add_task(
         ExecTask(
             [
@@ -140,17 +159,15 @@ def install_pipeline(save_config_locally, dry_run, variable_files, cmd_line_vars
     )
 
     # Setup the deploy stage
-    deploy_stage = pipeline.ensure_stage(DEPLOY_STAGE_NAME)
-    deploy_gateway_job = deploy_stage.ensure_job(DEPLOY_GATEWAY_JOB_NAME)
+    deploy_stage = pipeline.ensure_stage('deploy')
+
+    if config.get('manual_approval_required', False):
+        deploy_stage.set_has_manual_approval()
+
+    deploy_gateway_job = deploy_stage.ensure_job('deploy_gateway')
     deploy_gateway_job.ensure_tab(Tab('output.txt', 'output.txt'))
 
-    next_stage_artifact_params = {
-        'pipeline': pipeline.name,
-        'stage': UPLOAD_STAGE_NAME,
-        'job': UPLOAD_GATEWAY_JOB_NAME,
-        'src': FetchArtifactFile('next_stage.txt')
-    }
-    deploy_gateway_job.add_task(FetchArtifactTask(**next_stage_artifact_params))
+    deploy_gateway_job.add_task(FetchArtifactTask(pipeline.name, 'upload', 'upload_gateway', FetchArtifactFile('next_stage.txt')))
     deploy_gateway_job.add_task(FetchArtifactTask(**api_manager_artifact_params))
     deploy_gateway_job.add_task(
         ExecTask(
@@ -164,8 +181,8 @@ def install_pipeline(save_config_locally, dry_run, variable_files, cmd_line_vars
     )
 
     # Setup the Log stage
-    log_stage = pipeline.ensure_stage(LOG_STAGE_NAME)
-    log_gateway_job = log_stage.ensure_job(LOG_JOB_NAME)
+    log_stage = pipeline.ensure_stage('log')
+    log_gateway_job = log_stage.ensure_job('deploy_lambda')
 
     log_gateway_job.ensure_environment_variables(
         {
@@ -195,6 +212,13 @@ def install_pipeline(save_config_locally, dry_run, variable_files, cmd_line_vars
             working_dir='api-manager'
         )
     )
+
+    # Setup the forward_build stage (which makes the build available to the next pipeline)
+    forward_build_stage = pipeline.ensure_stage('forward_build')
+    forward_build_job = forward_build_stage.ensure_job('forward_build')
+    forward_build_job.add_task(FetchArtifactTask(**api_manager_artifact_params))
+    forward_build_job.add_task(FetchArtifactTask(**swagger_flatten_artifact_params))
+    forward_build_job.ensure_artifacts(set([BuildArtifact("api-manager"), BuildArtifact("swagger.json")]))
 
     configurator.save_updated_config(save_config_locally=save_config_locally, dry_run=dry_run)
 
