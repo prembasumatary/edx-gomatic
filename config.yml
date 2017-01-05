@@ -151,7 +151,6 @@ tools:
       - *play-edxapp
       - *deployment-edx
       - *prerelease_upstream
-    bmd_steps: "b"
     enabled: True
 
     # Prod EDGE of edxapp - but only building!
@@ -165,7 +164,6 @@ tools:
       - *play-edxapp
       - *deployment-edge
       - *prerelease_upstream
-    bmd_steps: "b"
     enabled: True
 
   # The three pipelines above fan-in to the following single pipeline, which allows manual
@@ -194,7 +192,6 @@ tools:
       - *play-edxapp
       - *deployment-edx
       - "edxpipelines/pipelines/config/prod-edx-edxapp-gated-upstream.yml"
-    bmd_steps: "md"
     enabled: True
 
   # Prod EDGE of edxapp - only migration and deployment.
@@ -208,7 +205,6 @@ tools:
       - *play-edxapp
       - *deployment-edge
       - "edxpipelines/pipelines/config/prod-edge-edxapp-gated-upstream.yml"
-    bmd_steps: "md"
     enabled: True
 
   # Then rollback pipelines for both EDX and EDGE are created below.

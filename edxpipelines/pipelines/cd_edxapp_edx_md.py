@@ -32,13 +32,6 @@ from edxpipelines.pipelines import edxapp_pipelines
     is_flag=True
 )
 @click.option(
-    '--bmd-steps',
-    envvar='BMD_STEPS',
-    help='Specify which steps to perform of build, migrate, deploy by specifying some subset of the letters "bmd".',
-    required=False,
-    default='bmd'
-)
-@click.option(
     '--variable_file', 'variable_files',
     multiple=True,
     help='Path to yaml variable file with a dictionary of key/value pairs to be used as variables in the script.',
@@ -54,7 +47,7 @@ from edxpipelines.pipelines import edxapp_pipelines
     nargs=2,
     default={}
 )
-def install_pipelines(save_config_locally, dry_run, bmd_steps, variable_files, cmd_line_vars):
+def install_pipelines(save_config_locally, dry_run, variable_files, cmd_line_vars):
     """
     Variables needed for this pipeline:
     - gocd_username
@@ -75,7 +68,13 @@ def install_pipelines(save_config_locally, dry_run, bmd_steps, variable_files, c
     - configuration_secure_version
     - configuration_internal_version
     """
-    edxapp_pipelines.install_pipelines(save_config_locally, dry_run, bmd_steps, variable_files, cmd_line_vars)
+    edxapp_pipelines.install_pipelines(
+        save_config_locally=save_config_locally,
+        dry_run=dry_run,
+        bmd_steps="md",
+        variable_files=variable_files,
+        cmd_line_vars=cmd_line_vars,
+    )
 
 if __name__ == "__main__":
     install_pipelines()
