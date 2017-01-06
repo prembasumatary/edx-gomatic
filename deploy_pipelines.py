@@ -106,7 +106,7 @@ def run_pipelines(environment, config_file, script, verbose, dry_run):
                 dry_run
             )
             success.append(script['script'])
-        except subprocess.CalledProcessError, e:
+        except subprocess.CalledProcessError as e:
             failures.append({
                 'script': script['script'],
                 'input_files': script['input_files'],
