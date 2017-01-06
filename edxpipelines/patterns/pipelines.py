@@ -126,6 +126,24 @@ def generate_basic_multistage_pipeline(play,
             'APPLICATION_PATH': application_path,
         })
 
+    ami_selection_stage = stages.generate_base_ami_selection(
+        pipeline,
+        config['aws_access_key_id'],
+        config['aws_secret_access_key'],
+        play,
+        deployment,
+        environment,
+        config['base_ami_id']
+    )
+
+    # The artifact that provides the AMI-ID to launch
+    ami_artifact = utils.ArtifactLocation(
+        pipeline.name,
+        ami_selection_stage.name,
+        constants.BASE_AMI_SELECTION_JOB_NAME,
+        FetchArtifactFile(constants.BASE_AMI_OVERRIDE_FILENAME)
+    )
+
     # Launch a new instance on which to build the AMI
     stages.generate_launch_instance(pipeline,
                                     config['aws_access_key_id'],
@@ -134,7 +152,8 @@ def generate_basic_multistage_pipeline(play,
                                     config['ec2_security_group_id'],
                                     config['ec2_instance_profile_name'],
                                     config['base_ami_id'],
-                                    manual_approval=not config.get('auto_run', False)
+                                    manual_approval=not config.get('auto_run', False),
+                                    upstream_build_artifact=ami_artifact
                                     )
 
     # Run the Ansible play for the service

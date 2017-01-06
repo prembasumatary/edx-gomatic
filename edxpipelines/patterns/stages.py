@@ -135,6 +135,7 @@ def generate_base_ami_selection(pipeline,
             runif="passed"
         )
     )
+    return stage
 
 
 def generate_launch_instance(pipeline,
