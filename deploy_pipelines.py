@@ -11,19 +11,18 @@ import yaml
 logging.basicConfig(stream=sys.stdout, level=logging.INFO, datefmt='%Y-%m-%d %H:%M:%S')
 
 
-def ensure_pipeline(script, input_files, bmd_steps, dry_run=False):
+def ensure_pipeline(script, dry_run=False, **kwargs):
     script_args = []
 
     if dry_run:
         script_args.append('--dry-run')
 
-    if bmd_steps:
-        script_args.append('--bmd-steps')
-        script_args.append(bmd_steps)
-
-    for input_file in input_files:
-        script_args.append('--variable_file')
-        script_args.append(input_file)
+    for key, args in sorted(kwargs.items()):
+        if not isinstance(args, list):
+            args = [args]
+        for arg in args:
+            script_args.append('--{}'.format(key))
+            script_args.append(arg)
 
     command = ['python', script] + script_args
     logging.debug("Executing script: {}".format(subprocess.list2cmdline(command)))
@@ -51,7 +50,7 @@ def parse_config(environment, config_file_path, script_filter=None):
         config = yaml.safe_load(file)
     result = []
     for script in config[environment]:
-        if script['enabled']:
+        if script.pop('enabled'):
             if script_filter is None or script_filter == script['script']:
                 result.append(script)
     return result
@@ -98,19 +97,18 @@ def run_pipelines(environment, config_file, script, verbose, dry_run):
     success = []
     failures = []
     for script in scripts:
+        script_name = script.pop('script')
         try:
             ensure_pipeline(
-                script['script'],
-                script['input_files'],
-                script.get('bmd_steps', None),
-                dry_run
+                script_name,
+                dry_run=dry_run,
+                **script
             )
-            success.append(script['script'])
+            success.append(script_name)
         except subprocess.CalledProcessError as e:
             failures.append({
-                'script': script['script'],
-                'input_files': script['input_files'],
-                'bmd_steps': script.get('bmd_steps', None),
+                'script': script_name,
+                'args': script,
                 'error': e.output.split("\n")
             })
 
