@@ -133,7 +133,8 @@ def generate_basic_multistage_pipeline(play,
         play,
         deployment,
         environment,
-        config['base_ami_id']
+        config['base_ami_id'],
+        manual_approval=not config.get('auto_run', False),
     )
 
     # The artifact that provides the AMI-ID to launch
@@ -152,7 +153,6 @@ def generate_basic_multistage_pipeline(play,
                                     config['ec2_security_group_id'],
                                     config['ec2_instance_profile_name'],
                                     config['base_ami_id'],
-                                    manual_approval=not config.get('auto_run', False),
                                     upstream_build_artifact=ami_artifact
                                     )
 
