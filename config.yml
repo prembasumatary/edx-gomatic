@@ -117,7 +117,6 @@ tools:
       - *tools-admin
       - *play-edxapp
       - *deployment-edx
-      - *stage-edx
       - *prod-stage-edxapp
       - "edxpipelines/pipelines/config/edxapp-prerelease-materials.yml"
     enabled: True

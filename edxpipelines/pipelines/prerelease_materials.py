@@ -115,8 +115,8 @@ def install_pipelines(save_config_locally, dry_run, variable_files, cmd_line_var
         config['aws_access_key_id'],
         config['aws_secret_access_key'],
         config['play_name'],
-        config['edx_deployment'],
-        config['edx_environment'],
+        "edx",
+        "stage",
         base_ami_id
     )
 
