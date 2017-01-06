@@ -74,6 +74,10 @@ def install_pipelines(save_config_locally, dry_run, variable_files, cmd_line_var
         bmd_steps="md",
         variable_files=variable_files,
         cmd_line_vars=cmd_line_vars,
+        pipeline_group="edxapp_prod_deploys",
+        pipeline_name="PROD_edx_edxapp",
+        auto_run=True,
+        auto_deploy_ami=True,
     )
 
 if __name__ == "__main__":

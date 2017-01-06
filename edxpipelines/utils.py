@@ -156,16 +156,15 @@ def validate_pipeline_permutations(bmd_steps):
         raise Exception('Only supports total Build/Migrate/Deploy, Build-only, and Migrate/Deploy-only pipelines.')
 
 
-def determine_pipeline_names(config, bmd_steps):
+def determine_pipeline_names(pipeline_name, bmd_steps):
     """
     Depending on whether the BMD steps of the pipeline, read/return the correct pipeline_name config vars.
     """
-    def _generate_pipeline_name(config, bmd_steps):
+    def _generate_pipeline_name(bmd_steps):
         return '{pipeline_name}_{suffix}'\
-            .format(pipeline_name=config['pipeline_name'], suffix=VALID_PIPELINE_STEP_PERMUTATIONS[bmd_steps])
+            .format(pipeline_name=pipeline_name, suffix=VALID_PIPELINE_STEP_PERMUTATIONS[bmd_steps])
 
-    pipeline_name = _generate_pipeline_name(config, bmd_steps)
-    pipeline_name_build = _generate_pipeline_name(config, 'b')
-    if bmd_steps == 'bmd':
-        pipeline_name_build = pipeline_name
-    return pipeline_name, pipeline_name_build
+    return (
+        _generate_pipeline_name(bmd_steps),
+        _generate_pipeline_name(bmd_steps if bmd_steps == 'bmd' else 'b')
+    )

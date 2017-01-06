@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+from functools import partial
 import sys
 from os import path
 from gomatic import *
@@ -12,7 +13,9 @@ import edxpipelines.patterns.pipelines as pipelines
 import edxpipelines.constants as constants
 
 
-def install_pipelines(save_config_locally, dry_run, bmd_steps, variable_files, cmd_line_vars):
+def install_pipelines(save_config_locally, dry_run, bmd_steps, variable_files,
+                      cmd_line_vars, pipeline_group, pipeline_name,
+                      auto_deploy_ami=False, auto_run=False):
     """
     Variables needed for this pipeline:
     - gocd_username
@@ -33,12 +36,6 @@ def install_pipelines(save_config_locally, dry_run, bmd_steps, variable_files, c
     - configuration_secure_version
     - configuration_internal_version
     """
-    BMD_STAGES = {
-        'b': generate_build_stages,
-        'm': generate_migrate_stages,
-        'd': generate_deploy_stages
-    }
-
     # Sort the BMD steps by the custom 'bmd' alphabet
     bmd_steps = utils.sort_bmd(bmd_steps.lower())
 
@@ -50,14 +47,22 @@ def install_pipelines(save_config_locally, dry_run, bmd_steps, variable_files, c
 
     # Create the pipeline
     gcc = GoCdConfigurator(HostRestClient(config['gocd_url'], config['gocd_username'], config['gocd_password'], ssl=True))
-    pipeline_group = config['pipeline_group']
 
     # Some pipelines will need to know the name of the upstream pipeline that built the AMI.
     # Determine the build pipeline name and add it to the config.
-    pipeline_name, pipeline_name_build = utils.determine_pipeline_names(config, bmd_steps)
+    pipeline_name, pipeline_name_build = utils.determine_pipeline_names(pipeline_name, bmd_steps)
     if 'pipeline_name_build' in config:
         raise Exception("The config 'pipeline_name_build' value exists but should only be programmatically generated!")
-    config['pipeline_name_build'] = pipeline_name_build
+
+    BMD_STAGES = {
+        'b': generate_build_stages,
+        'm': generate_migrate_stages,
+        'd': partial(
+            generate_deploy_stages,
+            pipeline_name_build=pipeline_name_build,
+            auto_deploy_ami=auto_deploy_ami
+        )
+    }
 
     pipeline = gcc.ensure_pipeline_group(pipeline_group)\
                   .ensure_replacement_of_pipeline(pipeline_name)
@@ -100,7 +105,7 @@ def install_pipelines(save_config_locally, dry_run, bmd_steps, variable_files, c
     ami_artifact = None
     if 'm' in bmd_steps and 'b' not in bmd_steps:
         ami_artifact = utils.ArtifactLocation(
-            config['pipeline_name_build'],
+            pipeline_name_build,
             constants.BUILD_AMI_STAGE_NAME,
             constants.BUILD_AMI_JOB_NAME,
             FetchArtifactFile(constants.BUILD_AMI_FILENAME)
@@ -124,7 +129,7 @@ def install_pipelines(save_config_locally, dry_run, bmd_steps, variable_files, c
         config['ec2_instance_profile_name'],
         config['base_ami_id'],
         upstream_build_artifact=ami_artifact,
-        manual_approval=not config.get('auto_run', False)
+        manual_approval=not auto_run
     )
 
     # Generate all the requested stages
@@ -132,7 +137,7 @@ def install_pipelines(save_config_locally, dry_run, bmd_steps, variable_files, c
         BMD_STAGES[phase](pipeline, config)
 
     # Add the cleanup stage
-    generate_cleanup_stages(pipeline, config)
+    generate_cleanup_stages(pipeline, config, pipeline_name_build)
 
     gcc.save_updated_config(save_config_locally=save_config_locally, dry_run=dry_run)
 
@@ -223,12 +228,12 @@ def generate_migrate_stages(pipeline, config):
     return pipeline
 
 
-def generate_deploy_stages(pipeline, config):
+def generate_deploy_stages(pipeline, config, pipeline_name_build, auto_deploy_ami=False):
     #
     # Create the stage to deploy the AMI.
     #
     ami_file_location = utils.ArtifactLocation(
-        config['pipeline_name_build'],
+        pipeline_name_build,
         constants.BUILD_AMI_STAGE_NAME,
         constants.BUILD_AMI_JOB_NAME,
         constants.BUILD_AMI_FILENAME
@@ -240,17 +245,17 @@ def generate_deploy_stages(pipeline, config):
         config['aws_access_key_id'],
         config['aws_secret_access_key'],
         ami_file_location,
-        manual_approval=not config.get('auto_deploy_ami', False)
+        manual_approval=not auto_deploy_ami
     )
     return pipeline
 
 
-def generate_cleanup_stages(pipeline, config):
+def generate_cleanup_stages(pipeline, config, pipeline_name_build):
     #
     # Create the stage to terminate the EC2 instance used to both build the AMI and run DB migrations.
     #
     instance_info_location = utils.ArtifactLocation(
-        config['pipeline_name_build'],
+        pipeline_name_build,
         constants.LAUNCH_INSTANCE_STAGE_NAME,
         constants.LAUNCH_INSTANCE_JOB_NAME,
         constants.LAUNCH_INSTANCE_FILENAME
