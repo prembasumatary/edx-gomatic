@@ -65,7 +65,7 @@ def print_success_report(success):
 def print_failure_report(failures):
     print "Scripts failed:"
     for failure in failures:
-        logging.info("script: {}".format(pprint.pformat(failure)))
+        logging.info("script:\n{}".format(pprint.pformat(failure)))
 
 
 @click.command()
@@ -105,11 +105,12 @@ def run_pipelines(environment, config_file, script, verbose, dry_run):
                 **script
             )
             success.append(script_name)
-        except subprocess.CalledProcessError as e:
+        except subprocess.CalledProcessError as exc:
             failures.append({
+                'command': subprocess.list2cmdline(exc.cmd),
                 'script': script_name,
                 'args': script,
-                'error': e.output.split("\n")
+                'error': exc.output.split("\n")
             })
 
     if len(success) > 0:
