@@ -150,7 +150,7 @@ def install_pipelines(save_config_locally, dry_run, variable_files,
     prod_edx_md = edxapp_pipelines.install_pipelines(
         gcc,
         bmd_steps="md",
-        variable_files=variable_files + prod_edx_variable_files + ("edxpipelines/pipelines/config/prod-edx-edxapp-gated-upstream.yml",), 
+        variable_files=variable_files + prod_edx_variable_files, 
         cmd_line_vars=cmd_line_vars,
         pipeline_group="edxapp_prod_deploys",
         pipeline_name="PROD_edx_edxapp",
@@ -158,16 +158,33 @@ def install_pipelines(save_config_locally, dry_run, variable_files,
         auto_deploy_ami=True,
     )
 
+    prod_edx_md.ensure_material(
+        PipelineMaterial(prod_edx_b.name, "build_ami", "prod_edx_ami_build")
+    )
+
     prod_edge_md = edxapp_pipelines.install_pipelines(
         gcc,
         bmd_steps="md",
-        variable_files=variable_files + prod_edge_variable_files + ("edxpipelines/pipelines/config/prod-edge-edxapp-gated-upstream.yml",),
+        variable_files=variable_files + prod_edge_variable_files,
         cmd_line_vars=cmd_line_vars,
         pipeline_group="edxapp_prod_deploys",
         pipeline_name="PROD_edge_edxapp",
         auto_run=True,
         auto_deploy_ami=True,
     )
+
+    prod_edge_md.ensure_material(
+        PipelineMaterial(prod_edge_b.name, "build_ami", "prod_edge_ami_build")
+    )
+
+    for pipeline in (prod_edx_md, prod_edge_md):
+        pipeline.ensure_material(
+            PipelineMaterial(
+                pipeline_name="manual_verification_edxapp_prod_early_ami_build",
+                stage_name="manual_verification",
+                material_name="prod_release_gate",
+            )
+        )
 
     gcc.save_updated_config(save_config_locally=save_config_locally, dry_run=dry_run)
 
