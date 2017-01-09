@@ -20,4 +20,4 @@ materials:
     destination_directory: "tubular"
     ignore_patterns:
       - '**/*'
-cron: "0 0/5 15-19 * ? * MON-FRI"
+cron: "0 0/5 15-19 ? * MON-FRI"
