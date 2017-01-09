@@ -110,7 +110,7 @@ def merge_files_and_dicts(file_paths, dicts):
         else:
             raise ValueError("dicts contains an instance that is not a dictionary {}".format(d.__class__))
 
-    [file_variables.append(d) for d in dict_vars]
+    file_variables.extend(dict_vars)
     return dict_merge(*file_variables)
 
 
