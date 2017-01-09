@@ -101,10 +101,10 @@ def install_pipelines(save_config_locally, dry_run, variable_files,
     # Create the pipeline
     gcc = GoCdConfigurator(HostRestClient(config['gocd_url'], config['gocd_username'], config['gocd_password'], ssl=True))
 
-    edxapp_pipelines.install_pipelines(
+    stage_bmd = edxapp_pipelines.install_pipelines(
         gcc,
         bmd_steps="bmd",
-        variable_files=variable_files + stage_variable_files + ("edxpipelines/pipelines/config/stage-edx-edxapp-prerelease-upstream.yml",),
+        variable_files=variable_files + stage_variable_files,
         cmd_line_vars=cmd_line_vars,
         pipeline_group="edxapp",
         pipeline_name="STAGE_edxapp",
@@ -112,10 +112,10 @@ def install_pipelines(save_config_locally, dry_run, variable_files,
         auto_deploy_ami=True,
     )
     
-    edxapp_pipelines.install_pipelines(
+    prod_edx_b = edxapp_pipelines.install_pipelines(
         gcc,
         bmd_steps="b",
-        variable_files=variable_files + prod_edx_variable_files + ("edxpipelines/pipelines/config/stage-edx-edxapp-prerelease-upstream.yml",),
+        variable_files=variable_files + prod_edx_variable_files,
         cmd_line_vars=cmd_line_vars,
         pipeline_group="edxapp_prod_deploys",
         pipeline_name="PROD_edx_edxapp",
@@ -123,10 +123,10 @@ def install_pipelines(save_config_locally, dry_run, variable_files,
         auto_deploy_ami=True,
     )
 
-    edxapp_pipelines.install_pipelines(
+    prod_edge_b = edxapp_pipelines.install_pipelines(
         gcc,
         bmd_steps="b",
-        variable_files=variable_files + prod_edge_variable_files + ("edxpipelines/pipelines/config/stage-edx-edxapp-prerelease-upstream.yml",),
+        variable_files=variable_files + prod_edge_variable_files,
         cmd_line_vars=cmd_line_vars,
         pipeline_group="edxapp_prod_deploys",
         pipeline_name="PROD_edge_edxapp",
@@ -134,10 +134,20 @@ def install_pipelines(save_config_locally, dry_run, variable_files,
         auto_deploy_ami=True,
     )
 
+    for pipeline in (stage_bmd, prod_edx_b, prod_edge_b):
+        pipeline.ensure_material(
+            PipelineMaterial(
+                pipeline_name="prerelease_edxapp_materials_latest",
+                stage_name="select_base_ami",
+                material_name="prerelease",
+            )
+        )
+
+
   # When manually triggered in the pipeline above, the following two pipelines migrate/deploy
   # to the production EDX and EDGE environments.
 
-    edxapp_pipelines.install_pipelines(
+    prod_edx_md = edxapp_pipelines.install_pipelines(
         gcc,
         bmd_steps="md",
         variable_files=variable_files + prod_edx_variable_files + ("edxpipelines/pipelines/config/prod-edx-edxapp-gated-upstream.yml",), 
@@ -148,7 +158,7 @@ def install_pipelines(save_config_locally, dry_run, variable_files,
         auto_deploy_ami=True,
     )
 
-    edxapp_pipelines.install_pipelines(
+    prod_edge_md = edxapp_pipelines.install_pipelines(
         gcc,
         bmd_steps="md",
         variable_files=variable_files + prod_edge_variable_files + ("edxpipelines/pipelines/config/prod-edge-edxapp-gated-upstream.yml",),

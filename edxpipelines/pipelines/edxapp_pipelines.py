@@ -136,6 +136,7 @@ def install_pipelines(gcc, bmd_steps, variable_files,
     # Add the cleanup stage
     generate_cleanup_stages(pipeline, config, pipeline_name_build)
 
+    return pipeline
 
 
 def generate_build_stages(pipeline, config):
