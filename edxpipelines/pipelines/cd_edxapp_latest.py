@@ -95,9 +95,14 @@ def install_pipelines(save_config_locally, dry_run, variable_files,
     - configuration_internal_version
     """
 
+    # Merge the configuration files/variables together
+    config = utils.merge_files_and_dicts(variable_files, list(cmd_line_vars,))
+
+    # Create the pipeline
+    gcc = GoCdConfigurator(HostRestClient(config['gocd_url'], config['gocd_username'], config['gocd_password'], ssl=True))
+
     edxapp_pipelines.install_pipelines(
-        save_config_locally=save_config_locally,
-        dry_run=dry_run,
+        gcc,
         bmd_steps="bmd",
         variable_files=variable_files + stage_variable_files + ("edxpipelines/pipelines/config/stage-edx-edxapp-prerelease-upstream.yml",),
         cmd_line_vars=cmd_line_vars,
@@ -108,8 +113,7 @@ def install_pipelines(save_config_locally, dry_run, variable_files,
     )
     
     edxapp_pipelines.install_pipelines(
-        save_config_locally=save_config_locally,
-        dry_run=dry_run,
+        gcc,
         bmd_steps="b",
         variable_files=variable_files + prod_edx_variable_files + ("edxpipelines/pipelines/config/stage-edx-edxapp-prerelease-upstream.yml",),
         cmd_line_vars=cmd_line_vars,
@@ -120,8 +124,7 @@ def install_pipelines(save_config_locally, dry_run, variable_files,
     )
 
     edxapp_pipelines.install_pipelines(
-        save_config_locally=save_config_locally,
-        dry_run=dry_run,
+        gcc,
         bmd_steps="b",
         variable_files=variable_files + prod_edge_variable_files + ("edxpipelines/pipelines/config/stage-edx-edxapp-prerelease-upstream.yml",),
         cmd_line_vars=cmd_line_vars,
@@ -135,8 +138,7 @@ def install_pipelines(save_config_locally, dry_run, variable_files,
   # to the production EDX and EDGE environments.
 
     edxapp_pipelines.install_pipelines(
-        save_config_locally=save_config_locally,
-        dry_run=dry_run,
+        gcc,
         bmd_steps="md",
         variable_files=variable_files + prod_edx_variable_files + ("edxpipelines/pipelines/config/prod-edx-edxapp-gated-upstream.yml",), 
         cmd_line_vars=cmd_line_vars,
@@ -147,8 +149,7 @@ def install_pipelines(save_config_locally, dry_run, variable_files,
     )
 
     edxapp_pipelines.install_pipelines(
-        save_config_locally=save_config_locally,
-        dry_run=dry_run,
+        gcc,
         bmd_steps="md",
         variable_files=variable_files + prod_edge_variable_files + ("edxpipelines/pipelines/config/prod-edge-edxapp-gated-upstream.yml",),
         cmd_line_vars=cmd_line_vars,
@@ -158,6 +159,7 @@ def install_pipelines(save_config_locally, dry_run, variable_files,
         auto_deploy_ami=True,
     )
 
+    gcc.save_updated_config(save_config_locally=save_config_locally, dry_run=dry_run)
 
 if __name__ == "__main__":
     install_pipelines()

@@ -13,7 +13,7 @@ import edxpipelines.patterns.pipelines as pipelines
 import edxpipelines.constants as constants
 
 
-def install_pipelines(save_config_locally, dry_run, bmd_steps, variable_files,
+def install_pipelines(gcc, bmd_steps, variable_files,
                       cmd_line_vars, pipeline_group, pipeline_name,
                       auto_deploy_ami=False, auto_run=False):
     """
@@ -44,9 +44,6 @@ def install_pipelines(save_config_locally, dry_run, bmd_steps, variable_files,
 
     # Merge the configuration files/variables together
     config = utils.merge_files_and_dicts(variable_files, list(cmd_line_vars,))
-
-    # Create the pipeline
-    gcc = GoCdConfigurator(HostRestClient(config['gocd_url'], config['gocd_username'], config['gocd_password'], ssl=True))
 
     # Some pipelines will need to know the name of the upstream pipeline that built the AMI.
     # Determine the build pipeline name and add it to the config.
@@ -139,7 +136,6 @@ def install_pipelines(save_config_locally, dry_run, bmd_steps, variable_files,
     # Add the cleanup stage
     generate_cleanup_stages(pipeline, config, pipeline_name_build)
 
-    gcc.save_updated_config(save_config_locally=save_config_locally, dry_run=dry_run)
 
 
 def generate_build_stages(pipeline, config):
