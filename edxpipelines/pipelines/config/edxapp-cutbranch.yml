@@ -1,0 +1,23 @@
+---
+pipeline_name: "edxapp_cut_release_candidate"
+pipeline_group: "edxapp"
+org: "edx"
+repo: "edx-platform"
+source_branch: &source_branch "master"
+target_branch: "release-candidate"
+materials:
+  - url: "https://github.com/edx/edx-platform"
+    branch: *source_branch
+    material_name: "edx-platform"
+    polling: "True"
+    destination_directory: "edx-platform"
+    ignore_patterns:
+      - ''
+  - url: "https://github.com/edx/tubular"
+    branch: "master"
+    material_name: "tubular"
+    polling: "True"
+    destination_directory: "tubular"
+    ignore_patterns:
+      - '**/*'
+cron: "0 0/5 15-19 * ? * MON-FRI"

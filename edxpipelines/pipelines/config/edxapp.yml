@@ -1,0 +1,6 @@
+application_path: "/edx/app/edxapp"
+edxapp_subapps:
+  - cms
+  - lms
+play_name: "edxapp"
+db_migration_user: "www-data"

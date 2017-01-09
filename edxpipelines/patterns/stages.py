@@ -347,6 +347,7 @@ def generate_create_ami_from_instance(pipeline,
                                       ami_wait='yes',
                                       cache_id='',
                                       artifact_path=constants.ARTIFACT_PATH,
+                                      hipchat_token='',
                                       hipchat_room=constants.HIPCHAT_ROOM,
                                       manual_approval=False,
                                       **kwargs):
@@ -386,7 +387,8 @@ def generate_create_ami_from_instance(pipeline,
     pipeline.ensure_encrypted_environment_variables(
         {
             'AWS_ACCESS_KEY_ID': aws_access_key_id,
-            'AWS_SECRET_ACCESS_KEY': aws_secret_access_key
+            'AWS_SECRET_ACCESS_KEY': aws_secret_access_key,
+            'HIPCHAT_TOKEN': hipchat_token,
         }
     )
 
@@ -519,7 +521,7 @@ def generate_deploy_ami(pipeline,
 
 
 def generate_edp_validation(pipeline,
-                            hipchat_auth_token,
+                            hipchat_token,
                             hipchat_channels,
                             asgard_api_endpoints,
                             ami_deployment,
@@ -532,7 +534,7 @@ def generate_edp_validation(pipeline,
 
     Args:
         pipeline (gomatic.Pipeline):
-        hipchat_auth_token (str):
+        hipchat_token (str):
         hipchat_channels (str): The channels/users to notify
         asgard_api_endpoints (str): canonical URL for asgard.
         ami_deployment (str): typically one of: [edx, edge, etc...]
@@ -549,7 +551,7 @@ def generate_edp_validation(pipeline,
                                            'ASGARD_API_ENDPOINTS': asgard_api_endpoints,
                                            'AMI_ENVIRONMENT': ami_environment,
                                            'AMI_PLAY': ami_play}) \
-        .ensure_encrypted_environment_variables({'HIPCHAT_TOKEN': hipchat_auth_token})
+        .ensure_encrypted_environment_variables({'HIPCHAT_TOKEN': hipchat_token})
 
     stage = pipeline.ensure_stage("Validation")
     if manual_approval:
@@ -694,7 +696,7 @@ def generate_terminate_instance(pipeline,
                                 instance_info_location,
                                 aws_access_key_id,
                                 aws_secret_access_key,
-                                hipchat_auth_token,
+                                hipchat_token,
                                 ec2_region=constants.EC2_REGION,
                                 artifact_path=constants.ARTIFACT_PATH,
                                 runif='any',
@@ -716,7 +718,7 @@ def generate_terminate_instance(pipeline,
         {
             'AWS_ACCESS_KEY_ID': aws_access_key_id,
             'AWS_SECRET_ACCESS_KEY': aws_secret_access_key,
-            'HIPCHAT_TOKEN': hipchat_auth_token
+            'HIPCHAT_TOKEN': hipchat_token
         }
     )
     pipeline.ensure_environment_variables(
@@ -754,7 +756,7 @@ def generate_rollback_asg_stage(
     asgard_token,
     aws_access_key_id,
     aws_secret_access_key,
-    hipchat_auth_token,
+    hipchat_token,
     hipchat_room,
     deploy_file_location
 ):
@@ -786,7 +788,7 @@ def generate_rollback_asg_stage(
             'ASGARD_API_TOKEN': asgard_token,
             'AWS_ACCESS_KEY_ID': aws_access_key_id,
             'AWS_SECRET_ACCESS_KEY': aws_secret_access_key,
-            'HIPCHAT_TOKEN': hipchat_auth_token,
+            'HIPCHAT_TOKEN': hipchat_token,
         }
     )
 
@@ -842,7 +844,7 @@ def generate_ansible_stage(
     application_user,
     application_name,
     application_path,
-    hipchat_auth_token,
+    hipchat_token,
     hipchat_room=constants.HIPCHAT_ROOM,
     manual_approval=False
 ):
@@ -859,7 +861,7 @@ def generate_ansible_stage(
             application_user (str): Username to use while running the migrations
             application_name (str): Name of the application (e.g. edxapp, programs, etc...)
             application_path (str): path of the application installed on the target machine
-            hipchat_auth_token (str): HipChat authentication token
+            hipchat_token (str): HipChat authentication token
             hipchat_room (str): HipChat room where announcements should be made
             manual_approval (bool): Should this stage require manual approval?
 
@@ -877,7 +879,7 @@ def generate_ansible_stage(
     )
     pipeline.ensure_encrypted_environment_variables(
         {
-            'HIPCHAT_TOKEN': hipchat_auth_token,
+            'HIPCHAT_TOKEN': hipchat_token,
         }
     )
 
@@ -942,7 +944,7 @@ def generate_refresh_metadata(
     application_user,
     application_name,
     application_path,
-    hipchat_auth_token='',
+    hipchat_token='',
     hipchat_room=constants.HIPCHAT_ROOM,
     manual_approval=False
 ):
@@ -957,7 +959,7 @@ def generate_refresh_metadata(
         application_user (str): Username to use while running the migrations
         application_name (str): Name of the application (e.g. edxapp, programs, etc...)
         application_path (str): path of the application installed on the target machine
-        hipchat_auth_token (str): HipChat authentication token
+        hipchat_token (str): HipChat authentication token
         hipchat_room (str): HipChat room where announcements should be made
         manual_approval (bool): Should this stage require manual approval?
 
@@ -974,7 +976,7 @@ def generate_refresh_metadata(
         application_user,
         application_name,
         application_path,
-        hipchat_auth_token,
+        hipchat_token,
         hipchat_room,
         manual_approval
     )
@@ -988,7 +990,7 @@ def generate_update_index(
     application_user,
     application_name,
     application_path,
-    hipchat_auth_token='',
+    hipchat_token='',
     hipchat_room=constants.HIPCHAT_ROOM,
     manual_approval=False
 ):
@@ -1003,7 +1005,7 @@ def generate_update_index(
         application_user (str): Username to use while running the migrations
         application_name (str): Name of the application (e.g. edxapp, programs, etc...)
         application_path (str): path of the application installed on the target machine
-        hipchat_auth_token (str): HipChat authentication token
+        hipchat_token (str): HipChat authentication token
         hipchat_room (str): HipChat room where announcements should be made
         manual_approval (bool): Should this stage require manual approval?
 
@@ -1020,7 +1022,7 @@ def generate_update_index(
         application_user,
         application_name,
         application_path,
-        hipchat_auth_token,
+        hipchat_token,
         hipchat_room,
         manual_approval
     )

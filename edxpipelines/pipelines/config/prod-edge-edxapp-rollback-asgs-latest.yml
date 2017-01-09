@@ -1,0 +1,11 @@
+pipeline_group: "edxapp_prod_deploys"
+pipeline_name: "PROD_edge_edxapp_Rollback_latest"
+upstream_pipeline:
+  pipeline_name: "PROD_edge_edxapp_M-D"
+  stage_name: "deploy_ami"
+  material_name: "deploy_pipeline"
+upstream_deploy_artifact:
+  pipeline_name: "PROD_edge_edxapp_M-D"
+  stage_name: "deploy_ami"
+  job_name: "deploy_ami_job"
+  artifact_name: "ami_deploy_info.yml"

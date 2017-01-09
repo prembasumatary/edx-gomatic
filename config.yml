@@ -13,19 +13,21 @@ anchors:
   - &prod-mckinsey "../gomatic-secure/gocd/vars/tools/environment-deployments/prod-mckinsey.yml"
   - &loadtest-edx  "../gomatic-secure/gocd/vars/tools/environment-deployments/loadtest-edx.yml"
 
-  - &play-edxapp      "../gomatic-secure/gocd/vars/tools/plays/edxapp.yml"
+  - &play-edxapp      "edxpipelines/pipelines/config/edxapp.yml"
   - &play-ecommerce   "../gomatic-secure/gocd/vars/tools/plays/ecommerce.yml"
   - &play-ecomworker  "../gomatic-secure/gocd/vars/tools/plays/ecomworker.yml"
   - &play-credentials "../gomatic-secure/gocd/vars/tools/plays/credentials.yml"
   - &play-programs    "../gomatic-secure/gocd/vars/tools/plays/programs.yml"
   - &play-discovery   "../gomatic-secure/gocd/vars/tools/plays/discovery.yml"
 
-  - &prod-stage-edxapp         "../gomatic-secure/gocd/vars/tools/environment-play/prod-stage-edxapp.yml"
+  - &prod-stage-edxapp         "edxpipelines/pipelines/config/prod-stage-edxapp.yml"
   - &prod-stage-edxapp-private "../gomatic-secure/gocd/vars/tools/environment-play/prod-stage-edxapp-private.yml"
 
-  - &prerelease_upstream     "../gomatic-secure/gocd/vars/tools/environment-deployment-play/stage-edx-edxapp-prerelease-upstream.yml"
-  - &prod-edx-edxapp-latest  "../gomatic-secure/gocd/vars/tools/environment-deployment-play/prod-edx-edxapp-latest.yml"
-  - &prod-edge-edxapp-latest "../gomatic-secure/gocd/vars/tools/environment-deployment-play/prod-edge-edxapp-latest.yml"
+  - &prerelease_upstream     "edxpipelines/pipelines/config/stage-edx-edxapp-prerelease-upstream.yml"
+  - &prod-edx-edxapp-latest  "edxpipelines/pipelines/config/prod-edx-edxapp-latest.yml"
+  - &prod-edge-edxapp-latest "edxpipelines/pipelines/config/prod-edge-edxapp-latest.yml"
+  - &prod-edx-edxapp-latest-secure  "../gomatic-secure/gocd/vars/tools/environment-deployment-play/prod-edx-edxapp-latest.yml"
+  - &prod-edge-edxapp-latest-secure "../gomatic-secure/gocd/vars/tools/environment-deployment-play/prod-edge-edxapp-latest.yml"
 
 tools:
   ## Start of 'Janitors' pipeline group
@@ -106,6 +108,7 @@ tools:
     input_files:
       - *tools-admin
       - "../gomatic-secure/gocd/vars/tools/edxapp-cutbranch.yml"
+      - "edxpipelines/pipelines/config/edxapp-cutbranch.yml"
     enabled: True
 
   # Pre-release pipeline which includes all materials.
@@ -116,7 +119,7 @@ tools:
       - *deployment-edx
       - *stage-edx
       - *prod-stage-edxapp
-      - "../gomatic-secure/gocd/vars/tools/edxapp-prerelease-materials.yml"
+      - "edxpipelines/pipelines/config/edxapp-prerelease-materials.yml"
     enabled: True
 
   # Now the three pipelines which fan-out from pre-release:
@@ -128,6 +131,7 @@ tools:
   - script: edxpipelines/pipelines/cd_edxapp_latest.py
     input_files:
       - *tools-admin
+      - "edxpipelines/pipelines/config/stage-edx-edxapp-latest.yml"
       - "../gomatic-secure/gocd/vars/tools/environment-deployment-play/stage-edx-edxapp-latest.yml"
       - *stage-edx
       - *prod-stage-edxapp
@@ -141,6 +145,7 @@ tools:
     input_files:
       - *tools-admin
       - *prod-edx-edxapp-latest
+      - *prod-edx-edxapp-latest-secure
       - *prod-edx
       - *prod-stage-edxapp
       - *play-edxapp
@@ -154,6 +159,7 @@ tools:
     input_files:
       - *tools-admin
       - *prod-edge-edxapp-latest
+      - *prod-edge-edxapp-latest-secure
       - *prod-edge
       - *prod-stage-edxapp
       - *play-edxapp
@@ -170,6 +176,7 @@ tools:
     input_files:
       - *tools-admin
       - "../gomatic-secure/gocd/vars/tools/environment-play/edxapp-manual-verification-latest.yml"
+      - "edxpipelines/pipelines/config/edxapp-manual-verification-latest.yml"
       - *prod-stage-edxapp
     enabled: True
 
@@ -181,11 +188,12 @@ tools:
     input_files:
       - *tools-admin
       - *prod-edx-edxapp-latest
+      - *prod-edx-edxapp-latest-secure
       - *prod-edx
       - *prod-stage-edxapp
       - *play-edxapp
       - *deployment-edx
-      - "../gomatic-secure/gocd/vars/tools/environment-deployment-play/prod-edx-edxapp-gated-upstream.yml"
+      - "edxpipelines/pipelines/config/prod-edx-edxapp-gated-upstream.yml"
     bmd_steps: "md"
     enabled: True
 
@@ -194,11 +202,12 @@ tools:
     input_files:
       - *tools-admin
       - *prod-edge-edxapp-latest
+      - *prod-edge-edxapp-latest-secure
       - *prod-edge
       - *prod-stage-edxapp
       - *play-edxapp
       - *deployment-edge
-      - "../gomatic-secure/gocd/vars/tools/environment-deployment-play/prod-edge-edxapp-gated-upstream.yml"
+      - "edxpipelines/pipelines/config/prod-edge-edxapp-gated-upstream.yml"
     bmd_steps: "md"
     enabled: True
 
@@ -208,7 +217,7 @@ tools:
   - script: edxpipelines/pipelines/rollback_asgs.py
     input_files:
       - *tools-admin
-      - "../gomatic-secure/gocd/vars/tools/environment-deployment-play/prod-edx-edxapp-rollback-asgs-latest.yml"
+      - "edxpipelines/pipelines/config/prod-edx-edxapp-rollback-asgs-latest.yml"
       - *prod-stage-edxapp
       - *deployment-edx
     enabled: True
@@ -217,7 +226,7 @@ tools:
   - script: edxpipelines/pipelines/rollback_asgs.py
     input_files:
       - *tools-admin
-      - "../gomatic-secure/gocd/vars/tools/environment-deployment-play/prod-edge-edxapp-rollback-asgs-latest.yml"
+      - "edxpipelines/pipelines/config/prod-edge-edxapp-rollback-asgs-latest.yml"
       - *prod-stage-edxapp
       - *deployment-edge
     enabled: True

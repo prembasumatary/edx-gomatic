@@ -1,0 +1,4 @@
+pipeline_group: "edxapp_prod_deploys"
+pipeline_name: "PROD_edge_edxapp"
+auto_run: "True"
+auto_deploy_ami: "True"

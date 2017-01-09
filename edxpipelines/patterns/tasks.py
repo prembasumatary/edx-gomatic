@@ -134,7 +134,7 @@ def generate_create_ami(job, runif="passed", **kwargs):
     )
 
     command = command.format(artifact_path=constants.ARTIFACT_PATH)
-    for k, v in kwargs.iteritems():
+    for k, v in sorted(kwargs.items()):
         command += ' -e {key}={value} '.format(key=k, value=v)
     command += 'playbooks/continuous_delivery/create_ami.yml'
 
@@ -453,7 +453,7 @@ def generate_run_app_playbook(job, internal_dir, secure_dir, playbook_path, runi
         ]
     )
     command = command.format(secure_dir=secure_dir, internal_dir=internal_dir, artifact_path=constants.ARTIFACT_PATH)
-    for k, v in kwargs.iteritems():
+    for k, v in sorted(kwargs.items()):
         command += ' -e {key}={value} '.format(key=k, value=v)
     command += playbook_path
 

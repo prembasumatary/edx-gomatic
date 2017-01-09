@@ -168,7 +168,7 @@ def generate_basic_multistage_pipeline(play,
                              # remove above line and uncomment the below once materials are changed over to list.
                              # configuration_secure_dir='{}-secure'.format(config['edx_deployment']),
                              private_github_key=config['github_private_key'],
-                             hipchat_auth_token=hipchat_token,
+                             hipchat_token=hipchat_token,
                              hipchat_room=hipchat_room,
                              disable_edx_services='true',
                              COMMON_TAG_EC2_INSTANCE='true',
@@ -185,7 +185,7 @@ def generate_basic_multistage_pipeline(play,
         configuration_secure_repo=config['configuration_secure_repo'],
         aws_access_key_id=config['aws_access_key_id'],
         aws_secret_access_key=config['aws_secret_access_key'],
-        hipchat_auth_token=hipchat_token,
+        hipchat_token=hipchat_token,
         hipchat_room=hipchat_room,
         configuration_secure_version='$GO_REVISION_CONFIGURATION_SECURE',
         # remove above line and uncomment the below once materials are changed over to list.
@@ -234,7 +234,7 @@ def generate_basic_multistage_pipeline(play,
             application_user=application_user,
             application_name=application_name,
             application_path=application_path,
-            hipchat_auth_token=hipchat_token,
+            hipchat_token=hipchat_token,
             hipchat_room=hipchat_room
         )
 
@@ -268,7 +268,7 @@ def generate_basic_multistage_pipeline(play,
         instance_info_location,
         aws_access_key_id=config['aws_access_key_id'],
         aws_secret_access_key=config['aws_secret_access_key'],
-        hipchat_auth_token=hipchat_token,
+        hipchat_token=hipchat_token,
         runif='any'
     )
     gcc.save_updated_config(save_config_locally=save_config_locally, dry_run=dry_run)
