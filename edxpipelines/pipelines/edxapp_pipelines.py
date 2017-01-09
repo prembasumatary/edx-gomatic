@@ -15,6 +15,8 @@ import edxpipelines.constants as constants
 
 def build_migrate_deploy_subset_pipeline(
     gcc, bmd_steps, variable_files, cmd_line_vars, pipeline_group, pipeline_name,
+    app_repo, theme_url, configuration_secure_repo, configuration_internal_repo,
+    configuration_url,
     auto_deploy_ami=False, auto_run=False):
     """
     Variables needed for this pipeline:
@@ -52,7 +54,14 @@ def build_migrate_deploy_subset_pipeline(
         raise Exception("The config 'pipeline_name_build' value exists but should only be programmatically generated!")
 
     BMD_STAGES = {
-        'b': generate_build_stages,
+        'b': partial(
+            generate_build_stages,
+            app_repo=app_repo,
+            theme_url=theme_url,
+            configuration_secure_repo=configuration_secure_repo,
+            configuration_internal_repo=configuration_internal_repo,
+            configuration_url=configuration_url,
+        ),
         'm': generate_migrate_stages,
         'd': partial(
             generate_deploy_stages,
@@ -63,28 +72,6 @@ def build_migrate_deploy_subset_pipeline(
 
     pipeline = gcc.ensure_pipeline_group(pipeline_group)\
                   .ensure_replacement_of_pipeline(pipeline_name)
-
-    # Setup the materials
-    # Example materials yaml
-    # materials:
-    #   - url: "https://github.com/edx/tubular"
-    #     branch: "master"
-    #     material_name: "tubular"
-    #     polling: "True"
-    #     destination_directory: "tubular"
-    #     ignore_patterns:
-    #     - '**/*'
-    for material in config.get('materials', []):
-        pipeline.ensure_material(
-            GitMaterial(
-                url=material['url'],
-                branch=material['branch'],
-                material_name=material['material_name'],
-                polling=material['polling'],
-                destination_directory=material['destination_directory'],
-                ignore_patterns=material['ignore_patterns']
-            )
-        )
 
     # Setup the upstream pipeline materials
     for material in config.get('upstream_pipelines', []):
@@ -139,7 +126,8 @@ def build_migrate_deploy_subset_pipeline(
     return pipeline
 
 
-def generate_build_stages(pipeline, config):
+def generate_build_stages(pipeline, config, app_repo, theme_url, configuration_secure_repo,
+                          configuration_internal_repo, configuration_url):
     stages.generate_run_play(
         pipeline,
         'playbooks/edx-east/edxapp.yml',
@@ -147,7 +135,7 @@ def generate_build_stages(pipeline, config):
         deployment=config['edx_deployment'],
         edx_environment=config['edx_environment'],
         private_github_key=config['github_private_key'],
-        app_repo=config['app_repo'],
+        app_repo=app_repo,
         configuration_secure_dir='{}-secure'.format(config['edx_deployment']),
         configuration_internal_dir='{}-internal'.format(config['edx_deployment']),
         hipchat_token=config['hipchat_token'],
@@ -155,7 +143,7 @@ def generate_build_stages(pipeline, config):
         edx_platform_version='$GO_REVISION_EDX_PLATFORM',
         edx_platform_repo='$APP_REPO',
         configuration_version='$GO_REVISION_CONFIGURATION',
-        edxapp_theme_source_repo=config['theme_url'],
+        edxapp_theme_source_repo=theme_url,
         edxapp_theme_version='$GO_REVISION_EDX_THEME',
         edxapp_theme_name='$EDXAPP_THEME_NAME',
         disable_edx_services='true',
@@ -168,11 +156,11 @@ def generate_build_stages(pipeline, config):
         play=config['play_name'],
         deployment=config['edx_deployment'],
         edx_environment=config['edx_environment'],
-        app_repo=config['app_repo'],
+        app_repo=app_repo,
         app_version='$GO_REVISION_EDX_PLATFORM',
-        configuration_secure_repo=config['{}_configuration_secure_repo'.format(config['edx_deployment'])],
-        configuration_internal_repo=config['{}_configuration_internal_repo'.format(config['edx_deployment'])],
-        configuration_repo=config['configuration_url'],
+        configuration_secure_repo=configuration_secure_repo,
+        configuration_internal_repo=configuration_internal_repo,
+        configuration_repo=configuration_url,
         hipchat_token=config['hipchat_token'],
         hipchat_room='release pipeline',
         configuration_version='$GO_REVISION_CONFIGURATION',
@@ -180,7 +168,7 @@ def generate_build_stages(pipeline, config):
         configuration_internal_version='$GO_REVISION_{}_SECURE'.format(config['edx_deployment'].upper()),
         aws_access_key_id=config['aws_access_key_id'],
         aws_secret_access_key=config['aws_secret_access_key'],
-        edxapp_theme_source_repo=config['theme_url'],
+        edxapp_theme_source_repo=theme_url,
         edxapp_theme_version='$GO_REVISION_EDX_MICROSITE',
     )
 

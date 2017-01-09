@@ -12,6 +12,10 @@ import edxpipelines.patterns.stages as stages
 import edxpipelines.patterns.pipelines as pipelines
 import edxpipelines.constants as constants
 from edxpipelines.pipelines import edxapp_pipelines
+from edxpipelines.materials import (
+    TUBULAR, CONFIGURATION, EDX_PLATFORM, EDX_SECURE, EDGE_SECURE, MCKINSEY_SECURE,
+    EDX_MICROSITE, EDX_INTERNAL, EDGE_INTERNAL, MCKINSEY_INTERNAL
+)
 
 
 @click.command()
@@ -101,6 +105,7 @@ def install_pipelines(save_config_locally, dry_run, variable_files,
     # Create the pipeline
     gcc = GoCdConfigurator(HostRestClient(config['gocd_url'], config['gocd_username'], config['gocd_password'], ssl=True))
 
+
     stage_bmd = edxapp_pipelines.build_migrate_deploy_subset_pipeline(
         gcc,
         bmd_steps="bmd",
@@ -108,6 +113,11 @@ def install_pipelines(save_config_locally, dry_run, variable_files,
         cmd_line_vars=cmd_line_vars,
         pipeline_group="edxapp",
         pipeline_name="STAGE_edxapp",
+        app_repo=EDX_PLATFORM.url,
+        theme_url=EDX_MICROSITE.url,
+        configuration_secure_repo=EDX_SECURE.url,
+        configuration_internal_repo=EDX_INTERNAL.url,
+        configuration_url=CONFIGURATION.url,
         auto_run=True,
         auto_deploy_ami=True,
     )
@@ -119,6 +129,11 @@ def install_pipelines(save_config_locally, dry_run, variable_files,
         cmd_line_vars=cmd_line_vars,
         pipeline_group="edxapp_prod_deploys",
         pipeline_name="PROD_edx_edxapp",
+        app_repo=EDX_PLATFORM.url,
+        theme_url=EDX_MICROSITE.url,
+        configuration_secure_repo=EDX_SECURE.url,
+        configuration_internal_repo=EDX_INTERNAL.url,
+        configuration_url=CONFIGURATION.url,
         auto_run=True,
         auto_deploy_ami=True,
     )
@@ -130,6 +145,11 @@ def install_pipelines(save_config_locally, dry_run, variable_files,
         cmd_line_vars=cmd_line_vars,
         pipeline_group="edxapp_prod_deploys",
         pipeline_name="PROD_edge_edxapp",
+        app_repo=EDX_PLATFORM.url,
+        theme_url=EDX_MICROSITE.url,
+        configuration_secure_repo=EDGE_SECURE.url,
+        configuration_internal_repo=EDGE_INTERNAL.url,
+        configuration_url=CONFIGURATION.url,
         auto_run=True,
         auto_deploy_ami=True,
     )
@@ -154,6 +174,11 @@ def install_pipelines(save_config_locally, dry_run, variable_files,
         cmd_line_vars=cmd_line_vars,
         pipeline_group="edxapp_prod_deploys",
         pipeline_name="PROD_edx_edxapp",
+        app_repo=EDX_PLATFORM.url,
+        theme_url=EDX_MICROSITE.url,
+        configuration_secure_repo=EDX_SECURE.url,
+        configuration_internal_repo=EDX_INTERNAL.url,
+        configuration_url=CONFIGURATION.url,
         auto_run=True,
         auto_deploy_ami=True,
     )
@@ -169,6 +194,11 @@ def install_pipelines(save_config_locally, dry_run, variable_files,
         cmd_line_vars=cmd_line_vars,
         pipeline_group="edxapp_prod_deploys",
         pipeline_name="PROD_edge_edxapp",
+        app_repo=EDX_PLATFORM.url,
+        theme_url=EDX_MICROSITE.url,
+        configuration_secure_repo=EDGE_SECURE.url,
+        configuration_internal_repo=EDGE_INTERNAL.url,
+        configuration_url=CONFIGURATION.url,
         auto_run=True,
         auto_deploy_ami=True,
     )
@@ -185,6 +215,13 @@ def install_pipelines(save_config_locally, dry_run, variable_files,
                 material_name="prod_release_gate",
             )
         )
+
+    for pipeline in (stage_bmd, prod_edx_b, prod_edx_md, prod_edge_b, prod_edge_md):
+        for material in (
+            TUBULAR, CONFIGURATION, EDX_PLATFORM, EDX_SECURE, EDGE_SECURE, MCKINSEY_SECURE,
+            EDX_MICROSITE, EDX_INTERNAL, EDGE_INTERNAL, MCKINSEY_INTERNAL
+        ):
+            pipeline.ensure_material(material)
 
     gcc.save_updated_config(save_config_locally=save_config_locally, dry_run=dry_run)
 

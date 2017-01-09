@@ -133,7 +133,6 @@ tools:
   - script: edxpipelines/pipelines/cd_edxapp_latest.py
     variable_file:
       - *tools-admin
-      - *prod-stage-edxapp
       - *play-edxapp
     stage-variable-file:
       - *deployment-edx
