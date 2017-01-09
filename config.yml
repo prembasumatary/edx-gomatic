@@ -132,37 +132,40 @@ tools:
       - *tools-admin
       - "edxpipelines/pipelines/config/stage-edx-edxapp-latest.yml"
       - "../gomatic-secure/gocd/vars/tools/environment-deployment-play/stage-edx-edxapp-latest.yml"
-      - *stage-edx
       - *prod-stage-edxapp
       - *play-edxapp
       - *deployment-edx
       - *prerelease_upstream
+    stage-variable-file:
+      - *stage-edx
     enabled: True
 
   # Prod edx of edxapp - but only building!
   - script: edxpipelines/pipelines/cd_edxapp_edx_b.py
     variable_file:
       - *tools-admin
-      - *prod-edx-edxapp-latest
-      - *prod-edx-edxapp-latest-secure
-      - *prod-edx
       - *prod-stage-edxapp
       - *play-edxapp
       - *deployment-edx
       - *prerelease_upstream
+    prod-edx-variable-file:
+      - *prod-edx
+      - *prod-edx-edxapp-latest
+      - *prod-edx-edxapp-latest-secure
     enabled: True
 
     # Prod EDGE of edxapp - but only building!
   - script: edxpipelines/pipelines/cd_edxapp_edge_b.py
     variable_file:
       - *tools-admin
-      - *prod-edge-edxapp-latest
-      - *prod-edge-edxapp-latest-secure
-      - *prod-edge
       - *prod-stage-edxapp
       - *play-edxapp
       - *deployment-edge
       - *prerelease_upstream
+    prod-edge-variable-file:
+      - *prod-edge
+      - *prod-edge-edxapp-latest
+      - *prod-edge-edxapp-latest-secure
     enabled: True
 
   # The three pipelines above fan-in to the following single pipeline, which allows manual
@@ -184,26 +187,28 @@ tools:
   - script: edxpipelines/pipelines/cd_edxapp_edx_md.py
     variable_file:
       - *tools-admin
-      - *prod-edx-edxapp-latest
-      - *prod-edx-edxapp-latest-secure
-      - *prod-edx
       - *prod-stage-edxapp
       - *play-edxapp
       - *deployment-edx
       - "edxpipelines/pipelines/config/prod-edx-edxapp-gated-upstream.yml"
+    prod-edx-variable-file:
+      - *prod-edx
+      - *prod-edx-edxapp-latest
+      - *prod-edx-edxapp-latest-secure
     enabled: True
 
   # Prod EDGE of edxapp - only migration and deployment.
   - script: edxpipelines/pipelines/cd_edxapp_edge_md.py
     variable_file:
       - *tools-admin
-      - *prod-edge-edxapp-latest
-      - *prod-edge-edxapp-latest-secure
-      - *prod-edge
       - *prod-stage-edxapp
       - *play-edxapp
       - *deployment-edge
       - "edxpipelines/pipelines/config/prod-edge-edxapp-gated-upstream.yml"
+    prod-edge-variable-file:
+      - *prod-edge
+      - *prod-edge-edxapp-latest
+      - *prod-edge-edxapp-latest-secure
     enabled: True
 
   # Then rollback pipelines for both EDX and EDGE are created below.

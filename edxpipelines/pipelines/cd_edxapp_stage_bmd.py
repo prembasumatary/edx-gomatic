@@ -39,6 +39,14 @@ from edxpipelines.pipelines import edxapp_pipelines
     default=[]
 )
 @click.option(
+    '--stage-variable-file', 'stage_variable_files',
+    multiple=True,
+    help='Path to yaml variable file with a dictionary of key/value pairs '
+         'to be used as variables in the script, scoped to the stage environment.',
+    required=False,
+    default=[]
+)
+@click.option(
     '-e', '--variable', 'cmd_line_vars',
     multiple=True,
     help='Key/value used as a replacement variable in this script, as in KEY=VALUE.',
@@ -47,7 +55,7 @@ from edxpipelines.pipelines import edxapp_pipelines
     nargs=2,
     default={}
 )
-def install_pipelines(save_config_locally, dry_run, variable_files, cmd_line_vars):
+def install_pipelines(save_config_locally, dry_run, variable_files, stage_variable_files, cmd_line_vars):
     """
     Variables needed for this pipeline:
     - gocd_username
@@ -72,7 +80,7 @@ def install_pipelines(save_config_locally, dry_run, variable_files, cmd_line_var
         save_config_locally=save_config_locally,
         dry_run=dry_run,
         bmd_steps="bmd",
-        variable_files=variable_files,
+        variable_files=variable_files + stage_variable_files,
         cmd_line_vars=cmd_line_vars,
         pipeline_group="edxapp",
         pipeline_name="STAGE_edxapp",
