@@ -13,9 +13,9 @@ import edxpipelines.patterns.pipelines as pipelines
 import edxpipelines.constants as constants
 
 
-def install_pipelines(gcc, bmd_steps, variable_files,
-                      cmd_line_vars, pipeline_group, pipeline_name,
-                      auto_deploy_ami=False, auto_run=False):
+def build_migrate_deploy_subset_pipeline(
+    gcc, bmd_steps, variable_files, cmd_line_vars, pipeline_group, pipeline_name,
+    auto_deploy_ami=False, auto_run=False):
     """
     Variables needed for this pipeline:
     - gocd_username
