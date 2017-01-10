@@ -94,14 +94,12 @@ def build_migrate_deploy_subset_pipeline(
             constants.BUILD_AMI_JOB_NAME,
             FetchArtifactFile(constants.BUILD_AMI_FILENAME)
         )
-    elif 'upstream_ami_selection' in config:
-        # If an upstream artifact is specified, use it.
-        ami_config = config['upstream_ami_selection']
+    else:
         ami_artifact = utils.ArtifactLocation(
-            ami_config['pipeline_name'],
-            ami_config['pipeline_stage'],
-            ami_config['pipeline_stage_job'],
-            FetchArtifactFile(ami_config['artifact_file'])
+            "prerelease_edxapp_materials_latest",
+            "select_base_ami",
+            "select_base_ami_job",
+            FetchArtifactFile("ami_override.yml"),
         )
 
     launch_stage = stages.generate_launch_instance(
