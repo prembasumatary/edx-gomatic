@@ -13,20 +13,13 @@ import edxpipelines.patterns.pipelines as pipelines
 import edxpipelines.constants as constants
 
 
-def cut_branch(save_config_locally, dry_run, variable_files, cmd_line_vars):
+def cut_branch(gcc, variable_files, cmd_line_vars):
     """
     Variables needed for this pipeline:
     - git_token
     """
     config = utils.merge_files_and_dicts(variable_files, list(cmd_line_vars,))
 
-    gcc = GoCdConfigurator(
-        HostRestClient(
-            config['gocd_url'],
-            config['gocd_username'],
-            config['gocd_password'],
-            ssl=True)
-    )
     pipeline = gcc.ensure_pipeline_group('edxapp')\
                   .ensure_replacement_of_pipeline('edxapp_cut_release_candidate')
 
@@ -64,7 +57,6 @@ def cut_branch(save_config_locally, dry_run, variable_files, cmd_line_vars):
         manual_approval=True,
     )
     pipeline.set_timer('0 0/5 15-19 ? * MON-FRI', True)
-    gcc.save_updated_config(save_config_locally=save_config_locally, dry_run=dry_run)
 
 
 def build_migrate_deploy_subset_pipeline(
