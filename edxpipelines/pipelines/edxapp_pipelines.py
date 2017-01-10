@@ -121,16 +121,6 @@ def build_migrate_deploy_subset_pipeline(
     pipeline = gcc.ensure_pipeline_group(pipeline_group)\
                   .ensure_replacement_of_pipeline(pipeline_name)
 
-    # Setup the upstream pipeline materials
-    for material in config.get('upstream_pipelines', []):
-        pipeline.ensure_material(
-            PipelineMaterial(
-                pipeline_name=material['pipeline_name'],
-                stage_name=material['stage_name'],
-                material_name=material['material_name']
-            )
-        )
-
     # We always need to launch the AMI, independent deploys are done with a different pipeline
     # if the pipeline has a migrate stage, but no building stages, look up the build information from the
     # upstream pipeline.
