@@ -116,6 +116,7 @@ tools:
       - *tools-admin
       - *play-edxapp
       - "../gomatic-secure/gocd/vars/tools/edxapp-cutbranch.yml"
+      - "../gomatic-secure/gocd/vars/tools/environment-play/edxapp-manual-verification-latest.yml"
     stage-variable-file:
       - *deployment-edx
       - *stage-edx
@@ -132,15 +133,6 @@ tools:
 
   # The three pipelines above fan-in to the following single pipeline, which allows manual
   # gating of when/if a release candidate is pushed to production.
-
-  # Manual verification pipeline
-  - script: edxpipelines/pipelines/manual_verification.py
-    variable_file:
-      - *tools-admin
-      - "../gomatic-secure/gocd/vars/tools/environment-play/edxapp-manual-verification-latest.yml"
-      - "edxpipelines/pipelines/config/edxapp-manual-verification-latest.yml"
-      - *prod-stage-edxapp
-    enabled: True
 
   # Then rollback pipelines for both EDX and EDGE are created below.
 

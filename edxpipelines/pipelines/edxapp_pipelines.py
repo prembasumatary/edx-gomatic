@@ -9,6 +9,7 @@ sys.path.append(path.dirname(path.dirname(path.dirname(path.abspath(__file__))))
 
 import edxpipelines.utils as utils
 import edxpipelines.patterns.stages as stages
+import edxpipelines.patterns.tasks as tasks
 import edxpipelines.patterns.pipelines as pipelines
 import edxpipelines.constants as constants
 from edxpipelines.materials import (
@@ -364,4 +365,98 @@ def generate_cleanup_stages(pipeline, config, pipeline_name_build):
         hipchat_token=config['hipchat_token'],
         runif='any'
     )
+    return pipeline
+
+
+def manual_verification(gcc, variable_files, cmd_line_vars):
+    """
+    Variables needed for this pipeline:
+    materials: A list of dictionaries of the materials used in this pipeline
+    upstream_pipelines: a list of dictionaries of the upstream pipelines that feed in to the manual verification
+    """
+    config = utils.merge_files_and_dicts(variable_files, list(cmd_line_vars,))
+
+    pipeline = gcc.ensure_pipeline_group("edxapp_prod_deploys")\
+                  .ensure_replacement_of_pipeline("manual_verification_edxapp_prod_early_ami_build")
+
+    for material in (
+        TUBULAR, CONFIGURATION, EDX_PLATFORM, EDX_SECURE, EDGE_SECURE, MCKINSEY_SECURE,
+        EDX_MICROSITE, EDX_INTERNAL, EDGE_INTERNAL, MCKINSEY_INTERNAL
+    ):
+        pipeline.ensure_material(material)
+
+    pipeline.ensure_material(
+        PipelineMaterial(
+            pipeline_name='STAGE_edxapp_B-M-D',
+            stage_name='cleanup_ami_Instance',
+            material_name='stage_edxapp_upstream_material',
+        )
+    )
+    pipeline.ensure_material(
+        PipelineMaterial(
+            pipeline_name='PROD_edx_edxapp_B',
+            stage_name='build_ami',
+            material_name='PROD_edx_edxapp_ami_build',
+        )
+    )
+    pipeline.ensure_material(
+        PipelineMaterial(
+            pipeline_name='PROD_edge_edxapp_B',
+            stage_name='build_ami',
+            material_name='PROD_edge_edxapp_ami_build',
+        )
+    )
+
+    # What this accomplishes:
+    # When a pipeline such as edx stage runs this pipeline is downstream. Since the first stage is automatic
+    # the git materials will be carried over from the first pipeline.
+    #
+    # The second stage in this pipeline requires manual approval.
+    #
+    # This allows the overall workflow to remain paused while manual verification is completed and allows the git
+    # materials to stay pinned.
+    #
+    # Once the second phase is approved, the workflow will continue and pipelines downstream will continue to execute
+    # with the same pinned materials from the upstream pipeline.
+    stages.generate_armed_stage(pipeline, constants.INITIAL_VERIFICATION_STAGE_NAME)
+
+    # For now, you can only trigger builds on a single jenkins server, because you can only
+    # define a single username/token.
+    # And all the jobs that you want to trigger need the same job token defined.
+    # TODO: refactor when required so that each job can define their own user and job tokens
+    pipeline.ensure_unencrypted_secure_environment_variables(
+        {
+            'JENKINS_USER_TOKEN': config['jenkins_user_token'],
+            'JENKINS_JOB_TOKEN': config['jenkins_job_token']
+        }
+    )
+
+    # Create the stage with the Jenkins jobs
+    jenkins_stage = pipeline.ensure_stage(constants.JENKINS_VERIFICATION_STAGE_NAME)
+    jenkins_stage.set_has_manual_approval()
+    jenkins_user_name = config['jenkins_user_name']
+    
+    jenkins_url = "https://test-jenkins.testeng.edx.org"
+
+    e2e_tests = jenkins_stage.ensure_job('edx-e2e-test')
+    tasks.generate_requirements_install(e2e_tests, 'tubular')
+    tasks.trigger_jenkins_build(e2e_tests, jenkins_url, jenkins_user_name, 'jz-test-project', 'EXIT_CODE 0')
+
+    microsites_tests = jenkins_stage.ensure_job('microsites-staging-tests')
+    tasks.generate_requirements_install(microsites_tests, 'tubular')
+    tasks.trigger_jenkins_build(microsites_tests, jenkins_url, jenkins_user_name, 'jz-test-project', 'EXIT_CODE 0')
+
+    manual_verification_stage = pipeline.ensure_stage(constants.MANUAL_VERIFICATION_STAGE_NAME)
+    manual_verification_stage.set_has_manual_approval()
+    manual_verification_job = manual_verification_stage.ensure_job(constants.MANUAL_VERIFICATION_JOB_NAME)
+    manual_verification_job.add_task(
+        ExecTask(
+            [
+                '/bin/bash',
+                '-c',
+                'echo Manual Verification run number $GO_PIPELINE_COUNTER completed by $GO_TRIGGER_USER'
+            ],
+        )
+    )
+
     return pipeline
