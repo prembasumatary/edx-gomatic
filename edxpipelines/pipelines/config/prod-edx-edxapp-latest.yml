@@ -2,3 +2,8 @@ pipeline_group: "edxapp_prod_deploys"
 pipeline_name: "PROD_edx_edxapp"
 auto_run: "True"
 auto_deploy_ami: "True"
+upstream_ami_selection:
+  pipeline_name: "prerelease_edxapp_materials_latest"
+  pipeline_stage: "select_base_ami"
+  pipeline_stage_job: "select_base_ami_job"
+  artifact_file: "ami_override.yml"
