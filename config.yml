@@ -107,7 +107,6 @@ tools:
       - *play-edxapp
       - *deployment-edx
       - *prod-stage-edxapp
-      - "edxpipelines/pipelines/config/edxapp-prerelease-materials.yml"
     enabled: True
 
   # Now the three pipelines which fan-out from pre-release:

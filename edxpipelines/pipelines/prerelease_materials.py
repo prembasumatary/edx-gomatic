@@ -68,8 +68,8 @@ def install_pipelines(save_config_locally, dry_run, variable_files, cmd_line_var
     config = utils.merge_files_and_dicts(variable_files, list(cmd_line_vars,))
 
     gcc = GoCdConfigurator(HostRestClient(config['gocd_url'], config['gocd_username'], config['gocd_password'], ssl=True))
-    pipeline = gcc.ensure_pipeline_group(config['pipeline_group'])\
-                  .ensure_replacement_of_pipeline(config['pipeline_name'])
+    pipeline = gcc.ensure_pipeline_group('edxapp')\
+                  .ensure_replacement_of_pipeline("prerelease_edxapp_materials_latest")
 
     # Example materials yaml
     # materials:
