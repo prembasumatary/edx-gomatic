@@ -106,6 +106,7 @@ def install_pipelines(save_config_locally, dry_run, variable_files,
     gcc = GoCdConfigurator(HostRestClient(config['gocd_url'], config['gocd_username'], config['gocd_password'], ssl=True))
 
     cut_branch = edxapp_pipelines.cut_branch(gcc, variable_files, cmd_line_vars)
+    prerelease_materials = edxapp_pipelines.prerelease_materials(gcc, variable_files + stage_variable_files, cmd_line_vars)
 
     stage_bmd = edxapp_pipelines.build_migrate_deploy_subset_pipeline(
         gcc,
@@ -158,7 +159,7 @@ def install_pipelines(save_config_locally, dry_run, variable_files,
     for pipeline in (stage_bmd, prod_edx_b, prod_edge_b):
         pipeline.ensure_material(
             PipelineMaterial(
-                pipeline_name="prerelease_edxapp_materials_latest",
+                pipeline_name=prerelease_materials.name,
                 stage_name="select_base_ami",
                 material_name="prerelease",
             )

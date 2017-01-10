@@ -101,13 +101,6 @@ tools:
   # Starts the build of prod AMIs earlier in pipeline.
 
   # Pre-release pipeline which includes all materials.
-  - script: edxpipelines/pipelines/prerelease_materials.py
-    variable_file:
-      - *tools-admin
-      - *play-edxapp
-      - *deployment-edx
-    enabled: True
-
   # Now the three pipelines which fan-out from pre-release:
   # - Stage B/M/D
   # - prod-edx Build
