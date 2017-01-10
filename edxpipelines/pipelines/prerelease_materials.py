@@ -11,10 +11,7 @@ import edxpipelines.utils as utils
 import edxpipelines.patterns.stages as stages
 import edxpipelines.patterns.pipelines as pipelines
 import edxpipelines.constants as constants
-from edxpipelines.materials import (
-    TUBULAR, CONFIGURATION, EDX_PLATFORM, EDX_SECURE, EDGE_SECURE, MCKINSEY_SECURE,
-    EDX_MICROSITE, EDX_INTERNAL, EDGE_INTERNAL, MCKINSEY_INTERNAL
-)
+from edxpipelines.pipelines import edxapp_pipelines
 
 
 @click.command()
@@ -72,54 +69,7 @@ def install_pipelines(save_config_locally, dry_run, variable_files, cmd_line_var
     config = utils.merge_files_and_dicts(variable_files, list(cmd_line_vars,))
 
     gcc = GoCdConfigurator(HostRestClient(config['gocd_url'], config['gocd_username'], config['gocd_password'], ssl=True))
-    pipeline = gcc.ensure_pipeline_group('edxapp')\
-                  .ensure_replacement_of_pipeline("prerelease_edxapp_materials_latest")
-
-
-    for material in (
-        TUBULAR, CONFIGURATION, EDX_SECURE, EDGE_SECURE, MCKINSEY_SECURE,
-        EDX_MICROSITE, EDX_INTERNAL, EDGE_INTERNAL, MCKINSEY_INTERNAL
-    ):
-        pipeline.ensure_material(material)
-    
-    pipeline.ensure_material(
-        GitMaterial(
-            url=EDX_PLATFORM.url,
-            branch=EDX_PLATFORM.branch,
-            material_name=EDX_PLATFORM.material_name,
-            polling=EDX_PLATFORM.polling,
-            destination_directory=EDX_PLATFORM.destination_directory,
-            ignore_patterns=[],
-        )
-    )
-
-    # If no upstream pipelines exist, don't install them!
-    for material in config.get('upstream_pipelines', []):
-        pipeline.ensure_material(
-            PipelineMaterial(
-                pipeline_name=material['pipeline_name'],
-                stage_name=material['stage_name'],
-                material_name=material['material_name']
-            )
-        )
-
-    # This stage only logs material information - but needed to be left in temporarily
-    # as it used to be a stage that was an upstream material for three other pipelines.
-    stages.generate_armed_stage(pipeline, constants.PRERELEASE_MATERIALS_STAGE_NAME)
-
-    base_ami_id = ''
-    if 'base_ami_id' in config:
-        base_ami_id = config['base_ami_id']
-    stages.generate_base_ami_selection(
-        pipeline,
-        config['aws_access_key_id'],
-        config['aws_secret_access_key'],
-        config['play_name'],
-        "edx",
-        "stage",
-        base_ami_id
-    )
-
+    pipeline = edxapp_pipelines.prerelease_materials(gcc, variable_files, cmd_line_vars)
     gcc.save_updated_config(save_config_locally=save_config_locally, dry_run=dry_run)
 
 
