@@ -1140,7 +1140,7 @@ def generate_create_branch(pipeline,
     )
     git_stage = pipeline.ensure_stage(stage_name)
     if manual_approval:
-        git_stage.has_manual_approval(True)
+        git_stage.has_manual_approval()
     git_job = git_stage.ensure_job(constants.GIT_CREATE_BRANCH_JOB_NAME)
     tasks.generate_target_directory(git_job)
     tasks.generate_create_branch(
