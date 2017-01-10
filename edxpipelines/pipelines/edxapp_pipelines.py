@@ -137,8 +137,8 @@ def prerelease_materials(gcc, variable_files, cmd_line_vars):
 
 
 def build_migrate_deploy_subset_pipeline(
-    gcc, bmd_steps, variable_files, cmd_line_vars, pipeline_group, pipeline_name,
-    app_repo, theme_url, configuration_secure_repo, configuration_internal_repo,
+    gcc, prerelease_materials, bmd_steps, variable_files, cmd_line_vars, pipeline_group,
+    pipeline_name, app_repo, theme_url, configuration_secure_repo, configuration_internal_repo,
     configuration_url,
     auto_deploy_ami=False, auto_run=False):
     """
@@ -209,7 +209,7 @@ def build_migrate_deploy_subset_pipeline(
         )
     else:
         ami_artifact = utils.ArtifactLocation(
-            "prerelease_edxapp_materials_latest",
+            prerelease_materials.name,
             "select_base_ami",
             "select_base_ami_job",
             FetchArtifactFile("ami_override.yml"),

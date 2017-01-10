@@ -110,6 +110,7 @@ def install_pipelines(save_config_locally, dry_run, variable_files,
 
     stage_bmd = edxapp_pipelines.build_migrate_deploy_subset_pipeline(
         gcc,
+        prerelease_materials,
         bmd_steps="bmd",
         variable_files=variable_files + stage_variable_files,
         cmd_line_vars=cmd_line_vars,
@@ -126,6 +127,7 @@ def install_pipelines(save_config_locally, dry_run, variable_files,
     
     prod_edx_b = edxapp_pipelines.build_migrate_deploy_subset_pipeline(
         gcc,
+        prerelease_materials,
         bmd_steps="b",
         variable_files=variable_files + prod_edx_variable_files,
         cmd_line_vars=cmd_line_vars,
@@ -142,6 +144,7 @@ def install_pipelines(save_config_locally, dry_run, variable_files,
 
     prod_edge_b = edxapp_pipelines.build_migrate_deploy_subset_pipeline(
         gcc,
+        prerelease_materials,
         bmd_steps="b",
         variable_files=variable_files + prod_edge_variable_files,
         cmd_line_vars=cmd_line_vars,
@@ -171,6 +174,7 @@ def install_pipelines(save_config_locally, dry_run, variable_files,
 
     prod_edx_md = edxapp_pipelines.build_migrate_deploy_subset_pipeline(
         gcc,
+        prerelease_materials,
         bmd_steps="md",
         variable_files=variable_files + prod_edx_variable_files, 
         cmd_line_vars=cmd_line_vars,
@@ -191,6 +195,7 @@ def install_pipelines(save_config_locally, dry_run, variable_files,
 
     prod_edge_md = edxapp_pipelines.build_migrate_deploy_subset_pipeline(
         gcc,
+        prerelease_materials,
         bmd_steps="md",
         variable_files=variable_files + prod_edge_variable_files,
         cmd_line_vars=cmd_line_vars,
