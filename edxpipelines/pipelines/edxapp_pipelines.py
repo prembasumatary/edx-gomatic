@@ -58,6 +58,8 @@ def cut_branch(gcc, variable_files, cmd_line_vars):
     )
     pipeline.set_timer('0 0/5 15-19 ? * MON-FRI', True)
 
+    return pipeline
+
 
 def build_migrate_deploy_subset_pipeline(
     gcc, bmd_steps, variable_files, cmd_line_vars, pipeline_group, pipeline_name,

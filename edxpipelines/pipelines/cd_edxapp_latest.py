@@ -105,6 +105,7 @@ def install_pipelines(save_config_locally, dry_run, variable_files,
     # Create the pipeline
     gcc = GoCdConfigurator(HostRestClient(config['gocd_url'], config['gocd_username'], config['gocd_password'], ssl=True))
 
+    cut_branch = edxapp_pipelines.cut_branch(gcc, variable_files, cmd_line_vars)
 
     stage_bmd = edxapp_pipelines.build_migrate_deploy_subset_pipeline(
         gcc,
