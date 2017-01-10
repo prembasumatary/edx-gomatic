@@ -460,3 +460,68 @@ def manual_verification(gcc, variable_files, cmd_line_vars):
     )
 
     return pipeline
+
+
+def rollback_asgs(gcc, variable_files, cmd_line_vars):
+    """
+    Variables needed for this pipeline:
+    materials: List of dictionaries of the materials used in this pipeline
+    upstream_pipelines: List of dictionaries of the upstream piplines that feed in to the rollback pipeline.
+    """
+    config = utils.merge_files_and_dicts(variable_files, list(cmd_line_vars,))
+
+    pipeline = gcc.ensure_pipeline_group(config['pipeline_group'])\
+                  .ensure_replacement_of_pipeline(config['pipeline_name'])\
+                  .ensure_environment_variables({'WAIT_SLEEP_TIME': config['tubular_sleep_wait_time']})
+
+    for material in config['materials']:
+        pipeline.ensure_material(
+            GitMaterial(
+                url=material['url'],
+                branch=material['branch'],
+                material_name=material['material_name'],
+                polling=material['polling'],
+                destination_directory=material['destination_directory'],
+                ignore_patterns=material['ignore_patterns']
+            )
+        )
+
+    # Specify the upstream deploy pipeline material for this rollback pipeline.
+    # Assumes there's only a single upstream pipeline material for this pipeline.
+    rollback_material = config['upstream_pipeline']
+    pipeline.ensure_material(
+        PipelineMaterial(
+            pipeline_name=rollback_material['pipeline_name'],
+            stage_name=rollback_material['stage_name'],
+            material_name=rollback_material['material_name']
+        )
+    )
+
+    # Specify the artifact that will be fetched containing the previous deployment information.
+    # Assumes there's only a single upstream artifact used by this pipeline.
+    artifact_config = config['upstream_deploy_artifact']
+    deploy_file_location = utils.ArtifactLocation(
+        artifact_config['pipeline_name'],
+        artifact_config['stage_name'],
+        artifact_config['job_name'],
+        artifact_config['artifact_name']
+    )
+
+    # Create the armed stage as this pipeline needs to auto-execute
+    stages.generate_armed_stage(pipeline, constants.ARMED_JOB_NAME)
+
+    # Create a single stage in the pipeline which will rollback to the previous ASGs/AMI.
+    rollback_stage = stages.generate_rollback_asg_stage(
+        pipeline,
+        config['asgard_api_endpoints'],
+        config['asgard_token'],
+        config['aws_access_key_id'],
+        config['aws_secret_access_key'],
+        config['hipchat_token'],
+        constants.HIPCHAT_ROOM,
+        deploy_file_location,
+    )
+    # Since we only want this stage to rollback via manual approval, ensure that it is set on this stage.
+    rollback_stage.set_has_manual_approval()
+
+    return pipeline

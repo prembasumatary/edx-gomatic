@@ -231,7 +231,10 @@ def install_pipelines(save_config_locally, dry_run, variable_files,
             pipeline.ensure_material(material)
 
     manual_verification = edxapp_pipelines.manual_verification(gcc, variable_files, cmd_line_vars)
-    
+
+    rollback_edx = edxapp_pipelines.rollback_asgs(gcc, variable_files + prod_edx_variable_files, cmd_line_vars)
+    rollback_edge = edxapp_pipelines.rollback_asgs(gcc, variable_files + prod_edge_variable_files, cmd_line_vars)
+
     gcc.save_updated_config(save_config_locally=save_config_locally, dry_run=dry_run)
 
 if __name__ == "__main__":
