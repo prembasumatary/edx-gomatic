@@ -1,9 +1,16 @@
 .PHONY: help requirements test_requirements test
 
-test: test.sandbox test.tools
+test:
+	tox
 
 test.%:
-	python deploy_pipelines.py $* -f config.yml --dry-run -v
+	tox -- --script edxpipelines/pipelines/$*.py
+
+diff:
+	env SAVE_CONFIG=true tox
+
+diff.%:
+	env SAVE_CONFIG=true tox -- --script edxpipelines/pipelines/$*.py
 
 quality:
 	pep8 --config=.pep8 edxpipelines
