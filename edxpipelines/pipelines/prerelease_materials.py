@@ -11,6 +11,10 @@ import edxpipelines.utils as utils
 import edxpipelines.patterns.stages as stages
 import edxpipelines.patterns.pipelines as pipelines
 import edxpipelines.constants as constants
+from edxpipelines.materials import (
+    TUBULAR, CONFIGURATION, EDX_PLATFORM, EDX_SECURE, EDGE_SECURE, MCKINSEY_SECURE,
+    EDX_MICROSITE, EDX_INTERNAL, EDGE_INTERNAL, MCKINSEY_INTERNAL
+)
 
 
 @click.command()
@@ -71,27 +75,23 @@ def install_pipelines(save_config_locally, dry_run, variable_files, cmd_line_var
     pipeline = gcc.ensure_pipeline_group('edxapp')\
                   .ensure_replacement_of_pipeline("prerelease_edxapp_materials_latest")
 
-    # Example materials yaml
-    # materials:
-    #   - url: "https://github.com/edx/tubular"
-    #     branch: "master"
-    #     material_name: "tubular"
-    #     polling: "True"
-    #     destination_directory: "tubular"
-    #     ignore_patterns:
-    #     - '**/*'
 
-    for material in config['materials']:
-        pipeline.ensure_material(
-            GitMaterial(
-                url=material['url'],
-                branch=material['branch'],
-                material_name=material['material_name'],
-                polling=material['polling'],
-                destination_directory=material['destination_directory'],
-                ignore_patterns=[] if material.get('material_name') == 'edx-platform' else material['ignore_patterns']
-            )
+    for material in (
+        TUBULAR, CONFIGURATION, EDX_SECURE, EDGE_SECURE, MCKINSEY_SECURE,
+        EDX_MICROSITE, EDX_INTERNAL, EDGE_INTERNAL, MCKINSEY_INTERNAL
+    ):
+        pipeline.ensure_material(material)
+    
+    pipeline.ensure_material(
+        GitMaterial(
+            url=EDX_PLATFORM.url,
+            branch=EDX_PLATFORM.branch,
+            material_name=EDX_PLATFORM.material_name,
+            polling=EDX_PLATFORM.polling,
+            destination_directory=EDX_PLATFORM.destination_directory,
+            ignore_patterns=[],
         )
+    )
 
     # If no upstream pipelines exist, don't install them!
     for material in config.get('upstream_pipelines', []):

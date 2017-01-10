@@ -106,7 +106,6 @@ tools:
       - *tools-admin
       - *play-edxapp
       - *deployment-edx
-      - *prod-stage-edxapp
     enabled: True
 
   # Now the three pipelines which fan-out from pre-release:
