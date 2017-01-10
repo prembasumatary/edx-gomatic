@@ -1113,7 +1113,8 @@ def generate_create_branch(pipeline,
                            repo,
                            source_branch,
                            target_branch,
-                           token):
+                           token,
+                           manual_approval):
     """
     Generates a stage that is used to:
     - Create a branch (target_branch) from the source branch's head revision, will select the latest merge commit that
@@ -1127,6 +1128,7 @@ def generate_create_branch(pipeline,
         source_branch (str): Name of the branch to create the branch/PR from
         target_branch (str): Name of the branch to be created (will be the head of the PR)
         token (str): the github token used to create all these things. Will be an env_var 'GIT_TOKEN'
+        manual_approval (bool): Should this stage require manual approval?
 
     Returns:
         gomatic.Stage
@@ -1137,6 +1139,8 @@ def generate_create_branch(pipeline,
         }
     )
     git_stage = pipeline.ensure_stage(stage_name)
+    if manual_approval:
+        git_stage.has_manual_approval(True)
     git_job = git_stage.ensure_job(constants.GIT_CREATE_BRANCH_JOB_NAME)
     tasks.generate_target_directory(git_job)
     tasks.generate_create_branch(

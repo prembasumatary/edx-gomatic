@@ -98,7 +98,8 @@ def install_pipelines(save_config_locally, dry_run, variable_files, cmd_line_var
         config['repo'],
         config['source_branch'],
         config['target_branch'],
-        config['git_token']
+        config['git_token'],
+        manual_approval=True
     )
     pipeline.set_timer(config['cron'], True)
     gcc.save_updated_config(save_config_locally=save_config_locally, dry_run=dry_run)
