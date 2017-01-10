@@ -94,6 +94,11 @@ def run_pipelines(environment, config_file, script, verbose, dry_run):
         logging.getLogger().setLevel(logging.DEBUG)
 
     scripts = parse_config(environment, config_file, script)
+
+    if not scripts:
+        print "No scripts to run!"
+        exit(1)
+
     success = []
     failures = []
     for script in scripts:
