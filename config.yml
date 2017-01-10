@@ -105,7 +105,6 @@ tools:
     variable_file:
       - *tools-admin
       - "../gomatic-secure/gocd/vars/tools/edxapp-cutbranch.yml"
-      - "edxpipelines/pipelines/config/edxapp-cutbranch.yml"
     enabled: True
 
   # Pre-release pipeline which includes all materials.

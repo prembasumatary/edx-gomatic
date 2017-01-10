@@ -48,15 +48,7 @@ import edxpipelines.constants as constants
 def install_pipelines(save_config_locally, dry_run, variable_files, cmd_line_vars):
     """
     Variables needed for this pipeline:
-    - pipeline_name
-    - pipeline_group
     - git_token
-    - org
-    - repo
-    - source_branch
-    - target_branch
-    - materials (list): a list of materials this pipeline should monitor
-    - cron: the cron this pipeline should run against
     """
     config = utils.merge_files_and_dicts(variable_files, list(cmd_line_vars,))
 
@@ -67,41 +59,43 @@ def install_pipelines(save_config_locally, dry_run, variable_files, cmd_line_var
             config['gocd_password'],
             ssl=True)
     )
-    pipeline = gcc.ensure_pipeline_group(config['pipeline_group'])\
-                  .ensure_replacement_of_pipeline(config['pipeline_name'])
+    pipeline = gcc.ensure_pipeline_group('edxapp')\
+                  .ensure_replacement_of_pipeline('edxapp_cut_release_candidate')
 
-    # Example materials yaml
-    # materials:
-    #   - url: "https://github.com/edx/tubular"
-    #     branch: "master"
-    #     material_name: "tubular"
-    #     polling: "True"
-    #     destination_directory: "tubular"
-    #     ignore_patterns:
-    #     - '**/*'
-    for material in config['materials']:
-        pipeline.ensure_material(
-            GitMaterial(
-                url=material['url'],
-                branch=material['branch'],
-                material_name=material['material_name'],
-                polling=material['polling'],
-                destination_directory=material['destination_directory'],
-                ignore_patterns=material['ignore_patterns']
-            )
+    source_branch = 'master'
+
+    pipeline.ensure_material(
+        GitMaterial(
+            url="https://github.com/edx/edx-platform",
+            branch=source_branch,
+            material_name='edx-platform',
+            polling=True,
+            destination_directory='edx-platform',
+            ignore_patterns=['']
         )
+    )
+    pipeline.ensure_material(
+        GitMaterial(
+            url="https://github.com/edx/tubular",
+            branch='master',
+            material_name='tubular',
+            polling='True',
+            destination_directory='tubular',
+            ignore_patterns=['**/*']
+        )
+    )
 
     stages.generate_create_branch(
         pipeline,
         constants.GIT_CREATE_BRANCH_STAGE_NAME,
-        config['org'],
-        config['repo'],
-        config['source_branch'],
-        config['target_branch'],
+        'edx',
+        'edx-platform',
+        source_branch,
+        'release-candidate',
         config['git_token'],
-        manual_approval=True
+        manual_approval=True,
     )
-    pipeline.set_timer(config['cron'], True)
+    pipeline.set_timer('0 0/5 15-19 ? * MON-FRI', True)
     gcc.save_updated_config(save_config_locally=save_config_locally, dry_run=dry_run)
 
 
