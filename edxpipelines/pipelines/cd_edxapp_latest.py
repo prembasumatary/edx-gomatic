@@ -107,6 +107,8 @@ def install_pipelines(save_config_locally, dry_run, variable_files,
 
     # Create the pipeline
     gcc = GoCdConfigurator(HostRestClient(config['gocd_url'], config['gocd_username'], config['gocd_password'], ssl=True))
+    gcc.ensure_removal_of_pipeline_group('edxapp')
+    gcc.ensure_removal_of_pipeline_group('edxapp_prod_deploys')
     edxapp_group = gcc.ensure_pipeline_group('edxapp')
     edxapp_deploy_group = gcc.ensure_pipeline_group('edxapp_prod_deploys')
 
