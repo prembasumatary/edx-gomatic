@@ -414,11 +414,20 @@ def manual_verification(edxapp_deploy_group, variable_files, cmd_line_vars):
     return pipeline
 
 
-def rollback_asgs(edxapp_deploy_group, pipeline_name, rollback_pipeline, variable_files, cmd_line_vars):
+def rollback_asgs(edxapp_deploy_group, pipeline_name, deploy_pipeline, variable_files, cmd_line_vars):
     """
-    Variables needed for this pipeline:
-    materials: List of dictionaries of the materials used in this pipeline
-    upstream_pipelines: List of dictionaries of the upstream piplines that feed in to the rollback pipeline.
+    Arguments:
+        edxapp_deploy_group (gomatic.PipelineGroup): The group in which to create this pipeline
+        pipeline_name (str): The name of this pipeline
+        deploy_pipeline (gomatic.Pipeline): The pipeline to retrieve the ami_deploy_info.yml artifact from
+
+    Configuration Required:
+        tubular_sleep_wait_time
+        asgard_api_endpoints
+        asgard_token
+        aws_access_key_id
+        aws_secret_access_key
+        hipchat_token
     """
     config = utils.merge_files_and_dicts(variable_files, list(cmd_line_vars,))
 
@@ -435,16 +444,15 @@ def rollback_asgs(edxapp_deploy_group, pipeline_name, rollback_pipeline, variabl
     # Assumes there's only a single upstream pipeline material for this pipeline.
     pipeline.ensure_material(
         PipelineMaterial(
-            pipeline_name=rollback_pipeline.name,
+            pipeline_name=deploy_pipeline.name,
             stage_name='deploy_ami',
             material_name='deploy_pipeline',
         )
     )
 
     # Specify the artifact that will be fetched containing the previous deployment information.
-    # Assumes there's only a single upstream artifact used by this pipeline.
     deploy_file_location = utils.ArtifactLocation(
-        rollback_pipeline.name,
+        deploy_pipeline.name,
         'deploy_ami',
         'deploy_ami_job',
         'ami_deploy_info.yml',
