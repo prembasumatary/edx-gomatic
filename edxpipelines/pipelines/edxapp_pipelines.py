@@ -18,15 +18,14 @@ from edxpipelines.materials import (
 )
 
 
-def cut_branch(gcc, variable_files, cmd_line_vars):
+def cut_branch(edxapp_group, variable_files, cmd_line_vars):
     """
     Variables needed for this pipeline:
     - git_token
     """
     config = utils.merge_files_and_dicts(variable_files, list(cmd_line_vars,))
 
-    pipeline = gcc.ensure_pipeline_group('edxapp')\
-                  .ensure_replacement_of_pipeline('edxapp_cut_release_candidate')
+    pipeline = edxapp_group.ensure_replacement_of_pipeline('edxapp_cut_release_candidate')
 
     source_branch = 'master'
 
@@ -66,7 +65,7 @@ def cut_branch(gcc, variable_files, cmd_line_vars):
     return pipeline
 
 
-def prerelease_materials(gcc, variable_files, cmd_line_vars):
+def prerelease_materials(edxapp_group, variable_files, cmd_line_vars):
     """
     Variables needed for this pipeline:
     - gocd_username
@@ -87,8 +86,7 @@ def prerelease_materials(gcc, variable_files, cmd_line_vars):
     """
     config = utils.merge_files_and_dicts(variable_files, list(cmd_line_vars,))
 
-    pipeline = gcc.ensure_pipeline_group('edxapp')\
-                  .ensure_replacement_of_pipeline("prerelease_edxapp_materials_latest")
+    pipeline = edxapp_group.ensure_replacement_of_pipeline("prerelease_edxapp_materials_latest")
 
     for material in (
         TUBULAR, CONFIGURATION, EDX_SECURE, EDGE_SECURE, MCKINSEY_SECURE,
@@ -138,7 +136,7 @@ def prerelease_materials(gcc, variable_files, cmd_line_vars):
 
 
 def build_migrate_deploy_subset_pipeline(
-    gcc, prerelease_materials, bmd_steps, variable_files, cmd_line_vars, pipeline_group,
+    pipeline_group, prerelease_materials, bmd_steps, variable_files, cmd_line_vars,
     pipeline_name, app_repo, theme_url, configuration_secure_repo, configuration_internal_repo,
     configuration_url,
     auto_deploy_ami=False, auto_run=False):
@@ -194,8 +192,7 @@ def build_migrate_deploy_subset_pipeline(
         )
     }
 
-    pipeline = gcc.ensure_pipeline_group(pipeline_group)\
-                  .ensure_replacement_of_pipeline(pipeline_name)
+    pipeline = pipeline_group.ensure_replacement_of_pipeline(pipeline_name)
 
     # We always need to launch the AMI, independent deploys are done with a different pipeline
     # if the pipeline has a migrate stage, but no building stages, look up the build information from the
@@ -368,7 +365,7 @@ def generate_cleanup_stages(pipeline, config, pipeline_name_build):
     return pipeline
 
 
-def manual_verification(gcc, variable_files, cmd_line_vars):
+def manual_verification(edxapp_deploy_group, variable_files, cmd_line_vars):
     """
     Variables needed for this pipeline:
     materials: A list of dictionaries of the materials used in this pipeline
@@ -376,8 +373,7 @@ def manual_verification(gcc, variable_files, cmd_line_vars):
     """
     config = utils.merge_files_and_dicts(variable_files, list(cmd_line_vars,))
 
-    pipeline = gcc.ensure_pipeline_group("edxapp_prod_deploys")\
-                  .ensure_replacement_of_pipeline("manual_verification_edxapp_prod_early_ami_build")
+    pipeline = edxapp_deploy_group.ensure_replacement_of_pipeline("manual_verification_edxapp_prod_early_ami_build")
 
     for material in (
         TUBULAR, CONFIGURATION, EDX_PLATFORM, EDX_SECURE, EDGE_SECURE, MCKINSEY_SECURE,
@@ -462,7 +458,7 @@ def manual_verification(gcc, variable_files, cmd_line_vars):
     return pipeline
 
 
-def rollback_asgs(gcc, variable_files, cmd_line_vars):
+def rollback_asgs(edxapp_deploy_group, variable_files, cmd_line_vars):
     """
     Variables needed for this pipeline:
     materials: List of dictionaries of the materials used in this pipeline
@@ -470,9 +466,8 @@ def rollback_asgs(gcc, variable_files, cmd_line_vars):
     """
     config = utils.merge_files_and_dicts(variable_files, list(cmd_line_vars,))
 
-    pipeline = gcc.ensure_pipeline_group(config['pipeline_group'])\
-                  .ensure_replacement_of_pipeline(config['pipeline_name'])\
-                  .ensure_environment_variables({'WAIT_SLEEP_TIME': config['tubular_sleep_wait_time']})
+    pipeline = edxapp_deploy_group.ensure_replacement_of_pipeline(config['pipeline_name'])\
+                                  .ensure_environment_variables({'WAIT_SLEEP_TIME': config['tubular_sleep_wait_time']})
 
     for material in config['materials']:
         pipeline.ensure_material(

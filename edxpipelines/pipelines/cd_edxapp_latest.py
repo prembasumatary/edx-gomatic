@@ -104,17 +104,18 @@ def install_pipelines(save_config_locally, dry_run, variable_files,
 
     # Create the pipeline
     gcc = GoCdConfigurator(HostRestClient(config['gocd_url'], config['gocd_username'], config['gocd_password'], ssl=True))
+    edxapp_group = gcc.ensure_pipeline_group('edxapp')
+    edxapp_deploy_group = gcc.ensure_pipeline_group('edxapp_prod_deploys')
 
-    cut_branch = edxapp_pipelines.cut_branch(gcc, variable_files, cmd_line_vars)
-    prerelease_materials = edxapp_pipelines.prerelease_materials(gcc, variable_files + stage_variable_files, cmd_line_vars)
+    cut_branch = edxapp_pipelines.cut_branch(edxapp_group, variable_files, cmd_line_vars)
+    prerelease_materials = edxapp_pipelines.prerelease_materials(edxapp_group, variable_files + stage_variable_files, cmd_line_vars)
 
     stage_bmd = edxapp_pipelines.build_migrate_deploy_subset_pipeline(
-        gcc,
+        edxapp_group,
         prerelease_materials,
         bmd_steps="bmd",
         variable_files=variable_files + stage_variable_files,
         cmd_line_vars=cmd_line_vars,
-        pipeline_group="edxapp",
         pipeline_name="STAGE_edxapp",
         app_repo=EDX_PLATFORM.url,
         theme_url=EDX_MICROSITE.url,
@@ -126,12 +127,11 @@ def install_pipelines(save_config_locally, dry_run, variable_files,
     )
     
     prod_edx_b = edxapp_pipelines.build_migrate_deploy_subset_pipeline(
-        gcc,
+        edxapp_deploy_group,
         prerelease_materials,
         bmd_steps="b",
         variable_files=variable_files + prod_edx_variable_files,
         cmd_line_vars=cmd_line_vars,
-        pipeline_group="edxapp_prod_deploys",
         pipeline_name="PROD_edx_edxapp",
         app_repo=EDX_PLATFORM.url,
         theme_url=EDX_MICROSITE.url,
@@ -143,12 +143,11 @@ def install_pipelines(save_config_locally, dry_run, variable_files,
     )
 
     prod_edge_b = edxapp_pipelines.build_migrate_deploy_subset_pipeline(
-        gcc,
+        edxapp_deploy_group,
         prerelease_materials,
         bmd_steps="b",
         variable_files=variable_files + prod_edge_variable_files,
         cmd_line_vars=cmd_line_vars,
-        pipeline_group="edxapp_prod_deploys",
         pipeline_name="PROD_edge_edxapp",
         app_repo=EDX_PLATFORM.url,
         theme_url=EDX_MICROSITE.url,
@@ -173,12 +172,11 @@ def install_pipelines(save_config_locally, dry_run, variable_files,
   # to the production EDX and EDGE environments.
 
     prod_edx_md = edxapp_pipelines.build_migrate_deploy_subset_pipeline(
-        gcc,
+        edxapp_deploy_group,
         prerelease_materials,
         bmd_steps="md",
         variable_files=variable_files + prod_edx_variable_files, 
         cmd_line_vars=cmd_line_vars,
-        pipeline_group="edxapp_prod_deploys",
         pipeline_name="PROD_edx_edxapp",
         app_repo=EDX_PLATFORM.url,
         theme_url=EDX_MICROSITE.url,
@@ -194,12 +192,11 @@ def install_pipelines(save_config_locally, dry_run, variable_files,
     )
 
     prod_edge_md = edxapp_pipelines.build_migrate_deploy_subset_pipeline(
-        gcc,
+        edxapp_deploy_group,
         prerelease_materials,
         bmd_steps="md",
         variable_files=variable_files + prod_edge_variable_files,
         cmd_line_vars=cmd_line_vars,
-        pipeline_group="edxapp_prod_deploys",
         pipeline_name="PROD_edge_edxapp",
         app_repo=EDX_PLATFORM.url,
         theme_url=EDX_MICROSITE.url,
@@ -230,10 +227,10 @@ def install_pipelines(save_config_locally, dry_run, variable_files,
         ):
             pipeline.ensure_material(material)
 
-    manual_verification = edxapp_pipelines.manual_verification(gcc, variable_files, cmd_line_vars)
+    manual_verification = edxapp_pipelines.manual_verification(edxapp_deploy_group, variable_files, cmd_line_vars)
 
-    rollback_edx = edxapp_pipelines.rollback_asgs(gcc, variable_files + prod_edx_variable_files, cmd_line_vars)
-    rollback_edge = edxapp_pipelines.rollback_asgs(gcc, variable_files + prod_edge_variable_files, cmd_line_vars)
+    rollback_edx = edxapp_pipelines.rollback_asgs(edxapp_deploy_group, variable_files + prod_edx_variable_files, cmd_line_vars)
+    rollback_edge = edxapp_pipelines.rollback_asgs(edxapp_deploy_group, variable_files + prod_edge_variable_files, cmd_line_vars)
 
     gcc.save_updated_config(save_config_locally=save_config_locally, dry_run=dry_run)
 
