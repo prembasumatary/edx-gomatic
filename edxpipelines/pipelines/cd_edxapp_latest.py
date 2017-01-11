@@ -109,8 +109,8 @@ def install_pipelines(save_config_locally, dry_run, variable_files,
 
     cut_branch = edxapp_pipelines.cut_branch(edxapp_group, variable_files, cmd_line_vars)
     prerelease_materials = edxapp_pipelines.prerelease_materials(edxapp_group, variable_files + stage_variable_files, cmd_line_vars)
-        
-    stage_bmd = edxapp_pipelines.build_migrate_deploy_subset_pipeline(
+
+    stage_b = edxapp_pipelines.build_migrate_deploy_subset_pipeline(
         edxapp_group,
         [
             edxapp_pipelines.generate_build_stages(
@@ -120,17 +120,38 @@ def install_pipelines(save_config_locally, dry_run, variable_files,
                 configuration_internal_repo=EDX_INTERNAL.url,
                 configuration_url=CONFIGURATION.url,
             ),
-            edxapp_pipelines.generate_migrate_stages,
-            edxapp_pipelines.generate_deploy_stages(
-                pipeline_name_build="STAGE_edxapp_B-M-D",
-                auto_deploy_ami=True,
-            )
         ],
         variable_files=variable_files + stage_variable_files,
         cmd_line_vars=cmd_line_vars,
-        pipeline_name="STAGE_edxapp_B-M-D",
+        pipeline_name="STAGE_edxapp_B",
         ami_artifact=None,
         auto_run=True,
+    )
+
+    stage_md = edxapp_pipelines.build_migrate_deploy_subset_pipeline(
+        edxapp_group,
+        [
+            edxapp_pipelines.generate_migrate_stages,
+            edxapp_pipelines.generate_deploy_stages(
+                pipeline_name_build=stage_b.name,
+                auto_deploy_ami=True,
+            ),
+            edxapp_pipelines.generate_e2e_test_stage,
+        ],
+        variable_files=variable_files + stage_variable_files,
+        cmd_line_vars=cmd_line_vars,
+        pipeline_name="STAGE_edxapp_M-D",
+        ami_artifact=None,
+        auto_run=True,
+    )
+    stage_md.set_automatic_pipeline_locking()
+
+    stage_md.ensure_material(
+        PipelineMaterial(
+            pipeline_name=stage_b.name,
+            stage_name="build_ami",
+            material_name="stage_ami_build",
+        )
     )
 
     prod_edx_b = edxapp_pipelines.build_migrate_deploy_subset_pipeline(
@@ -169,7 +190,7 @@ def install_pipelines(save_config_locally, dry_run, variable_files,
         auto_run=True,
     )
 
-    for pipeline in (stage_bmd, prod_edx_b, prod_edge_b):
+    for pipeline in (stage_b, prod_edx_b, prod_edge_b):
         pipeline.ensure_material(
             PipelineMaterial(
                 pipeline_name=prerelease_materials.name,
@@ -240,7 +261,7 @@ def install_pipelines(save_config_locally, dry_run, variable_files,
             )
         )
 
-    for pipeline in (stage_bmd, prod_edx_b, prod_edx_md, prod_edge_b, prod_edge_md):
+    for pipeline in (stage_b, stage_md, prod_edx_b, prod_edx_md, prod_edge_b, prod_edge_md):
         for material in (
             TUBULAR, CONFIGURATION, EDX_PLATFORM, EDX_SECURE, EDGE_SECURE,
             EDX_MICROSITE, EDX_INTERNAL, EDGE_INTERNAL
