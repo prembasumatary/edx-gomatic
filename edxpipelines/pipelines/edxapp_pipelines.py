@@ -76,10 +76,6 @@ def prerelease_materials(edxapp_group, variable_files, cmd_line_vars):
     ):
         pipeline.ensure_material(material)
 
-    # This stage only logs material information - but needed to be left in temporarily
-    # as it used to be a stage that was an upstream material for three other pipelines.
-    stages.generate_armed_stage(pipeline, constants.PRERELEASE_MATERIALS_STAGE_NAME)
-
     base_ami_id = ''
     if 'base_ami_id' in config:
         base_ami_id = config['base_ami_id']
