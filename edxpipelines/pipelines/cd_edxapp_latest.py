@@ -13,8 +13,8 @@ import edxpipelines.patterns.pipelines as pipelines
 import edxpipelines.constants as constants
 from edxpipelines.pipelines import edxapp_pipelines
 from edxpipelines.materials import (
-    TUBULAR, CONFIGURATION, EDX_PLATFORM, EDX_SECURE, EDGE_SECURE, MCKINSEY_SECURE,
-    EDX_MICROSITE, EDX_INTERNAL, EDGE_INTERNAL, MCKINSEY_INTERNAL
+    TUBULAR, CONFIGURATION, EDX_PLATFORM, EDX_SECURE, EDGE_SECURE,
+    EDX_MICROSITE, EDX_INTERNAL, EDGE_INTERNAL
 )
 
 
@@ -221,8 +221,8 @@ def install_pipelines(save_config_locally, dry_run, variable_files,
 
     for pipeline in (stage_bmd, prod_edx_b, prod_edx_md, prod_edge_b, prod_edge_md):
         for material in (
-            TUBULAR, CONFIGURATION, EDX_PLATFORM, EDX_SECURE, EDGE_SECURE, MCKINSEY_SECURE,
-            EDX_MICROSITE, EDX_INTERNAL, EDGE_INTERNAL, MCKINSEY_INTERNAL
+            TUBULAR, CONFIGURATION, EDX_PLATFORM, EDX_SECURE, EDGE_SECURE,
+            EDX_MICROSITE, EDX_INTERNAL, EDGE_INTERNAL
         ):
             pipeline.ensure_material(material)
 

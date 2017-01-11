@@ -55,15 +55,6 @@ EDGE_SECURE = GitMaterial(
     ignore_patterns=['**/*'],
 )
 
-MCKINSEY_SECURE = GitMaterial(
-    url="git@github.com:edx-ops/mckinsey-secure.git",
-    branch="master",
-    material_name="mckinsey-secure",
-    polling=True,
-    destination_directory="mckinsey-secure",
-    ignore_patterns=['**/*'],
-)
-
 EDX_MICROSITE = GitMaterial(
     url="git@github.com:edx/edx-microsite.git",
     branch="release",
@@ -88,14 +79,5 @@ EDGE_INTERNAL = GitMaterial(
     material_name="edge-internal",
     polling=True,
     destination_directory="edge-internal",
-    ignore_patterns=['**/*'],
-)
-
-MCKINSEY_INTERNAL = GitMaterial(
-    url="git@github.com:mckinseyacademy/mckinsey-internal.git",
-    branch="master",
-    material_name="mckinsey-internal",
-    polling=True,
-    destination_directory="mckinsey-internal",
     ignore_patterns=['**/*'],
 )
