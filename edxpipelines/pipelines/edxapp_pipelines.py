@@ -89,11 +89,11 @@ def prerelease_materials(edxapp_group, variable_files, cmd_line_vars):
     pipeline = edxapp_group.ensure_replacement_of_pipeline("prerelease_edxapp_materials_latest")
 
     for material in (
-        TUBULAR, CONFIGURATION, EDX_SECURE, EDGE_SECURE, MCKINSEY_SECURE,
-        EDX_MICROSITE, EDX_INTERNAL, EDGE_INTERNAL, MCKINSEY_INTERNAL
+            TUBULAR, CONFIGURATION, EDX_SECURE, EDGE_SECURE, MCKINSEY_SECURE,
+            EDX_MICROSITE, EDX_INTERNAL, EDGE_INTERNAL, MCKINSEY_INTERNAL
     ):
         pipeline.ensure_material(material)
-    
+
     pipeline.ensure_material(
         GitMaterial(
             url=EDX_PLATFORM.url,
@@ -136,10 +136,9 @@ def prerelease_materials(edxapp_group, variable_files, cmd_line_vars):
 
 
 def build_migrate_deploy_subset_pipeline(
-    pipeline_group, prerelease_materials, bmd_steps, variable_files, cmd_line_vars,
-    pipeline_name, app_repo, theme_url, configuration_secure_repo, configuration_internal_repo,
-    configuration_url,
-    auto_deploy_ami=False, auto_run=False):
+        pipeline_group, prerelease_materials, bmd_steps, variable_files, cmd_line_vars,
+        pipeline_name, app_repo, theme_url, configuration_secure_repo, configuration_internal_repo,
+        configuration_url, auto_deploy_ami=False, auto_run=False):
     """
     Variables needed for this pipeline:
     - gocd_username
@@ -431,7 +430,7 @@ def manual_verification(edxapp_deploy_group, variable_files, cmd_line_vars):
     jenkins_stage = pipeline.ensure_stage(constants.JENKINS_VERIFICATION_STAGE_NAME)
     jenkins_stage.set_has_manual_approval()
     jenkins_user_name = config['jenkins_user_name']
-    
+
     jenkins_url = "https://test-jenkins.testeng.edx.org"
 
     e2e_tests = jenkins_stage.ensure_job('edx-e2e-test')

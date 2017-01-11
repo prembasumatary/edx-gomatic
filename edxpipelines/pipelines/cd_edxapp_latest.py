@@ -125,7 +125,7 @@ def install_pipelines(save_config_locally, dry_run, variable_files,
         auto_run=True,
         auto_deploy_ami=True,
     )
-    
+
     prod_edx_b = edxapp_pipelines.build_migrate_deploy_subset_pipeline(
         edxapp_deploy_group,
         prerelease_materials,
@@ -167,15 +167,14 @@ def install_pipelines(save_config_locally, dry_run, variable_files,
             )
         )
 
-
-  # When manually triggered in the pipeline above, the following two pipelines migrate/deploy
-  # to the production EDX and EDGE environments.
+    # When manually triggered in the pipeline above, the following two pipelines migrate/deploy
+    # to the production EDX and EDGE environments.
 
     prod_edx_md = edxapp_pipelines.build_migrate_deploy_subset_pipeline(
         edxapp_deploy_group,
         prerelease_materials,
         bmd_steps="md",
-        variable_files=variable_files + prod_edx_variable_files, 
+        variable_files=variable_files + prod_edx_variable_files,
         cmd_line_vars=cmd_line_vars,
         pipeline_name="PROD_edx_edxapp",
         app_repo=EDX_PLATFORM.url,
