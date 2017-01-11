@@ -229,8 +229,20 @@ def install_pipelines(save_config_locally, dry_run, variable_files,
 
     manual_verification = edxapp_pipelines.manual_verification(edxapp_deploy_group, variable_files, cmd_line_vars)
 
-    rollback_edx = edxapp_pipelines.rollback_asgs(edxapp_deploy_group, variable_files + prod_edx_variable_files, cmd_line_vars)
-    rollback_edge = edxapp_pipelines.rollback_asgs(edxapp_deploy_group, variable_files + prod_edge_variable_files, cmd_line_vars)
+    rollback_edx = edxapp_pipelines.rollback_asgs(
+        edxapp_deploy_group,
+        'PROD_edx_edxapp_Rollback_latest',
+        prod_edx_md,
+        variable_files + prod_edx_variable_files,
+        cmd_line_vars
+    )
+    rollback_edge = edxapp_pipelines.rollback_asgs(
+        edxapp_deploy_group,
+        'PROD_edge_edxapp_Rollback_latest',
+        prod_edge_md,
+        variable_files + prod_edge_variable_files,
+        cmd_line_vars
+    )
 
     gcc.save_updated_config(save_config_locally=save_config_locally, dry_run=dry_run)
 

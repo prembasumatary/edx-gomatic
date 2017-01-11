@@ -458,7 +458,7 @@ def manual_verification(edxapp_deploy_group, variable_files, cmd_line_vars):
     return pipeline
 
 
-def rollback_asgs(edxapp_deploy_group, variable_files, cmd_line_vars):
+def rollback_asgs(edxapp_deploy_group, pipeline_name, rollback_pipeline, variable_files, cmd_line_vars):
     """
     Variables needed for this pipeline:
     materials: List of dictionaries of the materials used in this pipeline
@@ -466,40 +466,32 @@ def rollback_asgs(edxapp_deploy_group, variable_files, cmd_line_vars):
     """
     config = utils.merge_files_and_dicts(variable_files, list(cmd_line_vars,))
 
-    pipeline = edxapp_deploy_group.ensure_replacement_of_pipeline(config['pipeline_name'])\
+    pipeline = edxapp_deploy_group.ensure_replacement_of_pipeline(pipeline_name)\
                                   .ensure_environment_variables({'WAIT_SLEEP_TIME': config['tubular_sleep_wait_time']})
 
-    for material in config['materials']:
-        pipeline.ensure_material(
-            GitMaterial(
-                url=material['url'],
-                branch=material['branch'],
-                material_name=material['material_name'],
-                polling=material['polling'],
-                destination_directory=material['destination_directory'],
-                ignore_patterns=material['ignore_patterns']
-            )
-        )
+    for material in (
+        TUBULAR, CONFIGURATION, EDX_PLATFORM, EDX_SECURE, EDGE_SECURE, MCKINSEY_SECURE,
+        EDX_MICROSITE, EDX_INTERNAL, EDGE_INTERNAL, MCKINSEY_INTERNAL
+    ):
+        pipeline.ensure_material(material)
 
     # Specify the upstream deploy pipeline material for this rollback pipeline.
     # Assumes there's only a single upstream pipeline material for this pipeline.
-    rollback_material = config['upstream_pipeline']
     pipeline.ensure_material(
         PipelineMaterial(
-            pipeline_name=rollback_material['pipeline_name'],
-            stage_name=rollback_material['stage_name'],
-            material_name=rollback_material['material_name']
+            pipeline_name=rollback_pipeline.name,
+            stage_name='deploy_ami',
+            material_name='deploy_pipeline',
         )
     )
 
     # Specify the artifact that will be fetched containing the previous deployment information.
     # Assumes there's only a single upstream artifact used by this pipeline.
-    artifact_config = config['upstream_deploy_artifact']
     deploy_file_location = utils.ArtifactLocation(
-        artifact_config['pipeline_name'],
-        artifact_config['stage_name'],
-        artifact_config['job_name'],
-        artifact_config['artifact_name']
+        rollback_pipeline.name,
+        'deploy_ami',
+        'deploy_ami_job',
+        'ami_deploy_info.yml',
     )
 
     # Create the armed stage as this pipeline needs to auto-execute
