@@ -13,7 +13,7 @@ import edxpipelines.patterns.tasks as tasks
 import edxpipelines.patterns.pipelines as pipelines
 import edxpipelines.constants as constants
 from edxpipelines.materials import (
-    TUBULAR, CONFIGURATION, EDX_PLATFORM, EDX_SECURE, EDGE_SECURE, MCKINSEY_SECURE,
+    TUBULAR, CONFIGURATION, EDX_PLATFORM, EDX_PLATFORM_ACTIVE, EDX_SECURE, EDGE_SECURE, MCKINSEY_SECURE,
     EDX_MICROSITE, EDX_INTERNAL, EDGE_INTERNAL, MCKINSEY_INTERNAL
 )
 
@@ -29,26 +29,8 @@ def cut_branch(edxapp_group, variable_files, cmd_line_vars):
 
     source_branch = 'master'
 
-    pipeline.ensure_material(
-        GitMaterial(
-            url="https://github.com/edx/edx-platform",
-            branch=source_branch,
-            material_name='edx-platform',
-            polling=True,
-            destination_directory='edx-platform',
-            ignore_patterns=['']
-        )
-    )
-    pipeline.ensure_material(
-        GitMaterial(
-            url="https://github.com/edx/tubular",
-            branch='master',
-            material_name='tubular',
-            polling='True',
-            destination_directory='tubular',
-            ignore_patterns=['**/*']
-        )
-    )
+    pipeline.ensure_material(EDX_PLATFORM_ACTIVE)
+    pipeline.ensure_material(TUBULAR)
 
     stages.generate_create_branch(
         pipeline,
@@ -90,20 +72,9 @@ def prerelease_materials(edxapp_group, variable_files, cmd_line_vars):
 
     for material in (
             TUBULAR, CONFIGURATION, EDX_SECURE, EDGE_SECURE, MCKINSEY_SECURE,
-            EDX_MICROSITE, EDX_INTERNAL, EDGE_INTERNAL, MCKINSEY_INTERNAL
+            EDX_MICROSITE, EDX_INTERNAL, EDGE_INTERNAL, MCKINSEY_INTERNAL, EDX_PLATFORM_ACTIVE
     ):
         pipeline.ensure_material(material)
-
-    pipeline.ensure_material(
-        GitMaterial(
-            url=EDX_PLATFORM.url,
-            branch=EDX_PLATFORM.branch,
-            material_name=EDX_PLATFORM.material_name,
-            polling=EDX_PLATFORM.polling,
-            destination_directory=EDX_PLATFORM.destination_directory,
-            ignore_patterns=[],
-        )
-    )
 
     # This stage only logs material information - but needed to be left in temporarily
     # as it used to be a stage that was an upstream material for three other pipelines.
