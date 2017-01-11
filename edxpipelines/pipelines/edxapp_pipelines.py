@@ -105,16 +105,6 @@ def prerelease_materials(edxapp_group, variable_files, cmd_line_vars):
         )
     )
 
-    # If no upstream pipelines exist, don't install them!
-    for material in config.get('upstream_pipelines', []):
-        pipeline.ensure_material(
-            PipelineMaterial(
-                pipeline_name=material['pipeline_name'],
-                stage_name=material['stage_name'],
-                material_name=material['material_name']
-            )
-        )
-
     # This stage only logs material information - but needed to be left in temporarily
     # as it used to be a stage that was an upstream material for three other pipelines.
     stages.generate_armed_stage(pipeline, constants.PRERELEASE_MATERIALS_STAGE_NAME)
