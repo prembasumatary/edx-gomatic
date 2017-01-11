@@ -109,53 +109,64 @@ def install_pipelines(save_config_locally, dry_run, variable_files,
 
     cut_branch = edxapp_pipelines.cut_branch(edxapp_group, variable_files, cmd_line_vars)
     prerelease_materials = edxapp_pipelines.prerelease_materials(edxapp_group, variable_files + stage_variable_files, cmd_line_vars)
-
+        
     stage_bmd = edxapp_pipelines.build_migrate_deploy_subset_pipeline(
         edxapp_group,
-        prerelease_materials,
-        bmd_steps="bmd",
+        [
+            edxapp_pipelines.generate_build_stages(
+                app_repo=EDX_PLATFORM.url,
+                theme_url=EDX_MICROSITE.url,
+                configuration_secure_repo=EDX_SECURE.url,
+                configuration_internal_repo=EDX_INTERNAL.url,
+                configuration_url=CONFIGURATION.url,
+            ),
+            edxapp_pipelines.generate_migrate_stages,
+            edxapp_pipelines.generate_deploy_stages(
+                pipeline_name_build="STAGE_edxapp_B-M-D",
+                auto_deploy_ami=True,
+            )
+        ],
         variable_files=variable_files + stage_variable_files,
         cmd_line_vars=cmd_line_vars,
-        pipeline_name="STAGE_edxapp",
-        app_repo=EDX_PLATFORM.url,
-        theme_url=EDX_MICROSITE.url,
-        configuration_secure_repo=EDX_SECURE.url,
-        configuration_internal_repo=EDX_INTERNAL.url,
-        configuration_url=CONFIGURATION.url,
+        pipeline_name="STAGE_edxapp_B-M-D",
+        ami_artifact=None,
         auto_run=True,
-        auto_deploy_ami=True,
     )
 
     prod_edx_b = edxapp_pipelines.build_migrate_deploy_subset_pipeline(
         edxapp_deploy_group,
-        prerelease_materials,
-        bmd_steps="b",
+        [
+            edxapp_pipelines.generate_build_stages(
+                app_repo=EDX_PLATFORM.url,
+                theme_url=EDX_MICROSITE.url,
+                configuration_secure_repo=EDX_SECURE.url,
+                configuration_internal_repo=EDX_INTERNAL.url,
+                configuration_url=CONFIGURATION.url,
+            ),
+        ],
         variable_files=variable_files + prod_edx_variable_files,
         cmd_line_vars=cmd_line_vars,
-        pipeline_name="PROD_edx_edxapp",
-        app_repo=EDX_PLATFORM.url,
-        theme_url=EDX_MICROSITE.url,
-        configuration_secure_repo=EDX_SECURE.url,
-        configuration_internal_repo=EDX_INTERNAL.url,
-        configuration_url=CONFIGURATION.url,
+        pipeline_name="PROD_edx_edxapp_B",
+        ami_artifact=None,
         auto_run=True,
-        auto_deploy_ami=True,
     )
 
     prod_edge_b = edxapp_pipelines.build_migrate_deploy_subset_pipeline(
         edxapp_deploy_group,
-        prerelease_materials,
-        bmd_steps="b",
+        [
+            edxapp_pipelines.generate_build_stages(
+                app_repo=EDX_PLATFORM.url,
+                theme_url=EDX_MICROSITE.url,
+                configuration_secure_repo=EDGE_SECURE.url,
+                configuration_internal_repo=EDGE_INTERNAL.url,
+                configuration_url=CONFIGURATION.url,
+            ),
+        ],
         variable_files=variable_files + prod_edge_variable_files,
         cmd_line_vars=cmd_line_vars,
-        pipeline_name="PROD_edge_edxapp",
-        app_repo=EDX_PLATFORM.url,
-        theme_url=EDX_MICROSITE.url,
-        configuration_secure_repo=EDGE_SECURE.url,
-        configuration_internal_repo=EDGE_INTERNAL.url,
-        configuration_url=CONFIGURATION.url,
+        pipeline_name="PROD_edge_edxapp_B",
+        ami_artifact=None,
         auto_run=True,
-        auto_deploy_ami=True,
     )
 
     for pipeline in (stage_bmd, prod_edx_b, prod_edge_b):
@@ -172,18 +183,23 @@ def install_pipelines(save_config_locally, dry_run, variable_files,
 
     prod_edx_md = edxapp_pipelines.build_migrate_deploy_subset_pipeline(
         edxapp_deploy_group,
-        prerelease_materials,
-        bmd_steps="md",
+        [
+            edxapp_pipelines.generate_migrate_stages,
+            edxapp_pipelines.generate_deploy_stages(
+                pipeline_name_build=prod_edx_b.name,
+                auto_deploy_ami=True,
+            )
+        ],
         variable_files=variable_files + prod_edx_variable_files,
         cmd_line_vars=cmd_line_vars,
-        pipeline_name="PROD_edx_edxapp",
-        app_repo=EDX_PLATFORM.url,
-        theme_url=EDX_MICROSITE.url,
-        configuration_secure_repo=EDX_SECURE.url,
-        configuration_internal_repo=EDX_INTERNAL.url,
-        configuration_url=CONFIGURATION.url,
+        pipeline_name="PROD_edx_edxapp_M-D",
+        ami_artifact=utils.ArtifactLocation(
+            prod_edx_b.name,
+            constants.BUILD_AMI_STAGE_NAME,
+            constants.BUILD_AMI_JOB_NAME,
+            FetchArtifactFile(constants.BUILD_AMI_FILENAME)
+        ),
         auto_run=True,
-        auto_deploy_ami=True,
     )
 
     prod_edx_md.ensure_material(
@@ -192,18 +208,23 @@ def install_pipelines(save_config_locally, dry_run, variable_files,
 
     prod_edge_md = edxapp_pipelines.build_migrate_deploy_subset_pipeline(
         edxapp_deploy_group,
-        prerelease_materials,
-        bmd_steps="md",
+        [
+            edxapp_pipelines.generate_migrate_stages,
+            edxapp_pipelines.generate_deploy_stages(
+                pipeline_name_build=prod_edge_b.name,
+                auto_deploy_ami=True,
+            )
+        ],
         variable_files=variable_files + prod_edge_variable_files,
         cmd_line_vars=cmd_line_vars,
-        pipeline_name="PROD_edge_edxapp",
-        app_repo=EDX_PLATFORM.url,
-        theme_url=EDX_MICROSITE.url,
-        configuration_secure_repo=EDGE_SECURE.url,
-        configuration_internal_repo=EDGE_INTERNAL.url,
-        configuration_url=CONFIGURATION.url,
+        pipeline_name="PROD_edge_edxapp_M-D",
+        ami_artifact=utils.ArtifactLocation(
+            prod_edge_b.name,
+            constants.BUILD_AMI_STAGE_NAME,
+            constants.BUILD_AMI_JOB_NAME,
+            FetchArtifactFile(constants.BUILD_AMI_FILENAME)
+        ),
         auto_run=True,
-        auto_deploy_ami=True,
     )
 
     prod_edge_md.ensure_material(
