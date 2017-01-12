@@ -76,18 +76,7 @@ def prerelease_materials(edxapp_group, variable_files, cmd_line_vars):
     ):
         pipeline.ensure_material(material)
 
-    base_ami_id = ''
-    if 'base_ami_id' in config:
-        base_ami_id = config['base_ami_id']
-    stages.generate_base_ami_selection(
-        pipeline,
-        config['aws_access_key_id'],
-        config['aws_secret_access_key'],
-        config['play_name'],
-        "edx",
-        "stage",
-        base_ami_id
-    )
+    stages.generate_armed_stage(pipeline, 'arm_prerelease')
 
     return pipeline
 
@@ -162,8 +151,20 @@ def build_migrate_deploy_subset_pipeline(
             FetchArtifactFile(constants.BUILD_AMI_FILENAME)
         )
     else:
+        base_ami_id = ''
+        if 'base_ami_id' in config:
+            base_ami_id = config['base_ami_id']
+        stages.generate_base_ami_selection(
+            pipeline,
+            config['aws_access_key_id'],
+            config['aws_secret_access_key'],
+            config['play_name'],
+            config['edx_deployment'],
+            config['edx_environment'],
+            base_ami_id
+        )
         ami_artifact = utils.ArtifactLocation(
-            prerelease_materials.name,
+            pipeline_name,
             "select_base_ami",
             "select_base_ami_job",
             FetchArtifactFile("ami_override.yml"),
