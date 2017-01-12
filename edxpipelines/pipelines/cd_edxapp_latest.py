@@ -199,6 +199,8 @@ def install_pipelines(save_config_locally, dry_run, variable_files,
             )
         )
 
+    manual_verification = edxapp.manual_verification(edxapp_deploy_group, variable_files, cmd_line_vars)
+
     # When manually triggered in the pipeline above, the following two pipelines migrate/deploy
     # to the production EDX and EDGE environments.
 
@@ -255,7 +257,7 @@ def install_pipelines(save_config_locally, dry_run, variable_files,
     for pipeline in (prod_edx_md, prod_edge_md):
         pipeline.ensure_material(
             PipelineMaterial(
-                pipeline_name="manual_verification_edxapp_prod_early_ami_build",
+                pipeline_name=manual_verification.name,
                 stage_name="manual_verification",
                 material_name="prod_release_gate",
             )
@@ -267,8 +269,6 @@ def install_pipelines(save_config_locally, dry_run, variable_files,
             EDX_MICROSITE, EDX_INTERNAL, EDGE_INTERNAL
         ):
             pipeline.ensure_material(material)
-
-    manual_verification = edxapp.manual_verification(edxapp_deploy_group, variable_files, cmd_line_vars)
 
     rollback_edx = edxapp.rollback_asgs(
         edxapp_deploy_group,
