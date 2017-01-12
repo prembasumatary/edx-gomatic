@@ -31,6 +31,13 @@ GIT_SETUP_STAGE_NAME = 'create_branch_and_pr'
 GIT_SETUP_JOB_NAME = 'create_branch_and_pr_job'
 GIT_CREATE_BRANCH_STAGE_NAME = 'create_branch'
 GIT_CREATE_BRANCH_JOB_NAME = 'create_branch_job'
+MESSAGE_PR_STAGE_NAME = 'message_pr_on_stage'
+MESSAGE_PR_STAGE_JOB_NAME = 'message_pr_on_stage_JOB'
+MESSAGE_PR_PROD_NAME = 'message_pr_on_prod'
+MESSAGE_PR_PROD_JOB_NAME = 'message_pr_on_prod_JOB'
+MESSAGE_PR_ROLLBACK_NAME = 'message_pr_rollback'
+MESSAGE_PR_ROLLBACK_JOB_NAME = 'message_pr_rollback_JOB'
+
 
 # Tubular configuration
 TUBULAR_SLEEP_WAIT_TIME = '20'
