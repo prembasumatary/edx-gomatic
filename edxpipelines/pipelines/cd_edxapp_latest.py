@@ -201,6 +201,30 @@ def install_pipelines(save_config_locally, dry_run, variable_files,
 
     manual_verification = edxapp.manual_verification(edxapp_deploy_group, variable_files, cmd_line_vars)
 
+    manual_verification.ensure_material(
+        PipelineMaterial(
+            pipeline_name=stage_md.name,
+            stage_name=constants.DEPLOY_AMI_JOB_NAME,
+            material_name='stage_ami_deploy',
+        )
+    )
+
+    manual_verification.ensure_material(
+        PipelineMaterial(
+            pipeline_name=prod_edx_b.name,
+            stage_name=constants.BUILD_AMI_STAGE_NAME,
+            material_name='PROD_edx_edxapp_ami_build',
+        )
+    )
+
+    manual_verification.ensure_material(
+        PipelineMaterial(
+            pipeline_name=prod_edge_b.name,
+            stage_name=constants.BUILD_AMI_STAGE_NAME,
+            material_name='PROD_edge_edxapp_ami_build',
+        )
+    )
+
     # When manually triggered in the pipeline above, the following two pipelines migrate/deploy
     # to the production EDX and EDGE environments.
 

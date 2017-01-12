@@ -302,28 +302,6 @@ def manual_verification(edxapp_deploy_group, variable_files, cmd_line_vars):
     ):
         pipeline.ensure_material(material)
 
-    pipeline.ensure_material(
-        PipelineMaterial(
-            pipeline_name='STAGE_edxapp_B-M-D',
-            stage_name='cleanup_ami_Instance',
-            material_name='stage_edxapp_upstream_material',
-        )
-    )
-    pipeline.ensure_material(
-        PipelineMaterial(
-            pipeline_name='PROD_edx_edxapp_B',
-            stage_name='build_ami',
-            material_name='PROD_edx_edxapp_ami_build',
-        )
-    )
-    pipeline.ensure_material(
-        PipelineMaterial(
-            pipeline_name='PROD_edge_edxapp_B',
-            stage_name='build_ami',
-            material_name='PROD_edge_edxapp_ami_build',
-        )
-    )
-
     # What this accomplishes:
     # When a pipeline such as edx stage runs this pipeline is downstream. Since the first stage is automatic
     # the git materials will be carried over from the first pipeline.
