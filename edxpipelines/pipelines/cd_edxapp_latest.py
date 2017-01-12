@@ -11,7 +11,7 @@ import edxpipelines.utils as utils
 import edxpipelines.patterns.stages as stages
 import edxpipelines.patterns.pipelines as pipelines
 import edxpipelines.constants as constants
-from edxpipelines.pipelines import edxapp_pipelines
+from edxpipelines.patterns import edxapp
 from edxpipelines.materials import (
     TUBULAR, CONFIGURATION, EDX_PLATFORM, EDX_SECURE, EDGE_SECURE,
     EDX_MICROSITE, EDX_INTERNAL, EDGE_INTERNAL
@@ -107,13 +107,13 @@ def install_pipelines(save_config_locally, dry_run, variable_files,
     edxapp_group = gcc.ensure_pipeline_group('edxapp')
     edxapp_deploy_group = gcc.ensure_pipeline_group('edxapp_prod_deploys')
 
-    cut_branch = edxapp_pipelines.cut_branch(edxapp_group, variable_files, cmd_line_vars)
-    prerelease_materials = edxapp_pipelines.prerelease_materials(edxapp_group, variable_files + stage_variable_files, cmd_line_vars)
+    cut_branch = edxapp.cut_branch(edxapp_group, variable_files, cmd_line_vars)
+    prerelease_materials = edxapp.prerelease_materials(edxapp_group, variable_files + stage_variable_files, cmd_line_vars)
 
-    stage_b = edxapp_pipelines.build_migrate_deploy_subset_pipeline(
+    stage_b = edxapp.build_migrate_deploy_subset_pipeline(
         edxapp_group,
         [
-            edxapp_pipelines.generate_build_stages(
+            edxapp.generate_build_stages(
                 app_repo=EDX_PLATFORM.url,
                 theme_url=EDX_MICROSITE.url,
                 configuration_secure_repo=EDX_SECURE.url,
@@ -128,15 +128,15 @@ def install_pipelines(save_config_locally, dry_run, variable_files,
         auto_run=True,
     )
 
-    stage_md = edxapp_pipelines.build_migrate_deploy_subset_pipeline(
+    stage_md = edxapp.build_migrate_deploy_subset_pipeline(
         edxapp_group,
         [
-            edxapp_pipelines.generate_migrate_stages,
-            edxapp_pipelines.generate_deploy_stages(
+            edxapp.generate_migrate_stages,
+            edxapp.generate_deploy_stages(
                 pipeline_name_build=stage_b.name,
                 auto_deploy_ami=True,
             ),
-            edxapp_pipelines.generate_e2e_test_stage,
+            edxapp.generate_e2e_test_stage,
         ],
         variable_files=variable_files + stage_variable_files,
         cmd_line_vars=cmd_line_vars,
@@ -154,10 +154,10 @@ def install_pipelines(save_config_locally, dry_run, variable_files,
         )
     )
 
-    prod_edx_b = edxapp_pipelines.build_migrate_deploy_subset_pipeline(
+    prod_edx_b = edxapp.build_migrate_deploy_subset_pipeline(
         edxapp_deploy_group,
         [
-            edxapp_pipelines.generate_build_stages(
+            edxapp.generate_build_stages(
                 app_repo=EDX_PLATFORM.url,
                 theme_url=EDX_MICROSITE.url,
                 configuration_secure_repo=EDX_SECURE.url,
@@ -172,10 +172,10 @@ def install_pipelines(save_config_locally, dry_run, variable_files,
         auto_run=True,
     )
 
-    prod_edge_b = edxapp_pipelines.build_migrate_deploy_subset_pipeline(
+    prod_edge_b = edxapp.build_migrate_deploy_subset_pipeline(
         edxapp_deploy_group,
         [
-            edxapp_pipelines.generate_build_stages(
+            edxapp.generate_build_stages(
                 app_repo=EDX_PLATFORM.url,
                 theme_url=EDX_MICROSITE.url,
                 configuration_secure_repo=EDGE_SECURE.url,
@@ -202,11 +202,11 @@ def install_pipelines(save_config_locally, dry_run, variable_files,
     # When manually triggered in the pipeline above, the following two pipelines migrate/deploy
     # to the production EDX and EDGE environments.
 
-    prod_edx_md = edxapp_pipelines.build_migrate_deploy_subset_pipeline(
+    prod_edx_md = edxapp.build_migrate_deploy_subset_pipeline(
         edxapp_deploy_group,
         [
-            edxapp_pipelines.generate_migrate_stages,
-            edxapp_pipelines.generate_deploy_stages(
+            edxapp.generate_migrate_stages,
+            edxapp.generate_deploy_stages(
                 pipeline_name_build=prod_edx_b.name,
                 auto_deploy_ami=True,
             )
@@ -227,11 +227,11 @@ def install_pipelines(save_config_locally, dry_run, variable_files,
         PipelineMaterial(prod_edx_b.name, "build_ami", "prod_edx_ami_build")
     )
 
-    prod_edge_md = edxapp_pipelines.build_migrate_deploy_subset_pipeline(
+    prod_edge_md = edxapp.build_migrate_deploy_subset_pipeline(
         edxapp_deploy_group,
         [
-            edxapp_pipelines.generate_migrate_stages,
-            edxapp_pipelines.generate_deploy_stages(
+            edxapp.generate_migrate_stages,
+            edxapp.generate_deploy_stages(
                 pipeline_name_build=prod_edge_b.name,
                 auto_deploy_ami=True,
             )
@@ -268,16 +268,16 @@ def install_pipelines(save_config_locally, dry_run, variable_files,
         ):
             pipeline.ensure_material(material)
 
-    manual_verification = edxapp_pipelines.manual_verification(edxapp_deploy_group, variable_files, cmd_line_vars)
+    manual_verification = edxapp.manual_verification(edxapp_deploy_group, variable_files, cmd_line_vars)
 
-    rollback_edx = edxapp_pipelines.rollback_asgs(
+    rollback_edx = edxapp.rollback_asgs(
         edxapp_deploy_group,
         'PROD_edx_edxapp_Rollback_latest',
         prod_edx_md,
         variable_files + prod_edx_variable_files,
         cmd_line_vars
     )
-    rollback_edge = edxapp_pipelines.rollback_asgs(
+    rollback_edge = edxapp.rollback_asgs(
         edxapp_deploy_group,
         'PROD_edge_edxapp_Rollback_latest',
         prod_edge_md,
