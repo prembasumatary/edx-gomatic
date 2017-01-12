@@ -162,7 +162,7 @@ def install_pipelines(save_config_locally, dry_run, variable_files,
         pipeline.ensure_material(
             PipelineMaterial(
                 pipeline_name=prerelease_materials.name,
-                stage_name="select_base_ami",
+                stage_name="arm_prerelease",
                 material_name="prerelease",
             )
         )
