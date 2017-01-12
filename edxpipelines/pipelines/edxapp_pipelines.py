@@ -42,7 +42,7 @@ def cut_branch(edxapp_group, variable_files, cmd_line_vars):
         config['git_token'],
         manual_approval=True,
     )
-    pipeline.set_timer('0 0/5 15-19 ? * MON-FRI', True)
+    pipeline.set_timer('0 0/5 15-18 ? * MON-FRI', True)
 
     return pipeline
 
