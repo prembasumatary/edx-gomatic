@@ -318,8 +318,8 @@ def generate_target_directory(job, directory_name=constants.ARTIFACT_PATH, runif
         ExecTask(
             [
                 '/bin/bash',
-                '-c ',
-                '[ -d {0} ] && echo "Directory Exists" || mkdir {0} '.format(directory_name)
+                '-c',
+                '[ -d {0} ] && echo "Directory Exists" || mkdir {0}'.format(directory_name)
             ],
             runif=runif
         )

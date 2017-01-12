@@ -1,35 +1,43 @@
 #!/usr/bin/env python
 import logging
 import os.path
+import pprint
 import subprocess
 import sys
-import pprint
+import tempfile
 
 import click
 import yaml
+from canonicalize_gocd import canonicalize_file
 
 logging.basicConfig(stream=sys.stdout, level=logging.INFO, datefmt='%Y-%m-%d %H:%M:%S')
 
 
-def ensure_pipeline(script, input_files, bmd_steps, dry_run=False):
+def ensure_pipeline(script, dry_run=False, **kwargs):
     script_args = []
 
     if dry_run:
         script_args.append('--dry-run')
 
-    if bmd_steps:
-        script_args.append('--bmd-steps')
-        script_args.append(bmd_steps)
-
-    for input_file in input_files:
-        script_args.append('--variable_file')
-        script_args.append(input_file)
+    for key, args in sorted(kwargs.items()):
+        if not isinstance(args, list):
+            args = [args]
+        for arg in args:
+            script_args.append('--{}'.format(key))
+            script_args.append(arg)
 
     command = ['python', script] + script_args
     logging.debug("Executing script: {}".format(subprocess.list2cmdline(command)))
     result = subprocess.check_output(command, stderr=subprocess.STDOUT)
     if dry_run and os.environ.get('SAVE_CONFIG'):
-        subprocess.call(['git', '--no-pager', 'diff', '--no-index', '--color-words', 'config-before.xml', 'config-after.xml'])
+        with tempfile.NamedTemporaryFile() as before_out, tempfile.NamedTemporaryFile() as after_out:
+            canonicalize_file('config-before.xml', before_out)
+            canonicalize_file('config-after.xml', after_out)
+            subprocess.call([
+                'git', '--no-pager',
+                'diff', '--no-index', '--color-words',
+                before_out.name, after_out.name
+            ])
     return result
 
 
@@ -51,7 +59,7 @@ def parse_config(environment, config_file_path, script_filter=None):
         config = yaml.safe_load(file)
     result = []
     for script in config[environment]:
-        if script['enabled']:
+        if script.pop('enabled'):
             if script_filter is None or script_filter == script['script']:
                 result.append(script)
     return result
@@ -66,7 +74,7 @@ def print_success_report(success):
 def print_failure_report(failures):
     print "Scripts failed:"
     for failure in failures:
-        logging.info("script: {}".format(pprint.pformat(failure)))
+        logging.info("script:\n{}".format(pprint.pformat(failure)))
 
 
 @click.command()
@@ -95,23 +103,28 @@ def run_pipelines(environment, config_file, script, verbose, dry_run):
         logging.getLogger().setLevel(logging.DEBUG)
 
     scripts = parse_config(environment, config_file, script)
+
+    if not scripts:
+        print "No scripts to run!"
+        exit(1)
+
     success = []
     failures = []
     for script in scripts:
+        script_name = script.pop('script')
         try:
             ensure_pipeline(
-                script['script'],
-                script['input_files'],
-                script.get('bmd_steps', None),
-                dry_run
+                script_name,
+                dry_run=dry_run,
+                **script
             )
-            success.append(script['script'])
-        except subprocess.CalledProcessError, e:
+            success.append(script_name)
+        except subprocess.CalledProcessError as exc:
             failures.append({
-                'script': script['script'],
-                'input_files': script['input_files'],
-                'bmd_steps': script.get('bmd_steps', None),
-                'error': e.output.split("\n")
+                'command': subprocess.list2cmdline(exc.cmd),
+                'script': script_name,
+                'args': script,
+                'error': exc.output.split("\n")
             })
 
     if len(success) > 0:

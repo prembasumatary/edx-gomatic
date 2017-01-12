@@ -11,6 +11,11 @@ import edxpipelines.utils as utils
 import edxpipelines.patterns.stages as stages
 import edxpipelines.patterns.pipelines as pipelines
 import edxpipelines.constants as constants
+from edxpipelines.pipelines import edxapp_pipelines
+from edxpipelines.materials import (
+    TUBULAR, CONFIGURATION, EDX_PLATFORM, EDX_SECURE, EDGE_SECURE, MCKINSEY_SECURE,
+    EDX_MICROSITE, EDX_INTERNAL, EDGE_INTERNAL, MCKINSEY_INTERNAL
+)
 
 
 @click.command()
@@ -31,16 +36,33 @@ import edxpipelines.constants as constants
     is_flag=True
 )
 @click.option(
-    '--bmd-steps',
-    envvar='BMD_STEPS',
-    help='Specify which steps to perform of build, migrate, deploy by specifying some subset of the letters "bmd".',
-    required=False,
-    default='bmd'
-)
-@click.option(
     '--variable_file', 'variable_files',
     multiple=True,
     help='Path to yaml variable file with a dictionary of key/value pairs to be used as variables in the script.',
+    required=False,
+    default=[]
+)
+@click.option(
+    '--stage-variable-file', 'stage_variable_files',
+    multiple=True,
+    help='Path to yaml variable file with a dictionary of key/value pairs '
+         'to be used as variables in the script, scoped to the stage environment.',
+    required=False,
+    default=[]
+)
+@click.option(
+    '--prod-edge-variable-file', 'prod_edge_variable_files',
+    multiple=True,
+    help='Path to yaml variable file with a dictionary of key/value pairs '
+         'to be used as variables in the script, scoped to the prod-edge environment.',
+    required=False,
+    default=[]
+)
+@click.option(
+    '--prod-edx-variable-file', 'prod_edx_variable_files',
+    multiple=True,
+    help='Path to yaml variable file with a dictionary of key/value pairs '
+         'to be used as variables in the script, scoped to the prod-edx environment.',
     required=False,
     default=[]
 )
@@ -53,7 +75,9 @@ import edxpipelines.constants as constants
     nargs=2,
     default={}
 )
-def install_pipelines(save_config_locally, dry_run, bmd_steps, variable_files, cmd_line_vars):
+def install_pipelines(save_config_locally, dry_run, variable_files,
+                      stage_variable_files, prod_edx_variable_files,
+                      prod_edge_variable_files, cmd_line_vars):
     """
     Variables needed for this pipeline:
     - gocd_username
@@ -74,238 +98,152 @@ def install_pipelines(save_config_locally, dry_run, bmd_steps, variable_files, c
     - configuration_secure_version
     - configuration_internal_version
     """
-    BMD_STAGES = {
-        'b': generate_build_stages,
-        'm': generate_migrate_stages,
-        'd': generate_deploy_stages
-    }
-
-    # Sort the BMD steps by the custom 'bmd' alphabet
-    bmd_steps = utils.sort_bmd(bmd_steps.lower())
-
-    # validate the caller has requested a valid pipeline configuration
-    utils.validate_pipeline_permutations(bmd_steps)
 
     # Merge the configuration files/variables together
     config = utils.merge_files_and_dicts(variable_files, list(cmd_line_vars,))
 
     # Create the pipeline
     gcc = GoCdConfigurator(HostRestClient(config['gocd_url'], config['gocd_username'], config['gocd_password'], ssl=True))
-    pipeline_group = config['pipeline_group']
+    edxapp_group = gcc.ensure_pipeline_group('edxapp')
+    edxapp_deploy_group = gcc.ensure_pipeline_group('edxapp_prod_deploys')
 
-    # Some pipelines will need to know the name of the upstream pipeline that built the AMI.
-    # Determine the build pipeline name and add it to the config.
-    pipeline_name, pipeline_name_build = utils.determine_pipeline_names(config, bmd_steps)
-    if 'pipeline_name_build' in config:
-        raise Exception("The config 'pipeline_name_build' value exists but should only be programmatically generated!")
-    config['pipeline_name_build'] = pipeline_name_build
+    cut_branch = edxapp_pipelines.cut_branch(edxapp_group, variable_files, cmd_line_vars)
+    prerelease_materials = edxapp_pipelines.prerelease_materials(edxapp_group, variable_files + stage_variable_files, cmd_line_vars)
 
-    pipeline = gcc.ensure_pipeline_group(pipeline_group)\
-                  .ensure_replacement_of_pipeline(pipeline_name)
+    stage_bmd = edxapp_pipelines.build_migrate_deploy_subset_pipeline(
+        edxapp_group,
+        prerelease_materials,
+        bmd_steps="bmd",
+        variable_files=variable_files + stage_variable_files,
+        cmd_line_vars=cmd_line_vars,
+        pipeline_name="STAGE_edxapp",
+        app_repo=EDX_PLATFORM.url,
+        theme_url=EDX_MICROSITE.url,
+        configuration_secure_repo=EDX_SECURE.url,
+        configuration_internal_repo=EDX_INTERNAL.url,
+        configuration_url=CONFIGURATION.url,
+        auto_run=True,
+        auto_deploy_ami=True,
+    )
 
-    # Setup the materials
-    # Example materials yaml
-    # materials:
-    #   - url: "https://github.com/edx/tubular"
-    #     branch: "master"
-    #     material_name: "tubular"
-    #     polling: "True"
-    #     destination_directory: "tubular"
-    #     ignore_patterns:
-    #     - '**/*'
-    for material in config.get('materials', []):
-        pipeline.ensure_material(
-            GitMaterial(
-                url=material['url'],
-                branch=material['branch'],
-                material_name=material['material_name'],
-                polling=material['polling'],
-                destination_directory=material['destination_directory'],
-                ignore_patterns=material['ignore_patterns']
-            )
-        )
+    prod_edx_b = edxapp_pipelines.build_migrate_deploy_subset_pipeline(
+        edxapp_deploy_group,
+        prerelease_materials,
+        bmd_steps="b",
+        variable_files=variable_files + prod_edx_variable_files,
+        cmd_line_vars=cmd_line_vars,
+        pipeline_name="PROD_edx_edxapp",
+        app_repo=EDX_PLATFORM.url,
+        theme_url=EDX_MICROSITE.url,
+        configuration_secure_repo=EDX_SECURE.url,
+        configuration_internal_repo=EDX_INTERNAL.url,
+        configuration_url=CONFIGURATION.url,
+        auto_run=True,
+        auto_deploy_ami=True,
+    )
 
-    # Setup the upstream pipeline materials
-    for material in config.get('upstream_pipelines', []):
+    prod_edge_b = edxapp_pipelines.build_migrate_deploy_subset_pipeline(
+        edxapp_deploy_group,
+        prerelease_materials,
+        bmd_steps="b",
+        variable_files=variable_files + prod_edge_variable_files,
+        cmd_line_vars=cmd_line_vars,
+        pipeline_name="PROD_edge_edxapp",
+        app_repo=EDX_PLATFORM.url,
+        theme_url=EDX_MICROSITE.url,
+        configuration_secure_repo=EDGE_SECURE.url,
+        configuration_internal_repo=EDGE_INTERNAL.url,
+        configuration_url=CONFIGURATION.url,
+        auto_run=True,
+        auto_deploy_ami=True,
+    )
+
+    for pipeline in (stage_bmd, prod_edx_b, prod_edge_b):
         pipeline.ensure_material(
             PipelineMaterial(
-                pipeline_name=material['pipeline_name'],
-                stage_name=material['stage_name'],
-                material_name=material['material_name']
+                pipeline_name=prerelease_materials.name,
+                stage_name="select_base_ami",
+                material_name="prerelease",
             )
         )
 
-    # We always need to launch the AMI, independent deploys are done with a different pipeline
-    # if the pipeline has a migrate stage, but no building stages, look up the build information from the
-    # upstream pipeline.
-    ami_artifact = None
-    if 'm' in bmd_steps and 'b' not in bmd_steps:
-        ami_artifact = utils.ArtifactLocation(
-            config['pipeline_name_build'],
-            constants.BUILD_AMI_STAGE_NAME,
-            constants.BUILD_AMI_JOB_NAME,
-            FetchArtifactFile(constants.BUILD_AMI_FILENAME)
-        )
-    elif 'upstream_ami_selection' in config:
-        # If an upstream artifact is specified, use it.
-        ami_config = config['upstream_ami_selection']
-        ami_artifact = utils.ArtifactLocation(
-            ami_config['pipeline_name'],
-            ami_config['pipeline_stage'],
-            ami_config['pipeline_stage_job'],
-            FetchArtifactFile(ami_config['artifact_file'])
-        )
+    # When manually triggered in the pipeline above, the following two pipelines migrate/deploy
+    # to the production EDX and EDGE environments.
 
-    launch_stage = stages.generate_launch_instance(
-        pipeline,
-        config['aws_access_key_id'],
-        config['aws_secret_access_key'],
-        config['ec2_vpc_subnet_id'],
-        config['ec2_security_group_id'],
-        config['ec2_instance_profile_name'],
-        config['base_ami_id'],
-        upstream_build_artifact=ami_artifact,
-        manual_approval=not config.get('auto_run', False)
+    prod_edx_md = edxapp_pipelines.build_migrate_deploy_subset_pipeline(
+        edxapp_deploy_group,
+        prerelease_materials,
+        bmd_steps="md",
+        variable_files=variable_files + prod_edx_variable_files,
+        cmd_line_vars=cmd_line_vars,
+        pipeline_name="PROD_edx_edxapp",
+        app_repo=EDX_PLATFORM.url,
+        theme_url=EDX_MICROSITE.url,
+        configuration_secure_repo=EDX_SECURE.url,
+        configuration_internal_repo=EDX_INTERNAL.url,
+        configuration_url=CONFIGURATION.url,
+        auto_run=True,
+        auto_deploy_ami=True,
     )
 
-    # Generate all the requested stages
-    for phase in bmd_steps:
-        BMD_STAGES[phase](pipeline, config)
+    prod_edx_md.ensure_material(
+        PipelineMaterial(prod_edx_b.name, "build_ami", "prod_edx_ami_build")
+    )
 
-    # Add the cleanup stage
-    generate_cleanup_stages(pipeline, config)
+    prod_edge_md = edxapp_pipelines.build_migrate_deploy_subset_pipeline(
+        edxapp_deploy_group,
+        prerelease_materials,
+        bmd_steps="md",
+        variable_files=variable_files + prod_edge_variable_files,
+        cmd_line_vars=cmd_line_vars,
+        pipeline_name="PROD_edge_edxapp",
+        app_repo=EDX_PLATFORM.url,
+        theme_url=EDX_MICROSITE.url,
+        configuration_secure_repo=EDGE_SECURE.url,
+        configuration_internal_repo=EDGE_INTERNAL.url,
+        configuration_url=CONFIGURATION.url,
+        auto_run=True,
+        auto_deploy_ami=True,
+    )
+
+    prod_edge_md.ensure_material(
+        PipelineMaterial(prod_edge_b.name, "build_ami", "prod_edge_ami_build")
+    )
+
+    for pipeline in (prod_edx_md, prod_edge_md):
+        pipeline.ensure_material(
+            PipelineMaterial(
+                pipeline_name="manual_verification_edxapp_prod_early_ami_build",
+                stage_name="manual_verification",
+                material_name="prod_release_gate",
+            )
+        )
+
+    for pipeline in (stage_bmd, prod_edx_b, prod_edx_md, prod_edge_b, prod_edge_md):
+        for material in (
+            TUBULAR, CONFIGURATION, EDX_PLATFORM, EDX_SECURE, EDGE_SECURE, MCKINSEY_SECURE,
+            EDX_MICROSITE, EDX_INTERNAL, EDGE_INTERNAL, MCKINSEY_INTERNAL
+        ):
+            pipeline.ensure_material(material)
+
+    manual_verification = edxapp_pipelines.manual_verification(edxapp_deploy_group, variable_files, cmd_line_vars)
+
+    rollback_edx = edxapp_pipelines.rollback_asgs(
+        edxapp_deploy_group,
+        'PROD_edx_edxapp_Rollback_latest',
+        prod_edx_md,
+        variable_files + prod_edx_variable_files,
+        cmd_line_vars
+    )
+    rollback_edge = edxapp_pipelines.rollback_asgs(
+        edxapp_deploy_group,
+        'PROD_edge_edxapp_Rollback_latest',
+        prod_edge_md,
+        variable_files + prod_edge_variable_files,
+        cmd_line_vars
+    )
 
     gcc.save_updated_config(save_config_locally=save_config_locally, dry_run=dry_run)
-
-
-def generate_build_stages(pipeline, config):
-    stages.generate_run_play(
-        pipeline,
-        'playbooks/edx-east/edxapp.yml',
-        play=config['play_name'],
-        deployment=config['edx_deployment'],
-        edx_environment=config['edx_environment'],
-        private_github_key=config['github_private_key'],
-        app_repo=config['app_repo'],
-        configuration_secure_dir='{}-secure'.format(config['edx_deployment']),
-        configuration_internal_dir='{}-internal'.format(config['edx_deployment']),
-        hipchat_token=config['hipchat_token'],
-        hipchat_room='release',
-        edx_platform_version='$GO_REVISION_EDX_PLATFORM',
-        edx_platform_repo='$APP_REPO',
-        configuration_version='$GO_REVISION_CONFIGURATION',
-        edxapp_theme_source_repo=config['theme_url'],
-        edxapp_theme_version='$GO_REVISION_EDX_THEME',
-        edxapp_theme_name='$EDXAPP_THEME_NAME',
-        disable_edx_services='true',
-        COMMON_TAG_EC2_INSTANCE='true',
-        cache_id='$GO_PIPELINE_COUNTER'
-    )
-
-    stages.generate_create_ami_from_instance(
-        pipeline,
-        play=config['play_name'],
-        deployment=config['edx_deployment'],
-        edx_environment=config['edx_environment'],
-        app_repo=config['app_repo'],
-        app_version='$GO_REVISION_EDX_PLATFORM',
-        configuration_secure_repo=config['{}_configuration_secure_repo'.format(config['edx_deployment'])],
-        configuration_internal_repo=config['{}_configuration_internal_repo'.format(config['edx_deployment'])],
-        configuration_repo=config['configuration_url'],
-        hipchat_token=config['hipchat_token'],
-        hipchat_room='release pipeline',
-        configuration_version='$GO_REVISION_CONFIGURATION',
-        configuration_secure_version='$GO_REVISION_{}_SECURE'.format(config['edx_deployment'].upper()),
-        configuration_internal_version='$GO_REVISION_{}_SECURE'.format(config['edx_deployment'].upper()),
-        aws_access_key_id=config['aws_access_key_id'],
-        aws_secret_access_key=config['aws_secret_access_key'],
-        edxapp_theme_source_repo=config['theme_url'],
-        edxapp_theme_version='$GO_REVISION_EDX_MICROSITE',
-    )
-
-    return pipeline
-
-
-def generate_migrate_stages(pipeline, config):
-    #
-    # Create the DB migration running stage.
-    #
-    ansible_inventory_location = utils.ArtifactLocation(
-        pipeline.name,
-        constants.LAUNCH_INSTANCE_STAGE_NAME,
-        constants.LAUNCH_INSTANCE_JOB_NAME,
-        'ansible_inventory'
-    )
-    instance_ssh_key_location = utils.ArtifactLocation(
-        pipeline.name,
-        constants.LAUNCH_INSTANCE_STAGE_NAME,
-        constants.LAUNCH_INSTANCE_JOB_NAME,
-        'key.pem'
-    )
-    launch_info_location = utils.ArtifactLocation(
-        pipeline.name,
-        constants.LAUNCH_INSTANCE_STAGE_NAME,
-        constants.LAUNCH_INSTANCE_JOB_NAME,
-        constants.LAUNCH_INSTANCE_FILENAME
-    )
-    for sub_app in config['edxapp_subapps']:
-        stages.generate_run_migrations(
-            pipeline,
-            db_migration_pass=config['db_migration_pass'],
-            inventory_location=ansible_inventory_location,
-            instance_key_location=instance_ssh_key_location,
-            launch_info_location=launch_info_location,
-            application_user=config['db_migration_user'],
-            application_name=config['play_name'],
-            application_path=config['application_path'],
-            sub_application_name=sub_app
-        )
-
-    return pipeline
-
-
-def generate_deploy_stages(pipeline, config):
-    #
-    # Create the stage to deploy the AMI.
-    #
-    ami_file_location = utils.ArtifactLocation(
-        config['pipeline_name_build'],
-        constants.BUILD_AMI_STAGE_NAME,
-        constants.BUILD_AMI_JOB_NAME,
-        constants.BUILD_AMI_FILENAME
-    )
-    stages.generate_deploy_ami(
-        pipeline,
-        config['asgard_api_endpoints'],
-        config['asgard_token'],
-        config['aws_access_key_id'],
-        config['aws_secret_access_key'],
-        ami_file_location,
-        manual_approval=not config.get('auto_deploy_ami', False)
-    )
-    return pipeline
-
-
-def generate_cleanup_stages(pipeline, config):
-    #
-    # Create the stage to terminate the EC2 instance used to both build the AMI and run DB migrations.
-    #
-    instance_info_location = utils.ArtifactLocation(
-        config['pipeline_name_build'],
-        constants.LAUNCH_INSTANCE_STAGE_NAME,
-        constants.LAUNCH_INSTANCE_JOB_NAME,
-        constants.LAUNCH_INSTANCE_FILENAME
-    )
-    stages.generate_terminate_instance(
-        pipeline,
-        instance_info_location,
-        aws_access_key_id=config['aws_access_key_id'],
-        aws_secret_access_key=config['aws_secret_access_key'],
-        hipchat_token=config['hipchat_token'],
-        runif='any'
-    )
-    return pipeline
-
 
 if __name__ == "__main__":
     install_pipelines()

@@ -1,4 +1,0 @@
-upstream_pipelines:
-  - pipeline_name: "prerelease_edxapp_materials_latest"
-    stage_name: "select_base_ami"
-    material_name: "prerelease"

@@ -1,7 +1,0 @@
-upstream_pipelines:
-  - pipeline_name: "manual_verification_edxapp_prod_early_ami_build"
-    stage_name: "manual_verification"
-    material_name: "prod_release_gate"
-  - pipeline_name: "PROD_edx_edxapp_B"
-    stage_name: "build_ami"
-    material_name: "prod_edx_ami_build"

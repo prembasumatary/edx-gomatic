@@ -1,7 +1,3 @@
-pipeline_group: "edxapp"
-pipeline_name: "STAGE_edxapp"
-auto_run: "True"
-auto_deploy_ami: "True"
 upstream_ami_selection:
   pipeline_name: "prerelease_edxapp_materials_latest"
   pipeline_stage: "select_base_ami"
