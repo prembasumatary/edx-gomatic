@@ -13,8 +13,8 @@ import edxpipelines.patterns.tasks as tasks
 import edxpipelines.patterns.pipelines as pipelines
 import edxpipelines.constants as constants
 from edxpipelines.materials import (
-    TUBULAR, CONFIGURATION, EDX_PLATFORM, EDX_PLATFORM_ACTIVE, EDX_SECURE, EDGE_SECURE, MCKINSEY_SECURE,
-    EDX_MICROSITE, EDX_INTERNAL, EDGE_INTERNAL, MCKINSEY_INTERNAL
+    TUBULAR, CONFIGURATION, EDX_PLATFORM, EDX_PLATFORM_ACTIVE, EDX_SECURE, EDGE_SECURE,
+    EDX_MICROSITE, EDX_INTERNAL, EDGE_INTERNAL
 )
 
 
@@ -71,8 +71,8 @@ def prerelease_materials(edxapp_group, variable_files, cmd_line_vars):
     pipeline = edxapp_group.ensure_replacement_of_pipeline("prerelease_edxapp_materials_latest")
 
     for material in (
-            TUBULAR, CONFIGURATION, EDX_SECURE, EDGE_SECURE, MCKINSEY_SECURE,
-            EDX_MICROSITE, EDX_INTERNAL, EDGE_INTERNAL, MCKINSEY_INTERNAL, EDX_PLATFORM_ACTIVE
+            TUBULAR, CONFIGURATION, EDX_SECURE, EDGE_SECURE,
+            EDX_MICROSITE, EDX_INTERNAL, EDGE_INTERNAL, EDX_PLATFORM_ACTIVE
     ):
         pipeline.ensure_material(material)
 
@@ -332,8 +332,8 @@ def manual_verification(edxapp_deploy_group, variable_files, cmd_line_vars):
     pipeline = edxapp_deploy_group.ensure_replacement_of_pipeline("manual_verification_edxapp_prod_early_ami_build")
 
     for material in (
-        TUBULAR, CONFIGURATION, EDX_PLATFORM, EDX_SECURE, EDGE_SECURE, MCKINSEY_SECURE,
-        EDX_MICROSITE, EDX_INTERNAL, EDGE_INTERNAL, MCKINSEY_INTERNAL
+        TUBULAR, CONFIGURATION, EDX_PLATFORM, EDX_SECURE, EDGE_SECURE,
+        EDX_MICROSITE, EDX_INTERNAL, EDGE_INTERNAL
     ):
         pipeline.ensure_material(material)
 
