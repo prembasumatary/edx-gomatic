@@ -866,7 +866,7 @@ def trigger_jenkins_build(job, jenkins_url, jenkins_user_name, jenkins_job_name,
     )
 
 
-def _generate_message_pull_requests_in_range(job, org, repo, token, base_sha, head_sha, message_type, runif='passed'):
+def _generate_message_pull_requests_in_commit_range(job, org, repo, token, base_sha, head_sha, message_type, runif='passed'):
     """
     Generate a GoCD task that will message a set of pull requests within a range of commits.
 
@@ -917,7 +917,7 @@ def _generate_message_pull_requests_in_range(job, org, repo, token, base_sha, he
     )
 
 
-def generate_message_pr_range_stage(job, org, repo, token, base_sha, head_sha, runif='passed'):
+def generate_message_prs_stage(job, org, repo, token, base_sha, head_sha, runif='passed'):
     """
     Generate a GoCD task that will message a set of pull requests within a range of commits that their commit has been
     deployed to the staging environment.
@@ -934,10 +934,10 @@ def generate_message_pr_range_stage(job, org, repo, token, base_sha, head_sha, r
     Returns:
         gomatic.task.Task
     """
-    _generate_message_pull_requests_in_range(job, org, repo, token, base_sha, head_sha, 'release_stage', runif)
+    _generate_message_pull_requests_in_commit_range(job, org, repo, token, base_sha, head_sha, 'release_stage', runif)
 
 
-def generate_message_pr_range_prod(job, org, repo, token, base_sha, head_sha, runif='passed'):
+def generate_message_prs_prod(job, org, repo, token, base_sha, head_sha, runif='passed'):
     """
     Generate a GoCD task that will message a set of pull requests within a range of commits that their commit has been
     deployed to the production environment.
@@ -954,10 +954,10 @@ def generate_message_pr_range_prod(job, org, repo, token, base_sha, head_sha, ru
     Returns:
         gomatic.task.Task
     """
-    _generate_message_pull_requests_in_range(job, org, repo, token, base_sha, head_sha, 'release_prod', runif)
+    _generate_message_pull_requests_in_commit_range(job, org, repo, token, base_sha, head_sha, 'release_prod', runif)
 
 
-def generate_message_pr_range_rollback(job, org, repo, token, base_sha, head_sha, runif='passed'):
+def generate_message_prs_rollback(job, org, repo, token, base_sha, head_sha, runif='passed'):
     """
     Generate a GoCD task that will message a set of pull requests within a range of commits that their commit has been
     rolled back from the production environment.
@@ -974,4 +974,4 @@ def generate_message_pr_range_rollback(job, org, repo, token, base_sha, head_sha
     Returns:
         gomatic.task.Task
     """
-    _generate_message_pull_requests_in_range(job, org, repo, token, base_sha, head_sha, 'release_rollback', runif)
+    _generate_message_pull_requests_in_commit_range(job, org, repo, token, base_sha, head_sha, 'release_rollback', runif)
