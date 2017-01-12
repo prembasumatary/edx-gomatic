@@ -76,7 +76,7 @@ def prerelease_materials(edxapp_group, variable_files, cmd_line_vars):
     ):
         pipeline.ensure_material(material)
 
-    stages.generate_armed_stage(pipeline, 'arm_prerelease')
+    stages.generate_armed_stage(pipeline, constants.ARM_PRERELEASE_STAGE)
 
     return pipeline
 

@@ -149,7 +149,7 @@ def install_pipelines(save_config_locally, dry_run, variable_files,
     stage_md.ensure_material(
         PipelineMaterial(
             pipeline_name=stage_b.name,
-            stage_name="build_ami",
+            stage_name=constants.BUILD_AMI_STAGE_NAME,
             material_name="stage_ami_build",
         )
     )
@@ -194,7 +194,7 @@ def install_pipelines(save_config_locally, dry_run, variable_files,
         pipeline.ensure_material(
             PipelineMaterial(
                 pipeline_name=prerelease_materials.name,
-                stage_name="arm_prerelease",
+                stage_name=constants.ARM_PRERELEASE_STAGE,
                 material_name="prerelease",
             )
         )
@@ -282,7 +282,7 @@ def install_pipelines(save_config_locally, dry_run, variable_files,
         pipeline.ensure_material(
             PipelineMaterial(
                 pipeline_name=manual_verification.name,
-                stage_name="manual_verification",
+                stage_name=constants.MANUAL_VERIFICATION_STAGE_NAME,
                 material_name="prod_release_gate",
             )
         )
