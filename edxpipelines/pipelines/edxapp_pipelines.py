@@ -436,8 +436,8 @@ def rollback_asgs(edxapp_deploy_group, pipeline_name, deploy_pipeline, variable_
                                   .ensure_environment_variables({'WAIT_SLEEP_TIME': config['tubular_sleep_wait_time']})
 
     for material in (
-        TUBULAR, CONFIGURATION, EDX_PLATFORM, EDX_SECURE, EDGE_SECURE, MCKINSEY_SECURE,
-        EDX_MICROSITE, EDX_INTERNAL, EDGE_INTERNAL, MCKINSEY_INTERNAL
+        TUBULAR, CONFIGURATION, EDX_PLATFORM, EDX_SECURE, EDGE_SECURE,
+        EDX_MICROSITE, EDX_INTERNAL, EDGE_INTERNAL,
     ):
         pipeline.ensure_material(material)
 
