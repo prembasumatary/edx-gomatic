@@ -142,7 +142,12 @@ def install_pipelines(save_config_locally, dry_run, variable_files,
         ],
         config=stage_config,
         pipeline_name="STAGE_edxapp_M-D",
-        ami_artifact=None,
+        ami_artifact=utils.ArtifactLocation(
+            stage_b.name,
+            constants.BUILD_AMI_STAGE_NAME,
+            constants.BUILD_AMI_JOB_NAME,
+            FetchArtifactFile(constants.BUILD_AMI_FILENAME)
+        ),
         auto_run=True,
     )
     stage_md.set_automatic_pipeline_locking()
