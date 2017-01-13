@@ -896,7 +896,7 @@ def _generate_message_pull_requests_in_commit_range(job, org, repo, token, base_
         ]
     )
 
-    command.format(
+    command = command.format(
         org=org,
         repo=repo,
         token=token,
