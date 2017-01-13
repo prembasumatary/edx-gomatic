@@ -433,7 +433,7 @@ def rollback_asgs(edxapp_deploy_group, pipeline_name, deploy_pipeline, variable_
         pipeline,
         'edx',
         'edx-platform',
-        '$GITHUB_TOKEN'
+        '$GITHUB_TOKEN',
         '$GO_FROM_REVISION_EDX_PLATFORM',
         '$GO_TO_REVISION_EDX_PLATFORM',
         'rollback',
