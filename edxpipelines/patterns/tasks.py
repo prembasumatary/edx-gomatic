@@ -864,3 +864,114 @@ def trigger_jenkins_build(job, jenkins_url, jenkins_user_name, jenkins_job_name,
             working_dir='tubular',
         )
     )
+
+
+def _generate_message_pull_requests_in_commit_range(job, org, repo, token, base_sha, head_sha, message_type, runif='passed'):
+    """
+    Generate a GoCD task that will message a set of pull requests within a range of commits.
+
+    Args:
+        job (gomatic.job.Job): the gomatic job to which this task will be added
+        org (str): The github organization
+        repo (str): The github repository
+        token (str): The authentication token
+        base_sha (str): The starting SHA
+        head_sha (str): The ending SHA
+        message_type (str): type of message to send one of ['release_stage', 'release_prod', 'release_rollback']
+        runif (str): one of ['passed', 'failed', 'any'] Default: passed
+
+    Returns:
+        gomatic.task.Task
+    """
+    command = ' '.join(
+        [
+            'python ',
+            'scripts/message_prs_in_range.py',
+            '--org {org}',
+            '--repo {repo}',
+            '--token {token}',
+            '--base_sha {base_sha}',
+            '--head_sha {head_sha}',
+            '--{message_type}'
+        ]
+    )
+
+    command.format(
+        org=org,
+        repo=repo,
+        token=token,
+        base_sha=base_sha,
+        head_sha=head_sha,
+        message_type=message_type
+    )
+
+    return job.add_task(
+        ExecTask(
+            [
+                '/bin/bash',
+                '-c',
+                command
+            ],
+            working_dir='tubular',
+        )
+    )
+
+
+def generate_message_prs_stage(job, org, repo, token, base_sha, head_sha, runif='passed'):
+    """
+    Generate a GoCD task that will message a set of pull requests within a range of commits that their commit has been
+    deployed to the staging environment.
+
+    Args:
+        job (gomatic.job.Job): the gomatic job to which this task will be added
+        org (str): The github organization
+        repo (str): The github repository
+        token (str): The authentication token
+        base_sha (str): The starting SHA
+        head_sha (str): The ending SHA
+        runif (str): one of ['passed', 'failed', 'any'] Default: passed
+
+    Returns:
+        gomatic.task.Task
+    """
+    _generate_message_pull_requests_in_commit_range(job, org, repo, token, base_sha, head_sha, 'release_stage', runif)
+
+
+def generate_message_prs_prod(job, org, repo, token, base_sha, head_sha, runif='passed'):
+    """
+    Generate a GoCD task that will message a set of pull requests within a range of commits that their commit has been
+    deployed to the production environment.
+
+    Args:
+        job (gomatic.job.Job): the gomatic job to which this task will be added
+        org (str): The github organization
+        repo (str): The github repository
+        token (str): The authentication token
+        base_sha (str): The starting SHA
+        head_sha (str): The ending SHA
+        runif (str): one of ['passed', 'failed', 'any'] Default: passed
+
+    Returns:
+        gomatic.task.Task
+    """
+    _generate_message_pull_requests_in_commit_range(job, org, repo, token, base_sha, head_sha, 'release_prod', runif)
+
+
+def generate_message_prs_rollback(job, org, repo, token, base_sha, head_sha, runif='passed'):
+    """
+    Generate a GoCD task that will message a set of pull requests within a range of commits that their commit has been
+    rolled back from the production environment.
+
+    Args:
+        job (gomatic.job.Job): the gomatic job to which this task will be added
+        org (str): The github organization
+        repo (str): The github repository
+        token (str): The authentication token
+        base_sha (str): The starting SHA
+        head_sha (str): The ending SHA
+        runif (str): one of ['passed', 'failed', 'any'] Default: passed
+
+    Returns:
+        gomatic.task.Task
+    """
+    _generate_message_pull_requests_in_commit_range(job, org, repo, token, base_sha, head_sha, 'release_rollback', runif)

@@ -1121,7 +1121,7 @@ def generate_create_branch(pipeline,
     has passed CI.
 
     Args:
-        pipeline (gomatic.Pipeline): Pipeline to attach this stage to
+        pipeline (gomatic.Pipeline): Pipeline to attach this stage
         stage_name (str): Name of the stage
         org (str): Name of the github organization that holds the repository (e.g. edx)
         repo (str): Name of repository (e.g edx-platform)
@@ -1152,3 +1152,59 @@ def generate_create_branch(pipeline,
     )
 
     return git_stage
+
+
+def generate_message_prs(pipeline,
+                         org,
+                         repo,
+                         token,
+                         base_sha,
+                         head_sha,
+                         msg_type,
+                         manual_approval=False):
+    """
+    Creates a stage that will message the pull requests for a range of commits that the respective pull requests have
+    been deployed to the staging environment.
+
+    Args:
+        pipeline (gomatic.Pipeline): Pipeline to attach this stage
+        org (str): Name of the github organization that holds the repository (e.g. edx)
+        repo (str): Name of repository (e.g edx-platform)
+        token (str): the github token used to create all these things. Will be an env_var 'GIT_TOKEN'
+        base_sha(str): starting SHA or environment variable holding the SHA to start the commit range
+        base_sha(str): ending SHA or environment variable holding the SHA to start the commit range
+        msg_type (str): one of ['staging', 'production', 'rollback']
+        manual_approval (bool): Should this stage require manual approval?
+
+    Returns:
+        gomatic.stage.Stage
+
+    """
+    messages = {
+        'stage':
+            {
+                'method': tasks.generate_message_prs_stage,
+                'stage_name': constants.MESSAGE_PR_STAGE_NAME,
+                'job_name': constants.MESSAGE_PR_STAGE_JOB_NAME
+            },
+        'prod':
+            {
+                'method': tasks.generate_message_prs_prod,
+                'stage_name': constants.MESSAGE_PR_PROD_NAME,
+                'job_name': constants.MESSAGE_PR_PROD_JOB_NAME
+            },
+        'rollback':
+            {
+                'method': tasks.generate_message_prs_rollback,
+                'stage_name': constants.MESSAGE_PR_ROLLBACK_NAME,
+                'job_name': constants.MESSAGE_PR_ROLLBACK_JOB_NAME
+            },
+    }
+    meta = messages.pop(msg_type)
+    message_stage = pipeline.ensure_stage(meta.pop('stage_name'))
+    if manual_approval:
+        message_stage.set_has_manual_approval()
+    message_job = message_stage.ensure_job(meta.pop('job_name'))
+    meta.pop('method')(message_job, org, repo, token, base_sha, head_sha)
+
+    return message_stage

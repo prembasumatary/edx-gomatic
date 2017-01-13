@@ -258,6 +258,17 @@ def generate_deploy_stages(pipeline_name_build, auto_deploy_ami=False):
             ami_file_location,
             manual_approval=not auto_deploy_ami
         )
+
+        pipeline.ensure_unencrypted_secure_environment_variables({'GITHUB_TOKEN': config['github_token']})
+        stages.generate_message_prs(
+            pipeline,
+            'edx',
+            'edx-platform',
+            '$GITHUB_TOKEN'
+            '$GO_FROM_REVISION_EDX_PLATFORM',
+            '$GO_TO_REVISION_EDX_PLATFORM',
+            config['edx_environment'],
+        )
         return pipeline
     return builder
 
@@ -415,5 +426,17 @@ def rollback_asgs(edxapp_deploy_group, pipeline_name, deploy_pipeline, variable_
     )
     # Since we only want this stage to rollback via manual approval, ensure that it is set on this stage.
     rollback_stage.set_has_manual_approval()
+
+    # Message PRs being rolled back
+    pipeline.ensure_unencrypted_secure_environment_variables({'GITHUB_TOKEN': config['github_token']})
+    stages.generate_message_prs(
+        pipeline,
+        'edx',
+        'edx-platform',
+        '$GITHUB_TOKEN'
+        '$GO_FROM_REVISION_EDX_PLATFORM',
+        '$GO_TO_REVISION_EDX_PLATFORM',
+        'rollback',
+    )
 
     return pipeline
