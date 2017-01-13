@@ -82,7 +82,7 @@ def prerelease_materials(edxapp_group, variable_files, cmd_line_vars):
 
 
 def build_migrate_deploy_subset_pipeline(
-        pipeline_group, stage_builders, variable_files, cmd_line_vars,
+        pipeline_group, stage_builders, config,
         pipeline_name, ami_artifact=None, auto_run=False):
     """
     Arguments:
@@ -102,9 +102,6 @@ def build_migrate_deploy_subset_pipeline(
     - configuration_secure_version
     - configuration_internal_version
     """
-    # Merge the configuration files/variables together
-    config = utils.merge_files_and_dicts(variable_files, list(cmd_line_vars,))
-
     pipeline = pipeline_group.ensure_replacement_of_pipeline(pipeline_name)
 
     # We always need to launch the AMI, independent deploys are done with a different pipeline
