@@ -203,7 +203,7 @@ def install_pipelines(save_config_locally, dry_run, variable_files,
     manual_verification.ensure_material(
         PipelineMaterial(
             pipeline_name=stage_md.name,
-            stage_name=constants.DEPLOY_AMI_JOB_NAME,
+            stage_name=constants.DEPLOY_AMI_STAGE_NAME,
             material_name='stage_ami_deploy',
         )
     )
