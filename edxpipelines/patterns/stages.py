@@ -1218,3 +1218,199 @@ def generate_message_prs(pipeline,
     )
 
     return message_stage
+
+
+def generate_merge_branch_and_tag(pipeline,
+                                  stage_name,
+                                  org,
+                                  repo,
+                                  source_branch,
+                                  target_branch,
+                                  head_sha,
+                                  token,
+                                  fast_forward_only,
+                                  manual_approval):
+    """
+    Generates a stage that is used to:
+    - Merge a Git source branch into a target branch, optionally ensuring that the merge is a fast-forward merge.
+    - Tag a release SHA.
+
+    Args:
+        pipeline (gomatic.Pipeline): Pipeline to which this stage will be attached
+        stage_name (str): Name of the stage
+        org (str): Name of the github organization that holds the repository (e.g. edx)
+        repo (str): Name of repository (e.g edx-platform)
+        source_branch (str): Name of the branch to merge into the target branch
+        target_branch (str): Name of the branch into which to merge the source branch
+        head_sha (str): commit SHA or environment variable holding the SHA to tag as the release
+        token (str): the github token used to create all these things. Will be an env_var 'GIT_TOKEN'
+        fast_forward_only (bool): If True, force a fast-forward merge or fail.
+        manual_approval (bool): Should this stage require manual approval?
+
+    Returns:
+        gomatic.Stage
+    """
+    pipeline.ensure_unencrypted_secure_environment_variables(
+        {
+            'GIT_TOKEN': token
+        }
+    )
+    git_stage = pipeline.ensure_stage(stage_name)
+    if manual_approval:
+        git_stage.set_has_manual_approval()
+
+    merge_branch_job = git_stage.ensure_job(constants.GIT_MERGE_RC_BRANCH_JOB_NAME)
+    tasks.generate_target_directory(merge_branch_job)
+    tasks.generate_merge_branch(
+        merge_branch_job,
+        org,
+        repo,
+        source_branch,
+        target_branch,
+        fast_forward_only
+    )
+
+    # Generate a job/task which tags the head commit of the source branch.
+    # Instruct the task to auto-generate tag name/message by not sending them in.
+    tag_job = git_stage.ensure_job(constants.GIT_TAG_SHA_JOB_NAME)
+    tasks.generate_tag_commit(
+        tag_job,
+        org,
+        repo,
+        commit_sha=head_sha
+    )
+
+
+def generate_create_branch_and_pr(pipeline,
+                                  stage_name,
+                                  org,
+                                  repo,
+                                  source_branch,
+                                  new_branch,
+                                  target_branch,
+                                  pr_title,
+                                  pr_body,
+                                  token,
+                                  manual_approval):
+    """
+    Generates a stage that is used to:
+    - create a new branch off the HEAD of a source branch
+    - create a PR to merge the new branch into a target branch
+
+    Args:
+        pipeline (gomatic.Pipeline): Pipeline to attach this stage to
+        stage_name (str): Name of the stage
+        org (str): Name of the github organization that holds the repository (e.g. edx)
+        repo (str): Name of repository (e.g edx-platform)
+        source_branch (str): Name of the branch to use in creating the new branch
+        new_branch (str): Name of the branch to create off the HEAD of the source branch
+        target_branch (str): Name of the branch into which to merge the source branch
+        pr_title (str): Title of the new PR
+        pr_body (str): Body of the new PR
+        token (str): the github token used to create all these things. Will be an env_var 'GIT_TOKEN'
+        manual_approval (bool): Should this stage require manual approval?
+
+    Returns:
+        gomatic.Stage
+    """
+    pipeline.ensure_unencrypted_secure_environment_variables(
+        {
+            'GIT_TOKEN': token
+        }
+    )
+    git_stage = pipeline.ensure_stage(stage_name)
+    if manual_approval:
+        git_stage.set_has_manual_approval()
+    git_job = git_stage.ensure_job(constants.CREATE_MASTER_MERGE_PR_JOB_NAME)
+    tasks.generate_target_directory(git_job)
+
+    # Generate a task that creates a new branch off the HEAD of a source branch.
+    tasks.generate_create_branch(
+        git_job,
+        org,
+        repo,
+        target_branch=new_branch,
+        source_branch=source_branch
+    )
+
+    # Generate a task that creates a pull request merging the new branch from above into a target branch.
+    tasks.generate_create_pr(
+        git_job,
+        org,
+        repo,
+        new_branch,
+        target_branch,
+        pr_title,
+        pr_body
+    )
+
+    return git_stage
+
+
+def generate_poll_tests_and_merge_pr(pipeline,
+                                     stage_name,
+                                     org,
+                                     repo,
+                                     token,
+                                     manual_approval):
+    """
+    Generates a stage that is used to:
+    - poll for successful completion of PR tests
+    - merge the PR
+
+    Args:
+        pipeline (gomatic.Pipeline): Pipeline to attach this stage to
+        stage_name (str): Name of the stage
+        org (str): Name of the github organization that holds the repository (e.g. edx)
+        repo (str): Name of repository (e.g edx-platform)
+        token (str): the github token used to create all these things. Will be an env_var 'GIT_TOKEN'
+        manual_approval (bool): Should this stage require manual approval?
+
+    Returns:
+        gomatic.Stage
+    """
+    pipeline.ensure_environment_variables(
+        {
+            'MAX_PR_TEST_POLL_TRIES': '10',
+            'PR_TEST_INITIAL_WAIT_INTERVAL': '5',
+            'PR_TEST_POLL_INTERVAL': '20'
+        }
+    )
+    pipeline.ensure_unencrypted_secure_environment_variables(
+        {
+            'GIT_TOKEN': token
+        }
+    )
+    git_stage = pipeline.ensure_stage(stage_name)
+    if manual_approval:
+        git_stage.set_has_manual_approval()
+    git_job = git_stage.ensure_job(constants.CHECK_PR_TESTS_AND_MERGE_JOB_NAME)
+
+    # Fetch the PR-creation material.
+    git_job.add_task(
+        FetchArtifactTask(
+            pipeline=pipeline.name,
+            stage=constants.CREATE_MASTER_MERGE_PR_STAGE_NAME,
+            job=constants.CREATE_MASTER_MERGE_PR_JOB_NAME,
+            src=FetchArtifactFile(constants.CREATE_BRANCH_PR_FILENAME),
+            dest=constants.ARTIFACT_PATH
+        )
+    )
+
+    # Generate a task that poll the status of combined tests for a PR.
+    tasks.generate_poll_pr_tests(
+        git_job,
+        org,
+        repo,
+        constants.CREATE_BRANCH_PR_FILENAME
+    )
+
+    # Generate a task that merges a PR that has passed all its tests in the previous task.
+    tasks.generate_merge_pr(
+        git_job,
+        org,
+        repo,
+        constants.CREATE_BRANCH_PR_FILENAME
+    )
+
+    return git_stage

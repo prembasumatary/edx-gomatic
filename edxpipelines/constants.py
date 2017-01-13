@@ -10,8 +10,8 @@ TERMINATE_INSTANCE_STAGE_NAME = 'cleanup_ami_Instance'
 TERMINATE_INSTANCE_JOB_NAME = 'cleanup_ami_instance_job'
 LAUNCH_INSTANCE_STAGE_NAME = 'launch_instance'
 LAUNCH_INSTANCE_JOB_NAME = 'launch_instance_job'
-RUN_PLAY_STAGE_NAME = "run_play"
-RUN_PLAY_JOB_NAME = "run_play_job"
+RUN_PLAY_STAGE_NAME = 'run_play'
+RUN_PLAY_JOB_NAME = 'run_play_job'
 APPLY_MIGRATIONS_STAGE = 'apply_migrations'
 APPLY_MIGRATIONS_JOB = 'apply_migrations_job'
 INITIAL_VERIFICATION_STAGE_NAME = 'initial_verification'
@@ -37,7 +37,16 @@ MESSAGE_PR_PROD_NAME = 'message_pr_on_prod'
 MESSAGE_PR_PROD_JOB_NAME = 'message_pr_on_prod_JOB'
 MESSAGE_PR_ROLLBACK_NAME = 'message_pr_rollback'
 MESSAGE_PR_ROLLBACK_JOB_NAME = 'message_pr_rollback_JOB'
+GIT_MERGE_RC_BRANCH_STAGE_NAME = 'merge_rc_branch'
+GIT_MERGE_RC_BRANCH_JOB_NAME = 'merge_rc_branch_job'
+GIT_TAG_SHA_JOB_NAME = 'tag_deployed_commit_job'
+CREATE_MASTER_MERGE_PR_STAGE_NAME = 'create_master_merge_pr'
+CREATE_MASTER_MERGE_PR_JOB_NAME = 'create_master_merge_pr_job'
+CHECK_PR_TESTS_AND_MERGE_STAGE_NAME = 'check_pr_tests_and_merge'
+CHECK_PR_TESTS_AND_MERGE_JOB_NAME = 'check_pr_tests_and_merge_job'
 
+# Pipeline names
+BRANCH_CLEANUP_PIPELINE_NAME = 'edxapp_branch_cleanup'
 
 # Tubular configuration
 TUBULAR_SLEEP_WAIT_TIME = '20'
@@ -62,6 +71,8 @@ ROLLBACK_AMI_OUT_FILENAME = 'rollback_info.yml'
 LAUNCH_INSTANCE_FILENAME = 'launch_info.yml'
 BASE_AMI_OVERRIDE_FILENAME = 'ami_override.yml'
 CREATE_BRANCH_FILENAME = 'branch.yml'
+MERGE_BRANCH_FILENAME = 'merge_branch_sha.yml'
+CREATE_BRANCH_PR_FILENAME = 'create_branch_pr.yml'
 
 # AWS Defaults
 EC2_REGION = 'us-east-1'
