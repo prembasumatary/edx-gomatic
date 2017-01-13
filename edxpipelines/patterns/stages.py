@@ -1172,7 +1172,7 @@ def generate_message_prs(pipeline,
         repo (str): Name of repository (e.g edx-platform)
         token (str): the github token used to create all these things. Will be an env_var 'GIT_TOKEN'
         base_sha(str): starting SHA or environment variable holding the SHA to start the commit range
-        base_sha(str): ending SHA or environment variable holding the SHA to start the commit range
+        head_sha(str): ending SHA or environment variable holding the SHA to start the commit range
         msg_type (str): one of ['staging', 'production', 'rollback']
         manual_approval (bool): Should this stage require manual approval?
 

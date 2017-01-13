@@ -264,10 +264,10 @@ def generate_deploy_stages(pipeline_name_build, auto_deploy_ami=False):
             pipeline,
             'edx',
             'edx-platform',
-            '$GITHUB_TOKEN'
+            '$GITHUB_TOKEN',
             '$GO_FROM_REVISION_EDX_PLATFORM',
             '$GO_TO_REVISION_EDX_PLATFORM',
-            config['edx_environment'],
+            config['edx_environment']
         )
         return pipeline
     return builder
