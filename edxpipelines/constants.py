@@ -1,4 +1,5 @@
 # Names for the standard stages/jobs
+ARM_PRERELEASE_STAGE = 'arm_prerelease'
 DEPLOY_AMI_STAGE_NAME = 'deploy_ami'
 DEPLOY_AMI_JOB_NAME = 'deploy_ami_job'
 RUN_MIGRATIONS_STAGE_NAME = 'apply_migrations'

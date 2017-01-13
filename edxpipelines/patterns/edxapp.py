@@ -76,24 +76,21 @@ def prerelease_materials(edxapp_group, variable_files, cmd_line_vars):
     ):
         pipeline.ensure_material(material)
 
-    stages.generate_armed_stage(pipeline, 'arm_prerelease')
+    stages.generate_armed_stage(pipeline, constants.ARM_PRERELEASE_STAGE)
 
     return pipeline
 
 
 def build_migrate_deploy_subset_pipeline(
-        pipeline_group, prerelease_materials, bmd_steps, variable_files, cmd_line_vars,
-        pipeline_name, app_repo, theme_url, configuration_secure_repo, configuration_internal_repo,
-        configuration_url, auto_deploy_ami=False, auto_run=False):
+        pipeline_group, stage_builders, config,
+        pipeline_name, ami_artifact=None, auto_run=False):
     """
+    Arguments:
+        ami_artifact (ArtifactLocation): The ami to use to launch the
+            instances on. If None, select that ami based on the
+            edx_deployment and edx_environment.
+
     Variables needed for this pipeline:
-    - gocd_username
-    - gocd_password
-    - gocd_url
-    - configuration_secure_repo
-    - configuration_internal_repo
-    - hipchat_token
-    - github_private_key
     - aws_access_key_id
     - aws_secret_access_key
     - ec2_vpc_subnet_id
@@ -105,52 +102,12 @@ def build_migrate_deploy_subset_pipeline(
     - configuration_secure_version
     - configuration_internal_version
     """
-    # Sort the BMD steps by the custom 'bmd' alphabet
-    bmd_steps = utils.sort_bmd(bmd_steps.lower())
-
-    # validate the caller has requested a valid pipeline configuration
-    utils.validate_pipeline_permutations(bmd_steps)
-
-    # Merge the configuration files/variables together
-    config = utils.merge_files_and_dicts(variable_files, list(cmd_line_vars,))
-
-    # Some pipelines will need to know the name of the upstream pipeline that built the AMI.
-    # Determine the build pipeline name and add it to the config.
-    pipeline_name, pipeline_name_build = utils.determine_pipeline_names(pipeline_name, bmd_steps)
-    if 'pipeline_name_build' in config:
-        raise Exception("The config 'pipeline_name_build' value exists but should only be programmatically generated!")
-
-    BMD_STAGES = {
-        'b': partial(
-            generate_build_stages,
-            app_repo=app_repo,
-            theme_url=theme_url,
-            configuration_secure_repo=configuration_secure_repo,
-            configuration_internal_repo=configuration_internal_repo,
-            configuration_url=configuration_url,
-        ),
-        'm': generate_migrate_stages,
-        'd': partial(
-            generate_deploy_stages,
-            pipeline_name_build=pipeline_name_build,
-            auto_deploy_ami=auto_deploy_ami
-        )
-    }
-
     pipeline = pipeline_group.ensure_replacement_of_pipeline(pipeline_name)
 
     # We always need to launch the AMI, independent deploys are done with a different pipeline
     # if the pipeline has a migrate stage, but no building stages, look up the build information from the
     # upstream pipeline.
-    ami_artifact = None
-    if 'm' in bmd_steps and 'b' not in bmd_steps:
-        ami_artifact = utils.ArtifactLocation(
-            pipeline_name_build,
-            constants.BUILD_AMI_STAGE_NAME,
-            constants.BUILD_AMI_JOB_NAME,
-            FetchArtifactFile(constants.BUILD_AMI_FILENAME)
-        )
-    else:
+    if ami_artifact is None:
         base_ami_id = ''
         if 'base_ami_id' in config:
             base_ami_id = config['base_ami_id']
@@ -164,10 +121,10 @@ def build_migrate_deploy_subset_pipeline(
             base_ami_id
         )
         ami_artifact = utils.ArtifactLocation(
-            pipeline_name,
-            "select_base_ami",
-            "select_base_ami_job",
-            FetchArtifactFile("ami_override.yml"),
+            pipeline.name,
+            constants.BASE_AMI_SELECTION_STAGE_NAME,
+            constants.BASE_AMI_SELECTION_JOB_NAME,
+            FetchArtifactFile(constants.BASE_AMI_OVERRIDE_FILENAME),
         )
 
     launch_stage = stages.generate_launch_instance(
@@ -183,62 +140,64 @@ def build_migrate_deploy_subset_pipeline(
     )
 
     # Generate all the requested stages
-    for phase in bmd_steps:
-        BMD_STAGES[phase](pipeline, config)
+    for builder in stage_builders:
+        builder(pipeline, config)
 
     # Add the cleanup stage
-    generate_cleanup_stages(pipeline, config, pipeline_name_build)
+    generate_cleanup_stages(pipeline, config, launch_stage)
 
     return pipeline
 
 
-def generate_build_stages(pipeline, config, app_repo, theme_url, configuration_secure_repo,
+def generate_build_stages(app_repo, theme_url, configuration_secure_repo,
                           configuration_internal_repo, configuration_url):
-    stages.generate_run_play(
-        pipeline,
-        'playbooks/edx-east/edxapp.yml',
-        play=config['play_name'],
-        deployment=config['edx_deployment'],
-        edx_environment=config['edx_environment'],
-        private_github_key=config['github_private_key'],
-        app_repo=app_repo,
-        configuration_secure_dir='{}-secure'.format(config['edx_deployment']),
-        configuration_internal_dir='{}-internal'.format(config['edx_deployment']),
-        hipchat_token=config['hipchat_token'],
-        hipchat_room='release',
-        edx_platform_version='$GO_REVISION_EDX_PLATFORM',
-        edx_platform_repo='$APP_REPO',
-        configuration_version='$GO_REVISION_CONFIGURATION',
-        edxapp_theme_source_repo=theme_url,
-        edxapp_theme_version='$GO_REVISION_EDX_THEME',
-        edxapp_theme_name='$EDXAPP_THEME_NAME',
-        disable_edx_services='true',
-        COMMON_TAG_EC2_INSTANCE='true',
-        cache_id='$GO_PIPELINE_COUNTER'
-    )
+    def builder(pipeline, config):
+        stages.generate_run_play(
+            pipeline,
+            'playbooks/edx-east/edxapp.yml',
+            play=config['play_name'],
+            deployment=config['edx_deployment'],
+            edx_environment=config['edx_environment'],
+            private_github_key=config['github_private_key'],
+            app_repo=app_repo,
+            configuration_secure_dir='{}-secure'.format(config['edx_deployment']),
+            configuration_internal_dir='{}-internal'.format(config['edx_deployment']),
+            hipchat_token=config['hipchat_token'],
+            hipchat_room='release',
+            edx_platform_version='$GO_REVISION_EDX_PLATFORM',
+            edx_platform_repo='$APP_REPO',
+            configuration_version='$GO_REVISION_CONFIGURATION',
+            edxapp_theme_source_repo=theme_url,
+            edxapp_theme_version='$GO_REVISION_EDX_THEME',
+            edxapp_theme_name='$EDXAPP_THEME_NAME',
+            disable_edx_services='true',
+            COMMON_TAG_EC2_INSTANCE='true',
+            cache_id='$GO_PIPELINE_COUNTER'
+        )
 
-    stages.generate_create_ami_from_instance(
-        pipeline,
-        play=config['play_name'],
-        deployment=config['edx_deployment'],
-        edx_environment=config['edx_environment'],
-        app_repo=app_repo,
-        app_version='$GO_REVISION_EDX_PLATFORM',
-        configuration_secure_repo=configuration_secure_repo,
-        configuration_internal_repo=configuration_internal_repo,
-        configuration_repo=configuration_url,
-        hipchat_token=config['hipchat_token'],
-        hipchat_room='release pipeline',
-        configuration_version='$GO_REVISION_CONFIGURATION',
-        configuration_secure_version='$GO_REVISION_{}_SECURE'.format(config['edx_deployment'].upper()),
-        configuration_internal_version='$GO_REVISION_{}_SECURE'.format(config['edx_deployment'].upper()),
-        aws_access_key_id=config['aws_access_key_id'],
-        aws_secret_access_key=config['aws_secret_access_key'],
-        edxapp_theme_source_repo=theme_url,
-        edxapp_theme_version='$GO_REVISION_EDX_MICROSITE',
-    )
+        stages.generate_create_ami_from_instance(
+            pipeline,
+            play=config['play_name'],
+            deployment=config['edx_deployment'],
+            edx_environment=config['edx_environment'],
+            app_repo=app_repo,
+            app_version='$GO_REVISION_EDX_PLATFORM',
+            configuration_secure_repo=configuration_secure_repo,
+            configuration_internal_repo=configuration_internal_repo,
+            configuration_repo=configuration_url,
+            hipchat_token=config['hipchat_token'],
+            hipchat_room='release pipeline',
+            configuration_version='$GO_REVISION_CONFIGURATION',
+            configuration_secure_version='$GO_REVISION_{}_SECURE'.format(config['edx_deployment'].upper()),
+            configuration_internal_version='$GO_REVISION_{}_SECURE'.format(config['edx_deployment'].upper()),
+            aws_access_key_id=config['aws_access_key_id'],
+            aws_secret_access_key=config['aws_secret_access_key'],
+            edxapp_theme_source_repo=theme_url,
+            edxapp_theme_version='$GO_REVISION_EDX_MICROSITE',
+        )
 
-    return pipeline
+        return pipeline
+    return builder
 
 
 def generate_migrate_stages(pipeline, config):
@@ -279,35 +238,37 @@ def generate_migrate_stages(pipeline, config):
     return pipeline
 
 
-def generate_deploy_stages(pipeline, config, pipeline_name_build, auto_deploy_ami=False):
+def generate_deploy_stages(pipeline_name_build, auto_deploy_ami=False):
     #
     # Create the stage to deploy the AMI.
     #
-    ami_file_location = utils.ArtifactLocation(
-        pipeline_name_build,
-        constants.BUILD_AMI_STAGE_NAME,
-        constants.BUILD_AMI_JOB_NAME,
-        constants.BUILD_AMI_FILENAME
-    )
-    stages.generate_deploy_ami(
-        pipeline,
-        config['asgard_api_endpoints'],
-        config['asgard_token'],
-        config['aws_access_key_id'],
-        config['aws_secret_access_key'],
-        ami_file_location,
-        manual_approval=not auto_deploy_ami
-    )
-    return pipeline
+    def builder(pipeline, config):
+        ami_file_location = utils.ArtifactLocation(
+            pipeline_name_build,
+            constants.BUILD_AMI_STAGE_NAME,
+            constants.BUILD_AMI_JOB_NAME,
+            constants.BUILD_AMI_FILENAME
+        )
+        stages.generate_deploy_ami(
+            pipeline,
+            config['asgard_api_endpoints'],
+            config['asgard_token'],
+            config['aws_access_key_id'],
+            config['aws_secret_access_key'],
+            ami_file_location,
+            manual_approval=not auto_deploy_ami
+        )
+        return pipeline
+    return builder
 
 
-def generate_cleanup_stages(pipeline, config, pipeline_name_build):
+def generate_cleanup_stages(pipeline, config, launch_stage):
     #
     # Create the stage to terminate the EC2 instance used to both build the AMI and run DB migrations.
     #
     instance_info_location = utils.ArtifactLocation(
-        pipeline_name_build,
-        constants.LAUNCH_INSTANCE_STAGE_NAME,
+        pipeline.name,
+        launch_stage.name,
         constants.LAUNCH_INSTANCE_JOB_NAME,
         constants.LAUNCH_INSTANCE_FILENAME
     )
@@ -338,28 +299,6 @@ def manual_verification(edxapp_deploy_group, variable_files, cmd_line_vars):
     ):
         pipeline.ensure_material(material)
 
-    pipeline.ensure_material(
-        PipelineMaterial(
-            pipeline_name='STAGE_edxapp_B-M-D',
-            stage_name='cleanup_ami_Instance',
-            material_name='stage_edxapp_upstream_material',
-        )
-    )
-    pipeline.ensure_material(
-        PipelineMaterial(
-            pipeline_name='PROD_edx_edxapp_B',
-            stage_name='build_ami',
-            material_name='PROD_edx_edxapp_ami_build',
-        )
-    )
-    pipeline.ensure_material(
-        PipelineMaterial(
-            pipeline_name='PROD_edge_edxapp_B',
-            stage_name='build_ami',
-            material_name='PROD_edge_edxapp_ami_build',
-        )
-    )
-
     # What this accomplishes:
     # When a pipeline such as edx stage runs this pipeline is downstream. Since the first stage is automatic
     # the git materials will be carried over from the first pipeline.
@@ -372,32 +311,6 @@ def manual_verification(edxapp_deploy_group, variable_files, cmd_line_vars):
     # Once the second phase is approved, the workflow will continue and pipelines downstream will continue to execute
     # with the same pinned materials from the upstream pipeline.
     stages.generate_armed_stage(pipeline, constants.INITIAL_VERIFICATION_STAGE_NAME)
-
-    # For now, you can only trigger builds on a single jenkins server, because you can only
-    # define a single username/token.
-    # And all the jobs that you want to trigger need the same job token defined.
-    # TODO: refactor when required so that each job can define their own user and job tokens
-    pipeline.ensure_unencrypted_secure_environment_variables(
-        {
-            'JENKINS_USER_TOKEN': config['jenkins_user_token'],
-            'JENKINS_JOB_TOKEN': config['jenkins_job_token']
-        }
-    )
-
-    # Create the stage with the Jenkins jobs
-    jenkins_stage = pipeline.ensure_stage(constants.JENKINS_VERIFICATION_STAGE_NAME)
-    jenkins_stage.set_has_manual_approval()
-    jenkins_user_name = config['jenkins_user_name']
-
-    jenkins_url = "https://test-jenkins.testeng.edx.org"
-
-    e2e_tests = jenkins_stage.ensure_job('edx-e2e-test')
-    tasks.generate_requirements_install(e2e_tests, 'tubular')
-    tasks.trigger_jenkins_build(e2e_tests, jenkins_url, jenkins_user_name, 'jz-test-project', 'EXIT_CODE 0')
-
-    microsites_tests = jenkins_stage.ensure_job('microsites-staging-tests')
-    tasks.generate_requirements_install(microsites_tests, 'tubular')
-    tasks.trigger_jenkins_build(microsites_tests, jenkins_url, jenkins_user_name, 'jz-test-project', 'EXIT_CODE 0')
 
     manual_verification_stage = pipeline.ensure_stage(constants.MANUAL_VERIFICATION_STAGE_NAME)
     manual_verification_stage.set_has_manual_approval()
@@ -413,6 +326,33 @@ def manual_verification(edxapp_deploy_group, variable_files, cmd_line_vars):
     )
 
     return pipeline
+
+
+def generate_e2e_test_stage(pipeline, config):
+    # For now, you can only trigger builds on a single jenkins server, because you can only
+    # define a single username/token.
+    # And all the jobs that you want to trigger need the same job token defined.
+    # TODO: refactor when required so that each job can define their own user and job tokens
+    pipeline.ensure_unencrypted_secure_environment_variables(
+        {
+            'JENKINS_USER_TOKEN': config['jenkins_user_token'],
+            'JENKINS_JOB_TOKEN': config['jenkins_job_token']
+        }
+    )
+
+    # Create the stage with the Jenkins jobs
+    jenkins_stage = pipeline.ensure_stage(constants.JENKINS_VERIFICATION_STAGE_NAME)
+    jenkins_user_name = config['jenkins_user_name']
+
+    jenkins_url = "https://test-jenkins.testeng.edx.org"
+
+    e2e_tests = jenkins_stage.ensure_job('edx-e2e-test')
+    tasks.generate_requirements_install(e2e_tests, 'tubular')
+    tasks.trigger_jenkins_build(e2e_tests, jenkins_url, jenkins_user_name, 'jz-test-project', 'EXIT_CODE 0')
+
+    microsites_tests = jenkins_stage.ensure_job('microsites-staging-tests')
+    tasks.generate_requirements_install(microsites_tests, 'tubular')
+    tasks.trigger_jenkins_build(microsites_tests, jenkins_url, jenkins_user_name, 'jz-test-project', 'EXIT_CODE 0')
 
 
 def rollback_asgs(edxapp_deploy_group, pipeline_name, deploy_pipeline, variable_files, cmd_line_vars):
