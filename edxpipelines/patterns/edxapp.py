@@ -13,7 +13,7 @@ import edxpipelines.patterns.tasks as tasks
 import edxpipelines.patterns.pipelines as pipelines
 import edxpipelines.constants as constants
 from edxpipelines.materials import (
-    TUBULAR, CONFIGURATION, EDX_PLATFORM, EDX_PLATFORM_ACTIVE, EDX_SECURE, EDGE_SECURE,
+    TUBULAR, CONFIGURATION, EDX_PLATFORM, EDX_PLATFORM_ACTIVE, EDX_PLATFORM_MASTER, EDX_SECURE, EDGE_SECURE,
     EDX_MICROSITE, EDX_INTERNAL, EDGE_INTERNAL
 )
 
@@ -27,9 +27,7 @@ def cut_branch(edxapp_group, variable_files, cmd_line_vars):
 
     pipeline = edxapp_group.ensure_replacement_of_pipeline('edxapp_cut_release_candidate')
 
-    source_branch = 'master'
-
-    pipeline.ensure_material(EDX_PLATFORM_ACTIVE)
+    pipeline.ensure_material(EDX_PLATFORM_MASTER)
     pipeline.ensure_material(TUBULAR)
 
     stages.generate_create_branch(
@@ -37,8 +35,8 @@ def cut_branch(edxapp_group, variable_files, cmd_line_vars):
         constants.GIT_CREATE_BRANCH_STAGE_NAME,
         'edx',
         'edx-platform',
-        source_branch,
-        'release-candidate',
+        EDX_PLATFORM_MASTER.branch,
+        EDX_PLATFORM.branch,
         config['git_token'],
         manual_approval=True,
     )

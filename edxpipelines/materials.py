@@ -37,6 +37,15 @@ EDX_PLATFORM_ACTIVE = GitMaterial(
     ignore_patterns=[],
 )
 
+EDX_PLATFORM_MASTER = GitMaterial(
+    url=EDX_PLATFORM.url,
+    branch='master',
+    material_name=EDX_PLATFORM.material_name,
+    polling=EDX_PLATFORM.polling,
+    destination_directory=EDX_PLATFORM.destination_directory,
+    ignore_patterns=[],
+)
+
 EDX_SECURE = GitMaterial(
     url="git@github.com:edx-ops/edx-secure.git",
     branch="master",
