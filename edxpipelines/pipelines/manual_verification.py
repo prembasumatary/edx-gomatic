@@ -112,7 +112,8 @@ def install_pipeline(save_config_locally, dry_run, variable_files, cmd_line_vars
         pipeline_job_name = jenkins['pipeline_job_name']
         jenkins_url = jenkins['url']
         jenkins_job_name = jenkins['job_name']
-        jenkins_param = jenkins['param']
+        key, _, param = jenkins['param'].partition(' ')
+        jenkins_param = {key: param}
 
         job = jenkins_stage.ensure_job(pipeline_job_name)
         tasks.generate_requirements_install(job, 'tubular')
