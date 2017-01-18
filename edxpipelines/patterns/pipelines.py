@@ -133,7 +133,6 @@ def generate_basic_multistage_pipeline(play,
         play,
         deployment,
         environment,
-        config['base_ami_id'],
         manual_approval=not config.get('auto_run', False),
     )
 

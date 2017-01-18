@@ -107,7 +107,7 @@ def build_migrate_deploy_subset_pipeline(
     # if the pipeline has a migrate stage, but no building stages, look up the build information from the
     # upstream pipeline.
     if ami_artifact is None:
-        base_ami_id = ''
+        base_ami_id = None
         if 'base_ami_id' in config:
             base_ami_id = config['base_ami_id']
         stages.generate_base_ami_selection(

@@ -53,11 +53,10 @@ def generate_asg_cleanup(pipeline,
 def generate_base_ami_selection(pipeline,
                                 aws_access_key_id,
                                 aws_secret_access_key,
-                                play,
-                                deployment,
-                                edx_environment,
-                                base_ami_id,
-                                base_ami_id_override='no',
+                                play=None,
+                                deployment=None,
+                                edx_environment=None,
+                                base_ami_id=None,
                                 manual_approval=False
                                 ):
     """
@@ -71,9 +70,7 @@ def generate_base_ami_selection(pipeline,
         play (str): Pipeline's play.
         deployment (str): Pipeline's deployment.
         edx_environment (str): Pipeline's environment.
-        base_ami_id (str): the ami-id used to launch the instance
-        base_ami_id_override (str): "yes" to use the base_ami_id provided,
-                                    any other value to extract the base AMI ID from the provided EDP instead
+        base_ami_id (str): the ami-id used to launch the instance, or None to use the provided EDP
         manual_approval (bool): Should this stage require manual approval?
 
     Returns:
@@ -92,7 +89,7 @@ def generate_base_ami_selection(pipeline,
             'DEPLOYMENT': deployment,
             'EDX_ENVIRONMENT': edx_environment,
             'BASE_AMI_ID': base_ami_id,
-            'BASE_AMI_ID_OVERRIDE': base_ami_id_override,
+            'BASE_AMI_ID_OVERRIDE': 'yes' if base_ami_id is not None else 'no',
         }
     )
 
@@ -117,12 +114,12 @@ def generate_base_ami_selection(pipeline,
                 '/bin/bash',
                 '-c',
                 'mkdir -p {artifact_path};'
-                'if [ $BASE_AMI_ID_OVERRIDE != \'yes\' ];'
+                'if [[ $BASE_AMI_ID_OVERRIDE != \'yes\' ]];'
                 '  then echo "Finding base AMI ID from active ELB/ASG in EDP.";'
                 '  /usr/bin/python {ami_script} --environment $EDX_ENVIRONMENT --deployment $DEPLOYMENT --play $PLAY --out_file {override_artifact};'
-                'elif [ $BASE_AMI_ID != \'\' ];'
+                'elif [[ -n $BASE_AMI_ID ]];'
                 '  then echo "Using specified base AMI ID of \'$BASE_AMI_ID\'";'
-                '  echo "base_ami_id: $BASE_AMI_ID" > {override_artifact};'
+                '  /usr/bin/python {ami_script} --override $BASE_AMI_ID --out_file {override_artifact};'
                 'else echo "Using environment base AMI ID";'
                 '  echo "{empty_dict}" > {override_artifact}; fi;'.format(
                     artifact_path='../' + constants.ARTIFACT_PATH,
