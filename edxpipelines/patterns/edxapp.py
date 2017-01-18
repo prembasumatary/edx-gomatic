@@ -35,7 +35,7 @@ def cut_branch(edxapp_group, variable_files, cmd_line_vars):
         constants.GIT_CREATE_BRANCH_STAGE_NAME,
         'edx',
         'edx-platform',
-        EDX_PLATFORM_MASTER.branch,
+        '$GO_REVISION_{}'.format(EDX_PLATFORM_MASTER.material_name.replace('-', '_').upper()),
         EDX_PLATFORM.branch,
         config['git_token'],
         manual_approval=True,

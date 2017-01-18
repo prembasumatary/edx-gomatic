@@ -1125,7 +1125,7 @@ def generate_create_branch(pipeline,
         stage_name (str): Name of the stage
         org (str): Name of the github organization that holds the repository (e.g. edx)
         repo (str): Name of repository (e.g edx-platform)
-        source_branch (str): Name of the branch to create the branch/PR from
+        source_branch (str): Name (or environment variable) of the commit to create the branch/PR from
         target_branch (str): Name of the branch to be created (will be the head of the PR)
         token (str): the github token used to create all these things. Will be an env_var 'GIT_TOKEN'
         manual_approval (bool): Should this stage require manual approval?
