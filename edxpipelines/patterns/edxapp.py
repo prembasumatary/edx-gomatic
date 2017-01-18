@@ -81,7 +81,8 @@ def prerelease_materials(edxapp_group, variable_files, cmd_line_vars):
 
 def build_migrate_deploy_subset_pipeline(
         pipeline_group, stage_builders, config,
-        pipeline_name, ami_artifact=None, auto_run=False):
+        pipeline_name, ami_artifact=None, auto_run=False,
+        post_cleanup_builders=None):
     """
     Arguments:
         ami_artifact (ArtifactLocation): The ami to use to launch the
@@ -143,6 +144,10 @@ def build_migrate_deploy_subset_pipeline(
 
     # Add the cleanup stage
     generate_cleanup_stages(pipeline, config, launch_stage)
+
+    if post_cleanup_builders:
+        for builder in post_cleanup_builders:
+            builder(pipeline, config)
 
     return pipeline
 

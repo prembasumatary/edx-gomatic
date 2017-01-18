@@ -138,6 +138,8 @@ def install_pipelines(save_config_locally, dry_run, variable_files,
                 pipeline_name_build=stage_b.name,
                 auto_deploy_ami=True,
             ),
+        ],
+        post_cleanup_builders=[
             edxapp.generate_e2e_test_stage,
         ],
         config=stage_config,
