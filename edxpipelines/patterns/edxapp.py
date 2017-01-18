@@ -357,11 +357,13 @@ def generate_e2e_test_stage(pipeline, config):
 
     e2e_tests = jenkins_stage.ensure_job('edx-e2e-test')
     tasks.generate_requirements_install(e2e_tests, 'tubular')
-    tasks.trigger_jenkins_build(e2e_tests, jenkins_url, jenkins_user_name, 'jz-test-project', 'EXIT_CODE 0')
+    tasks.trigger_jenkins_build(e2e_tests, jenkins_url, jenkins_user_name, 'edx-e2e-tests', {})
 
     microsites_tests = jenkins_stage.ensure_job('microsites-staging-tests')
     tasks.generate_requirements_install(microsites_tests, 'tubular')
-    tasks.trigger_jenkins_build(microsites_tests, jenkins_url, jenkins_user_name, 'jz-test-project', 'EXIT_CODE 0')
+    tasks.trigger_jenkins_build(microsites_tests, jenkins_url, jenkins_user_name, 'microsites-staging-tests', {
+        'CI_BRANCH': 'kashif/white_label',
+    })
 
 
 def rollback_asgs(edxapp_deploy_group, pipeline_name, deploy_pipeline, variable_files, cmd_line_vars):
