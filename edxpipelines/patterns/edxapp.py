@@ -358,7 +358,7 @@ def generate_e2e_test_stage(pipeline, config):
     jenkins_stage = pipeline.ensure_stage(constants.JENKINS_VERIFICATION_STAGE_NAME)
     jenkins_user_name = config['jenkins_user_name']
 
-    jenkins_url = "https://test-jenkins.testeng.edx.org"
+    jenkins_url = "https://build.testeng.edx.org"
 
     e2e_tests = jenkins_stage.ensure_job('edx-e2e-test')
     tasks.generate_requirements_install(e2e_tests, 'tubular')
