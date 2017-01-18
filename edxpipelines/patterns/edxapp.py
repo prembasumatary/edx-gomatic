@@ -268,9 +268,10 @@ def generate_deploy_stages(pipeline_name_build, auto_deploy_ami=False):
             'edx',
             'edx-platform',
             '$GITHUB_TOKEN',
-            '$GO_FROM_REVISION_EDX_PLATFORM',
-            '$GO_TO_REVISION_EDX_PLATFORM',
-            config['edx_environment']
+            '$GO_REVISION_EDX_PLATFORM',
+            config['edx_environment'],
+            base_ami_artifact=ami_file_location,
+            ami_tag_app='edx_platform',
         )
         return pipeline
     return builder
@@ -439,9 +440,10 @@ def rollback_asgs(edxapp_deploy_group, pipeline_name, deploy_pipeline, variable_
         'edx',
         'edx-platform',
         '$GITHUB_TOKEN',
-        '$GO_FROM_REVISION_EDX_PLATFORM',
-        '$GO_TO_REVISION_EDX_PLATFORM',
+        '$GO_REVISION_EDX_PLATFORM',
         'rollback',
+        base_ami_artifact=deploy_file_location,
+        ami_tag_app='edx_platform',
     )
 
     return pipeline

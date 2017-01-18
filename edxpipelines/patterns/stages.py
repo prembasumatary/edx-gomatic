@@ -1155,10 +1155,12 @@ def generate_message_prs(pipeline,
                          org,
                          repo,
                          token,
-                         base_sha,
                          head_sha,
                          msg_type,
-                         manual_approval=False):
+                         manual_approval=False,
+                         base_sha=None,
+                         base_ami_artifact=None,
+                         ami_tag_app=None):
     """
     Creates a stage that will message the pull requests for a range of commits that the respective pull requests have
     been deployed to the staging environment.
@@ -1168,10 +1170,14 @@ def generate_message_prs(pipeline,
         org (str): Name of the github organization that holds the repository (e.g. edx)
         repo (str): Name of repository (e.g edx-platform)
         token (str): the github token used to create all these things. Will be an env_var 'GIT_TOKEN'
-        base_sha(str): starting SHA or environment variable holding the SHA to start the commit range
         head_sha(str): ending SHA or environment variable holding the SHA to start the commit range
         msg_type (str): one of ['staging', 'production', 'rollback']
         manual_approval (bool): Should this stage require manual approval?
+        base_sha (str): The sha to use as the base point for sending messages
+            (any commits prior to this sha won't be messaged). (Optional)
+        base_ami_artifact (ArtifactLocation): The location of the artifact that specifies
+            the base_ami and tags (Optional)
+        ami_tag_app (str): The name of the version tag on the AMI to extract the version from (Optional)
 
     Returns:
         gomatic.stage.Stage
@@ -1202,6 +1208,9 @@ def generate_message_prs(pipeline,
     if manual_approval:
         message_stage.set_has_manual_approval()
     message_job = message_stage.ensure_job(meta.pop('job_name'))
-    meta.pop('method')(message_job, org, repo, token, base_sha, head_sha)
+    meta.pop('method')(
+        message_job, org, repo, token, head_sha,
+        base_sha=base_sha, base_ami_artifact=base_ami_artifact, ami_tag_app=ami_tag_app
+    )
 
     return message_stage
