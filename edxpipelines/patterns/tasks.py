@@ -783,7 +783,7 @@ def generate_create_branch(job,
         job (gomatic.Job): the Job to attach this stage to.
         org (str): Name of the github organization that holds the repository (e.g. edx)
         repo (str): Name of repository (e.g edx-platform)
-        source_branch (str): Name of the branch to create the branch/PR from
+        source_branch (str): Name (or environment variable) of the commit to create the branch/PR from
         target_branch (str): Name of the branch to be created (will be the head of the PR)
         runif (str): one of ['passed', 'failed', 'any'] Default: passed
 
