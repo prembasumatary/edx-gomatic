@@ -442,6 +442,15 @@ def rollback_asgs(edxapp_deploy_group, pipeline_name, build_pipeline, deploy_pip
         constants.BASE_AMI_OVERRIDE_FILENAME
     )
 
+    # We need the build_pipeline upstream so that we can fetch the artifact from it
+    pipeline.ensure_material(
+        PipelineMaterial(
+            pipeline_name=build_pipeline.name,
+            stage_name=constants.BASE_AMI_SELECTION_STAGE_NAME,
+            material_name='select_base_ami',
+        )
+    )
+
     # Message PRs being rolled back
     pipeline.ensure_unencrypted_secure_environment_variables({'GITHUB_TOKEN': config['github_token']})
     stages.generate_message_prs(
