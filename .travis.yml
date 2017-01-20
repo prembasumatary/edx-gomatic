@@ -3,7 +3,9 @@ python:
   - "2.7"
 
 # command to install dependencies
-install: "pip install -r requirements/test_requirements.txt"
+install:
+  - pip install --upgrade pip  # Get a newer version of pip to be able to use many-linux wheels
+  - pip install -r requirements/test_requirements.txt
 
 # command to run tests
 script: pep8 --config=.pep8 edxpipelines
