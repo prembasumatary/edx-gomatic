@@ -250,9 +250,9 @@ def generate_deploy_stages(pipeline_name_build, auto_deploy_ami=False):
     def builder(pipeline, config):
         ami_file_location = utils.ArtifactLocation(
             pipeline_name_build,
-            constants.BUILD_AMI_STAGE_NAME,
-            constants.BUILD_AMI_JOB_NAME,
-            constants.BUILD_AMI_FILENAME
+            constants.BASE_AMI_SELECTION_STAGE_NAME,
+            constants.BASE_AMI_SELECTION_JOB_NAME,
+            constants.BASE_AMI_OVERRIDE_FILENAME
         )
         stages.generate_deploy_ami(
             pipeline,
@@ -413,9 +413,9 @@ def rollback_asgs(edxapp_deploy_group, pipeline_name, deploy_pipeline, variable_
     # Specify the artifact that will be fetched containing the previous deployment information.
     deploy_file_location = utils.ArtifactLocation(
         deploy_pipeline.name,
-        constants.DEPLOY_AMI_STAGE_NAME,
-        constants.DEPLOY_AMI_JOB_NAME,
-        constants.DEPLOY_AMI_OUT_FILENAME,
+        constants.BASE_AMI_SELECTION_STAGE_NAME,
+        constants.BASE_AMI_SELECTION_JOB_NAME,
+        constants.BASE_AMI_OVERRIDE_FILENAME,
     )
 
     # Create the armed stage as this pipeline needs to auto-execute
