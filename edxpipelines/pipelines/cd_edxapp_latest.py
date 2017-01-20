@@ -301,6 +301,7 @@ def install_pipelines(save_config_locally, dry_run, variable_files,
     rollback_edx = edxapp.rollback_asgs(
         edxapp_deploy_group,
         'PROD_edx_edxapp_Rollback_latest',
+        prod_edx_b,
         prod_edx_md,
         variable_files + prod_edx_variable_files,
         cmd_line_vars
@@ -308,6 +309,7 @@ def install_pipelines(save_config_locally, dry_run, variable_files,
     rollback_edge = edxapp.rollback_asgs(
         edxapp_deploy_group,
         'PROD_edge_edxapp_Rollback_latest',
+        prod_edge_b,
         prod_edge_md,
         variable_files + prod_edge_variable_files,
         cmd_line_vars

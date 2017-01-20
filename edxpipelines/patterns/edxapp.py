@@ -374,7 +374,7 @@ def generate_e2e_test_stage(pipeline, config):
     })
 
 
-def rollback_asgs(edxapp_deploy_group, pipeline_name, deploy_pipeline, variable_files, cmd_line_vars):
+def rollback_asgs(edxapp_deploy_group, pipeline_name, build_pipeline, deploy_pipeline, variable_files, cmd_line_vars):
     """
     Arguments:
         edxapp_deploy_group (gomatic.PipelineGroup): The group in which to create this pipeline
@@ -413,9 +413,9 @@ def rollback_asgs(edxapp_deploy_group, pipeline_name, deploy_pipeline, variable_
     # Specify the artifact that will be fetched containing the previous deployment information.
     deploy_file_location = utils.ArtifactLocation(
         deploy_pipeline.name,
-        constants.BASE_AMI_SELECTION_STAGE_NAME,
-        constants.BASE_AMI_SELECTION_JOB_NAME,
-        constants.BASE_AMI_OVERRIDE_FILENAME,
+        constants.DEPLOY_AMI_STAGE_NAME,
+        constants.DEPLOY_AMI_JOB_NAME,
+        constants.DEPLOY_AMI_OUT_FILENAME,
     )
 
     # Create the armed stage as this pipeline needs to auto-execute
@@ -435,6 +435,13 @@ def rollback_asgs(edxapp_deploy_group, pipeline_name, deploy_pipeline, variable_
     # Since we only want this stage to rollback via manual approval, ensure that it is set on this stage.
     rollback_stage.set_has_manual_approval()
 
+    base_ami_file_location = utils.ArtifactLocation(
+        build_pipeline.name,
+        constants.BASE_AMI_SELECTION_STAGE_NAME,
+        constants.BASE_AMI_SELECTION_JOB_NAME,
+        constants.BASE_AMI_OVERRIDE_FILENAME
+    )
+
     # Message PRs being rolled back
     pipeline.ensure_unencrypted_secure_environment_variables({'GITHUB_TOKEN': config['github_token']})
     stages.generate_message_prs(
@@ -444,7 +451,7 @@ def rollback_asgs(edxapp_deploy_group, pipeline_name, deploy_pipeline, variable_
         '$GITHUB_TOKEN',
         '$GO_REVISION_EDX_PLATFORM',
         'rollback',
-        base_ami_artifact=deploy_file_location,
+        base_ami_artifact=base_ami_file_location,
         ami_tag_app='edx_platform',
     )
 
