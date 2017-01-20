@@ -103,13 +103,12 @@ def build_migrate_deploy_subset_pipeline(
     """
     pipeline = pipeline_group.ensure_replacement_of_pipeline(pipeline_name)
 
+    base_ami_id = config.get('base_ami_id')
+
     # We always need to launch the AMI, independent deploys are done with a different pipeline
     # if the pipeline has a migrate stage, but no building stages, look up the build information from the
     # upstream pipeline.
     if ami_artifact is None:
-        base_ami_id = ''
-        if 'base_ami_id' in config:
-            base_ami_id = config['base_ami_id']
         stages.generate_base_ami_selection(
             pipeline,
             config['aws_access_key_id'],
@@ -133,7 +132,7 @@ def build_migrate_deploy_subset_pipeline(
         config['ec2_vpc_subnet_id'],
         config['ec2_security_group_id'],
         config['ec2_instance_profile_name'],
-        config['base_ami_id'],
+        base_ami_id,
         upstream_build_artifact=ami_artifact,
         manual_approval=not auto_run
     )
@@ -268,9 +267,10 @@ def generate_deploy_stages(pipeline_name_build, auto_deploy_ami=False):
             'edx',
             'edx-platform',
             '$GITHUB_TOKEN',
-            '$GO_FROM_REVISION_EDX_PLATFORM',
-            '$GO_TO_REVISION_EDX_PLATFORM',
-            config['edx_environment']
+            '$GO_REVISION_EDX_PLATFORM',
+            config['edx_environment'],
+            base_ami_artifact=ami_file_location,
+            ami_tag_app='edx_platform',
         )
         return pipeline
     return builder
@@ -402,7 +402,7 @@ def rollback_asgs(edxapp_deploy_group, pipeline_name, deploy_pipeline, variable_
     pipeline.ensure_material(
         PipelineMaterial(
             pipeline_name=deploy_pipeline.name,
-            stage_name='deploy_ami',
+            stage_name=constants.DEPLOY_AMI_STAGE_NAME,
             material_name='deploy_pipeline',
         )
     )
@@ -410,9 +410,9 @@ def rollback_asgs(edxapp_deploy_group, pipeline_name, deploy_pipeline, variable_
     # Specify the artifact that will be fetched containing the previous deployment information.
     deploy_file_location = utils.ArtifactLocation(
         deploy_pipeline.name,
-        'deploy_ami',
-        'deploy_ami_job',
-        'ami_deploy_info.yml',
+        constants.DEPLOY_AMI_STAGE_NAME,
+        constants.DEPLOY_AMI_JOB_NAME,
+        constants.DEPLOY_AMI_OUT_FILENAME,
     )
 
     # Create the armed stage as this pipeline needs to auto-execute
@@ -439,9 +439,10 @@ def rollback_asgs(edxapp_deploy_group, pipeline_name, deploy_pipeline, variable_
         'edx',
         'edx-platform',
         '$GITHUB_TOKEN',
-        '$GO_FROM_REVISION_EDX_PLATFORM',
-        '$GO_TO_REVISION_EDX_PLATFORM',
+        '$GO_REVISION_EDX_PLATFORM',
         'rollback',
+        base_ami_artifact=deploy_file_location,
+        ami_tag_app='edx_platform',
     )
 
     return pipeline
