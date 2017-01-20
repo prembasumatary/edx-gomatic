@@ -117,11 +117,11 @@ def install_pipelines(save_config_locally, dry_run, variable_files,
         edxapp_group,
         [
             edxapp.generate_build_stages(
-                app_repo=EDX_PLATFORM.url,
-                theme_url=EDX_MICROSITE.url,
-                configuration_secure_repo=EDX_SECURE.url,
-                configuration_internal_repo=EDX_INTERNAL.url,
-                configuration_url=CONFIGURATION.url,
+                app_repo=EDX_PLATFORM().url,
+                theme_url=EDX_MICROSITE().url,
+                configuration_secure_repo=EDX_SECURE().url,
+                configuration_internal_repo=EDX_INTERNAL().url,
+                configuration_url=CONFIGURATION().url,
             ),
         ],
         config=stage_config,
@@ -166,11 +166,11 @@ def install_pipelines(save_config_locally, dry_run, variable_files,
         edxapp_deploy_group,
         [
             edxapp.generate_build_stages(
-                app_repo=EDX_PLATFORM.url,
-                theme_url=EDX_MICROSITE.url,
-                configuration_secure_repo=EDX_SECURE.url,
-                configuration_internal_repo=EDX_INTERNAL.url,
-                configuration_url=CONFIGURATION.url,
+                app_repo=EDX_PLATFORM().url,
+                theme_url=EDX_MICROSITE().url,
+                configuration_secure_repo=EDX_SECURE().url,
+                configuration_internal_repo=EDX_INTERNAL().url,
+                configuration_url=CONFIGURATION().url,
             ),
         ],
         config=prod_edx_config,
@@ -183,11 +183,11 @@ def install_pipelines(save_config_locally, dry_run, variable_files,
         edxapp_deploy_group,
         [
             edxapp.generate_build_stages(
-                app_repo=EDX_PLATFORM.url,
-                theme_url=EDX_MICROSITE.url,
-                configuration_secure_repo=EDGE_SECURE.url,
-                configuration_internal_repo=EDGE_INTERNAL.url,
-                configuration_url=CONFIGURATION.url,
+                app_repo=EDX_PLATFORM().url,
+                theme_url=EDX_MICROSITE().url,
+                configuration_secure_repo=EDGE_SECURE().url,
+                configuration_internal_repo=EDGE_INTERNAL().url,
+                configuration_url=CONFIGURATION().url,
             ),
         ],
         config=prod_edge_config,
@@ -296,7 +296,7 @@ def install_pipelines(save_config_locally, dry_run, variable_files,
             TUBULAR, CONFIGURATION, EDX_PLATFORM, EDX_SECURE, EDGE_SECURE,
             EDX_MICROSITE, EDX_INTERNAL, EDGE_INTERNAL
         ):
-            pipeline.ensure_material(material)
+            pipeline.ensure_material(material())
 
     rollback_edx = edxapp.rollback_asgs(
         edxapp_deploy_group,

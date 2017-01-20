@@ -1,7 +1,9 @@
 from gomatic import GitMaterial
+from functools import partial
 
 
-TUBULAR = GitMaterial(
+TUBULAR = partial(
+    GitMaterial,
     url="https://github.com/edx/tubular",
     branch="master",
     material_name="tubular",
@@ -10,7 +12,8 @@ TUBULAR = GitMaterial(
     ignore_patterns=['**/*'],
 )
 
-CONFIGURATION = GitMaterial(
+CONFIGURATION = partial(
+    GitMaterial,
     url="https://github.com/edx/configuration",
     branch="master",
     material_name="configuration",
@@ -19,7 +22,8 @@ CONFIGURATION = GitMaterial(
     ignore_patterns=['**/*'],
 )
 
-EDX_PLATFORM = GitMaterial(
+EDX_PLATFORM = partial(
+    GitMaterial,
     url="https://github.com/edx/edx-platform",
     branch="release-candidate",
     material_name="edx-platform",
@@ -28,25 +32,8 @@ EDX_PLATFORM = GitMaterial(
     ignore_patterns=['**/*'],
 )
 
-EDX_PLATFORM_ACTIVE = GitMaterial(
-    url=EDX_PLATFORM.url,
-    branch=EDX_PLATFORM.branch,
-    material_name=EDX_PLATFORM.material_name,
-    polling=EDX_PLATFORM.polling,
-    destination_directory=EDX_PLATFORM.destination_directory,
-    ignore_patterns=[],
-)
-
-EDX_PLATFORM_MASTER = GitMaterial(
-    url=EDX_PLATFORM.url,
-    branch='master',
-    material_name=EDX_PLATFORM.material_name,
-    polling=EDX_PLATFORM.polling,
-    destination_directory=EDX_PLATFORM.destination_directory,
-    ignore_patterns=[],
-)
-
-EDX_SECURE = GitMaterial(
+EDX_SECURE = partial(
+    GitMaterial,
     url="git@github.com:edx-ops/edx-secure.git",
     branch="master",
     material_name="edx-secure",
@@ -55,7 +42,8 @@ EDX_SECURE = GitMaterial(
     ignore_patterns=['**/*'],
 )
 
-EDGE_SECURE = GitMaterial(
+EDGE_SECURE = partial(
+    GitMaterial,
     url="git@github.com:edx-ops/edge-secure.git",
     branch="master",
     material_name="edge-secure",
@@ -64,7 +52,8 @@ EDGE_SECURE = GitMaterial(
     ignore_patterns=['**/*'],
 )
 
-EDX_MICROSITE = GitMaterial(
+EDX_MICROSITE = partial(
+    GitMaterial,
     url="git@github.com:edx/edx-microsite.git",
     branch="release",
     material_name="edx-microsite",
@@ -73,7 +62,8 @@ EDX_MICROSITE = GitMaterial(
     ignore_patterns=['**/*'],
 )
 
-EDX_INTERNAL = GitMaterial(
+EDX_INTERNAL = partial(
+    GitMaterial,
     url="git@github.com:edx/edx-internal.git",
     branch="master",
     material_name="edx-internal",
@@ -82,7 +72,8 @@ EDX_INTERNAL = GitMaterial(
     ignore_patterns=['**/*'],
 )
 
-EDGE_INTERNAL = GitMaterial(
+EDGE_INTERNAL = partial(
+    GitMaterial,
     url="git@github.com:edx/edge-internal.git",
     branch="master",
     material_name="edge-internal",
