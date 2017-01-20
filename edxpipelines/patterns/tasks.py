@@ -917,7 +917,7 @@ def _generate_message_pull_requests_in_commit_range(
         )
 
         command.extend([
-            '--base_ami_artifact', "{}/{}".format(constants.ARTIFACT_PATH, base_ami_artifact.file_name),
+            '--base_ami_tags', "{}/{}".format(constants.ARTIFACT_PATH, base_ami_artifact.file_name),
             '--ami_tag_app', ami_tag_app,
         ])
     elif base_ami_artifact or ami_tag_app:
