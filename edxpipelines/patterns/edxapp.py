@@ -71,11 +71,10 @@ def prerelease_materials(edxapp_group, variable_files, cmd_line_vars):
 
     for material in (
             CONFIGURATION, EDX_SECURE, EDGE_SECURE,
-            EDX_MICROSITE, EDX_INTERNAL, EDGE_INTERNAL,
+            EDX_MICROSITE, EDX_INTERNAL, EDGE_INTERNAL, EDX_PLATFORM,
     ):
-        pipeline.ensure_material(material())
+        pipeline.ensure_material(material(ignore_patterns=[]))
 
-    pipeline.ensure_material(EDX_PLATFORM(ignore_patterns=[]))
     pipeline.ensure_material(TUBULAR())
 
     stages.generate_armed_stage(pipeline, constants.ARM_PRERELEASE_STAGE)
