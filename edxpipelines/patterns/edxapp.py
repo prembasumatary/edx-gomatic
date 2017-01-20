@@ -13,7 +13,7 @@ import edxpipelines.patterns.tasks as tasks
 import edxpipelines.patterns.pipelines as pipelines
 import edxpipelines.constants as constants
 from edxpipelines.materials import (
-    TUBULAR, CONFIGURATION, EDX_PLATFORM, EDX_PLATFORM_ACTIVE, EDX_PLATFORM_MASTER, EDX_SECURE, EDGE_SECURE,
+    TUBULAR, CONFIGURATION, EDX_PLATFORM, EDX_SECURE, EDGE_SECURE,
     EDX_MICROSITE, EDX_INTERNAL, EDGE_INTERNAL
 )
 
@@ -27,18 +27,19 @@ def cut_branch(edxapp_group, variable_files, cmd_line_vars):
 
     pipeline = edxapp_group.ensure_replacement_of_pipeline('edxapp_cut_release_candidate')
 
-    pipeline.ensure_material(EDX_PLATFORM_MASTER)
-    pipeline.ensure_material(TUBULAR)
+    edx_platform_master = EDX_PLATFORM(branch="master", ignore_patterns=[])
+    pipeline.ensure_material(edx_platform_master)
+    pipeline.ensure_material(TUBULAR())
 
     stages.generate_create_branch(
         pipeline,
         constants.GIT_CREATE_BRANCH_STAGE_NAME,
         'edx',
         'edx-platform',
-        EDX_PLATFORM.branch,
+        EDX_PLATFORM().branch,
         config['git_token'],
         manual_approval=True,
-        sha='$GO_REVISION_{}'.format(EDX_PLATFORM_MASTER.material_name.replace('-', '_').upper()),
+        sha='$GO_REVISION_{}'.format(edx_platform_master.material_name.replace('-', '_').upper()),
     )
     pipeline.set_timer('0 0/5 15-18 ? * MON-FRI', True)
 
@@ -69,10 +70,12 @@ def prerelease_materials(edxapp_group, variable_files, cmd_line_vars):
     pipeline = edxapp_group.ensure_replacement_of_pipeline("prerelease_edxapp_materials_latest")
 
     for material in (
-            TUBULAR, CONFIGURATION, EDX_SECURE, EDGE_SECURE,
-            EDX_MICROSITE, EDX_INTERNAL, EDGE_INTERNAL, EDX_PLATFORM_ACTIVE
+            CONFIGURATION, EDX_SECURE, EDGE_SECURE,
+            EDX_MICROSITE, EDX_INTERNAL, EDGE_INTERNAL, EDX_PLATFORM,
     ):
-        pipeline.ensure_material(material)
+        pipeline.ensure_material(material(ignore_patterns=[]))
+
+    pipeline.ensure_material(TUBULAR())
 
     stages.generate_armed_stage(pipeline, constants.ARM_PRERELEASE_STAGE)
 
@@ -311,7 +314,7 @@ def manual_verification(edxapp_deploy_group, variable_files, cmd_line_vars):
         TUBULAR, CONFIGURATION, EDX_PLATFORM, EDX_SECURE, EDGE_SECURE,
         EDX_MICROSITE, EDX_INTERNAL, EDGE_INTERNAL
     ):
-        pipeline.ensure_material(material)
+        pipeline.ensure_material(material())
 
     # What this accomplishes:
     # When a pipeline such as edx stage runs this pipeline is downstream. Since the first stage is automatic
@@ -395,7 +398,7 @@ def rollback_asgs(edxapp_deploy_group, pipeline_name, deploy_pipeline, variable_
         TUBULAR, CONFIGURATION, EDX_PLATFORM, EDX_SECURE, EDGE_SECURE,
         EDX_MICROSITE, EDX_INTERNAL, EDGE_INTERNAL,
     ):
-        pipeline.ensure_material(material)
+        pipeline.ensure_material(material())
 
     # Specify the upstream deploy pipeline material for this rollback pipeline.
     # Assumes there's only a single upstream pipeline material for this pipeline.
