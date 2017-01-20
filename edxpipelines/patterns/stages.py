@@ -1111,10 +1111,11 @@ def generate_create_branch(pipeline,
                            stage_name,
                            org,
                            repo,
-                           source_branch,
                            target_branch,
                            token,
-                           manual_approval):
+                           manual_approval,
+                           source_branch=None,
+                           sha=None):
     """
     Generates a stage that is used to:
     - Create a branch (target_branch) from the source branch's head revision, will select the latest merge commit that
@@ -1125,10 +1126,12 @@ def generate_create_branch(pipeline,
         stage_name (str): Name of the stage
         org (str): Name of the github organization that holds the repository (e.g. edx)
         repo (str): Name of repository (e.g edx-platform)
-        source_branch (str): Name (or environment variable) of the commit to create the branch/PR from
         target_branch (str): Name of the branch to be created (will be the head of the PR)
         token (str): the github token used to create all these things. Will be an env_var 'GIT_TOKEN'
         manual_approval (bool): Should this stage require manual approval?
+        source_branch (str): Name (or environment variable) of the branch to create the branch/PR from
+        sha (str): SHA (or environment variable) of the commit to create the branch/PR from
+
 
     Returns:
         gomatic.Stage
@@ -1147,8 +1150,9 @@ def generate_create_branch(pipeline,
         git_job,
         org,
         repo,
-        source_branch,
         target_branch,
+        source_branch=source_branch,
+        sha=sha,
     )
 
     return git_stage

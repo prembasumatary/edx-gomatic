@@ -772,9 +772,10 @@ def generate_create_release_candidate_branch_and_pr(job,
 def generate_create_branch(job,
                            org,
                            repo,
-                           source_branch,
                            target_branch,
-                           runif='passed'):
+                           runif='passed',
+                           source_branch=None,
+                           sha=None):
     """
     Assumptions:
         Assumes a secure environment variable named "GIT_TOKEN"
@@ -783,42 +784,40 @@ def generate_create_branch(job,
         job (gomatic.Job): the Job to attach this stage to.
         org (str): Name of the github organization that holds the repository (e.g. edx)
         repo (str): Name of repository (e.g edx-platform)
-        source_branch (str): Name (or environment variable) of the commit to create the branch/PR from
         target_branch (str): Name of the branch to be created (will be the head of the PR)
         runif (str): one of ['passed', 'failed', 'any'] Default: passed
+        source_branch (str): Name (or environment variable) of the branch to create the branch/PR from
+        sha (str): SHA (or environment variable) of the commit to create the branch/PR from
 
     Returns:
         The newly created task (gomatic.gocd.tasks.ExecTask)
 
     """
-    command = ' '.join(
-        [
-            'python',
-            'scripts/cut_branch.py',
-            '--org {org}',
-            '--repo {repo}',
-            '--source_branch {source_branch}',
-            '--target_branch {target_branch}',
-            '--token $GIT_TOKEN',
-            '--output_file ../{artifact_path}/{output_file}'
-        ]
-    )
+    command = [
+        'python',
+        'scripts/cut_branch.py',
+        '--org', org,
+        '--repo', repo,
+        '--target_branch', target_branch,
+        '--token', '$GIT_TOKEN',
+        '--output_file', '../{artifact_path}/{output_file}'.format(
+            artifact_path=constants.ARTIFACT_PATH,
+            output_file=constants.CREATE_BRANCH_FILENAME
+        )
+    ]
 
-    command = command.format(
-        org=org,
-        repo=repo,
-        source_branch=source_branch,
-        target_branch=target_branch,
-        artifact_path=constants.ARTIFACT_PATH,
-        output_file=constants.CREATE_BRANCH_FILENAME
-    )
+    if source_branch:
+        command.extend(['--source_branch', source_branch])
+
+    if sha:
+        command.extend(['--sha', sha])
 
     return job.add_task(
         ExecTask(
             [
                 '/bin/bash',
                 '-c',
-                command
+                ' '.join(command),
             ],
             working_dir='tubular',
             runif=runif
