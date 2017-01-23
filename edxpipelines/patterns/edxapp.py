@@ -472,3 +472,76 @@ def rollback_asgs(edxapp_deploy_group, pipeline_name, build_pipeline, deploy_pip
     )
 
     return pipeline
+
+
+def merge_back_branches(edxapp_deploy_group, pipeline_name, variable_files, cmd_line_vars):
+    """
+    Arguments:
+        edxapp_deploy_group (gomatic.PipelineGroup): The group in which to create this pipeline
+        pipeline_name (str): The name of this pipeline
+
+    Configuration Required:
+        github_org
+        github_repo
+        rc_branch
+        release_branch
+        release_to_master_branch
+        master_branch
+        github_token
+    """
+    config = utils.merge_files_and_dicts(variable_files, list(cmd_line_vars,))
+
+    pipeline = edxapp_deploy_group.ensure_replacement_of_pipeline(pipeline_name)
+
+    for material in (
+        TUBULAR, CONFIGURATION, EDX_PLATFORM, EDX_SECURE, EDGE_SECURE,
+        EDX_MICROSITE, EDX_INTERNAL, EDGE_INTERNAL
+    ):
+        pipeline.ensure_material(material())
+
+    # Create a single stage in the pipeline which will:
+    #   - merge the RC branch into the release branch
+    #   - tag the release branch
+    stages.generate_merge_branch_and_tag(
+        pipeline,
+        constants.GIT_MERGE_RC_BRANCH_STAGE_NAME,
+        org=config['github_org'],
+        repo=config['github_repo'],
+        source_branch=config['rc_branch'],
+        target_branch=config['release_branch'],
+        head_sha='$GO_REVISION_EDX_PLATFORM',
+        token=config['github_token'],
+        fast_forward_only=True,
+        manual_approval=False
+    )
+
+    # Create a single stage in the pipeline which will:
+    #  - create a branch off the HEAD of release
+    #  - create a PR to merge release into master
+    stages.generate_create_branch_and_pr(
+        pipeline,
+        constants.CREATE_MASTER_MERGE_PR_STAGE_NAME,
+        org=config['github_org'],
+        repo=config['github_repo'],
+        source_branch=config['release_branch'],
+        new_branch=config['release_to_master_branch'],
+        target_branch=config['master_branch'],
+        pr_title='Merge release back to master',
+        pr_body='Merge the release branch back to master via a temporary branch off release.',
+        token=config['github_token'],
+        manual_approval=False
+    )
+
+    # Create a single stage in the pipeline which will:
+    #   - poll for successful completion of PR tests
+    #   - merge the PR
+    stages.generate_poll_tests_and_merge_pr(
+        pipeline,
+        constants.CHECK_PR_TESTS_AND_MERGE_STAGE_NAME,
+        org=config['github_org'],
+        repo=config['github_repo'],
+        token=config['github_token'],
+        manual_approval=False
+    )
+
+    return pipeline

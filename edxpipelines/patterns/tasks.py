@@ -825,6 +825,354 @@ def generate_create_branch(job,
     )
 
 
+def generate_create_pr(job,
+                       org,
+                       repo,
+                       source_branch,
+                       target_branch,
+                       title,
+                       body,
+                       runif='passed'):
+    """
+    Assumptions:
+        Assumes a secure environment variable named "GIT_TOKEN"
+
+    Args:
+        job (gomatic.Job): the Job to attach this stage to.
+        org (str): Name of the github organization that holds the repository (e.g. edx)
+        repo (str): Name of repository (e.g edx-platform)
+        source_branch (str): Name of the branch to create the branch/PR from
+        target_branch (str): Name of the branch to be created (will be the head of the PR)
+        title (str): Title to use for the created PR
+        body (str): Body to use for the created PR
+        runif (str): one of ['passed', 'failed', 'any'] Default: passed
+
+    Returns:
+        The newly created task (gomatic.gocd.tasks.ExecTask)
+    """
+    output_file_path = '{}/{}'.format(
+        constants.ARTIFACT_PATH,
+        constants.CREATE_BRANCH_PR_FILENAME
+    )
+    job.ensure_artifacts(set([BuildArtifact(output_file_path)]))
+
+    cmd_args = [
+        'python',
+        'scripts/create_pr.py',
+        '--org {org}',
+        '--repo {repo}',
+        '--source_branch {source_branch}',
+        '--target_branch {target_branch}',
+        '--title "{title}"',
+        '--body "{body}"',
+        '--token $GIT_TOKEN',
+        '--output_file ../{output_file_path}'
+    ]
+    command = ' '.join(cmd_args)
+
+    command = command.format(
+        org=org,
+        repo=repo,
+        source_branch=source_branch,
+        target_branch=target_branch,
+        title=title,
+        body=body,
+        output_file_path=output_file_path
+    )
+
+    return job.add_task(
+        ExecTask(
+            [
+                '/bin/bash',
+                '-c',
+                command
+            ],
+            working_dir='tubular',
+            runif=runif
+        )
+    )
+
+
+def generate_merge_branch(job,
+                          org,
+                          repo,
+                          source_branch,
+                          target_branch,
+                          fast_forward_only,
+                          runif='passed'):
+    """
+    Assumptions:
+        Assumes a secure environment variable named "GIT_TOKEN"
+
+    Args:
+        job (gomatic.Job): the Job to attach this stage to.
+        org (str): Name of the github organization that holds the repository (e.g. edx)
+        repo (str): Name of repository (e.g edx-platform)
+        source_branch (str): Name of the branch to merge into the target branch
+        target_branch (str): Name of the branch into which to merge the source branch
+        fast_forward_only (bool): If True, force a fast-forward merge or fail.
+        runif (str): one of ['passed', 'failed', 'any'] Default: passed
+
+    Returns:
+        The newly created task (gomatic.gocd.tasks.ExecTask)
+
+    """
+    output_file_path = '{}/{}'.format(
+        constants.ARTIFACT_PATH,
+        constants.MERGE_BRANCH_FILENAME
+    )
+    job.ensure_artifacts(set([BuildArtifact(output_file_path)]))
+
+    cmd_args = [
+        'python',
+        'scripts/merge_branch.py',
+        '--org {org}',
+        '--repo {repo}',
+        '--source_branch {source_branch}',
+        '--target_branch {target_branch}',
+        '--output_file ../{output_file_path}'
+    ]
+    if fast_forward_only:
+        cmd_args.append('--fast_forward_only')
+    command = ' '.join(cmd_args)
+
+    command = command.format(
+        org=org,
+        repo=repo,
+        source_branch=source_branch,
+        target_branch=target_branch,
+        output_file_path=output_file_path
+    )
+
+    return job.add_task(
+        ExecTask(
+            [
+                '/bin/bash',
+                '-c',
+                command
+            ],
+            working_dir='tubular',
+            runif=runif
+        )
+    )
+
+
+def generate_merge_pr(job,
+                      org,
+                      repo,
+                      input_file,
+                      runif='passed'):
+    """
+    Assumptions:
+        Assumes a secure environment variable named "GIT_TOKEN"
+
+    Args:
+        job (gomatic.Job): the Job to attach this stage to.
+        org (str): Name of the github organization that holds the repository (e.g. edx)
+        repo (str): Name of repository (e.g edx-platform)
+        input_file (str): Path to YAML file containing PR number, using "pr_id" key
+        runif (str): one of ['passed', 'failed', 'any'] Default: passed
+
+    Returns:
+        The newly created task (gomatic.gocd.tasks.ExecTask)
+    """
+    cmd_args = [
+        'python',
+        'scripts/merge_pr.py',
+        '--org {org}',
+        '--repo {repo}',
+        '--input_file ../{artifact_path}/{input_file}',
+        '--token $GIT_TOKEN',
+    ]
+    command = ' '.join(cmd_args)
+
+    command = command.format(
+        org=org,
+        repo=repo,
+        artifact_path=constants.ARTIFACT_PATH,
+        input_file=input_file,
+    )
+
+    return job.add_task(
+        ExecTask(
+            [
+                '/bin/bash',
+                '-c',
+                command
+            ],
+            working_dir='tubular',
+            runif=runif
+        )
+    )
+
+
+def generate_tag_commit(job,
+                        org,
+                        repo,
+                        input_file=None,
+                        commit_sha=None,
+                        branch_name=None,
+                        tag_name=None,
+                        tag_message=None,
+                        runif='passed'):
+    """
+    Generates a task that tags a commit SHA, passed in these ways:
+    - input YAML file containing a 'sha' key
+    - explicitly passed-in commit SHA
+    - HEAD sha obtained from passed-in branch_name
+
+    Assumptions:
+        Assumes a secure environment variable named "GIT_TOKEN"
+
+    Args:
+        job (gomatic.Job): the Job to attach this stage to.
+        org (str): Name of the github organization that holds the repository (e.g. edx)
+        repo (str): Name of repository (e.g edx-platform)
+        input_file (str): Name of file containing commit SHA.
+        commit_sha (str): Commit SHA to tag.
+        branch_name (str): Branch name whose HEAD will be tagged.
+        tag_name (str): Name to use for the commit tag.
+        tag_message (str): Message to use for the commit tag.
+        runif (str): one of ['passed', 'failed', 'any'] Default: passed
+
+    Returns:
+        The newly created task (gomatic.gocd.tasks.ExecTask)
+
+    """
+    cmd_args = [
+        'python',
+        'scripts/create_tag.py',
+        '--org', org,
+        '--repo', repo,
+        '--token $GIT_TOKEN',
+    ]
+    if input_file:
+        cmd_args.append('--input_file ../{artifact_path}/{input_file}'.format(
+            artifact_path=constants.ARTIFACT_PATH,
+            input_file=input_file
+        ))
+    if commit_sha:
+        cmd_args.extend(('--commit_sha', commit_sha))
+    if branch_name:
+        cmd_args.extend(('--branch_name', branch_name))
+    if tag_name:
+        cmd_args.extend(('--tag_name', tag_name))
+    if tag_message:
+        cmd_args.extend(('--tag_message', tag_message))
+
+    return job.add_task(
+        ExecTask(
+            [
+                '/bin/bash',
+                '-c',
+                ' '.join(cmd_args)
+            ],
+            working_dir='tubular',
+            runif=runif
+        )
+    )
+
+
+def generate_check_pr_tests(job,
+                            org,
+                            repo,
+                            input_file,
+                            runif='passed'):
+    """
+    Assumptions:
+        Assumes a secure environment variable named "GIT_TOKEN"
+
+    Args:
+        job (gomatic.Job): the Job to attach this stage to.
+        org (str): Name of the github organization that holds the repository (e.g. edx)
+        repo (str): Name of repository (e.g edx-platform)
+        input_file (str): Name of YAML file containing PR id.
+        runif (str): one of ['passed', 'failed', 'any'] Default: passed
+
+    Returns:
+        The newly created task (gomatic.gocd.tasks.ExecTask)
+
+    """
+    cmd_args = [
+        'python',
+        'scripts/check_pr_tests_status.py',
+        '--org {org}',
+        '--repo {repo}',
+        '--input_file ../{artifact_path}/{input_file}',
+        '--token $GIT_TOKEN',
+    ]
+    command = ' '.join(cmd_args)
+
+    command = command.format(
+        org=org,
+        repo=repo,
+        artifact_path=constants.ARTIFACT_PATH,
+        input_file=input_file,
+    )
+
+    return job.add_task(
+        ExecTask(
+            [
+                '/bin/bash',
+                '-c',
+                command
+            ],
+            working_dir='tubular',
+            runif=runif
+        )
+    )
+
+
+def generate_poll_pr_tests(job,
+                           org,
+                           repo,
+                           input_file,
+                           runif='passed'):
+    """
+    Assumptions:
+        Assumes a secure environment variable named "GIT_TOKEN"
+
+    Args:
+        job (gomatic.Job): the Job to attach this stage to.
+        org (str): Name of the github organization that holds the repository (e.g. edx)
+        repo (str): Name of repository (e.g edx-platform)
+        input_file (str): Name of YAML file containing PR id.
+        runif (str): one of ['passed', 'failed', 'any'] Default: passed
+
+    Returns:
+        The newly created task (gomatic.gocd.tasks.ExecTask)
+
+    """
+    cmd_args = [
+        'python',
+        'scripts/poll_pr_tests_status.py',
+        '--org {org}',
+        '--repo {repo}',
+        '--input_file ../{artifact_path}/{input_file}',
+        '--token $GIT_TOKEN',
+    ]
+    command = ' '.join(cmd_args)
+
+    command = command.format(
+        org=org,
+        repo=repo,
+        artifact_path=constants.ARTIFACT_PATH,
+        input_file=input_file,
+    )
+
+    return job.add_task(
+        ExecTask(
+            [
+                '/bin/bash',
+                '-c',
+                ' '.join(command),
+            ],
+            working_dir='tubular',
+            runif=runif
+        )
+    )
+
+
 def trigger_jenkins_build(job, jenkins_url, jenkins_user_name, jenkins_job_name, jenkins_params):
     """
     Generate a GoCD task that triggers a jenkins build and polls for its results.

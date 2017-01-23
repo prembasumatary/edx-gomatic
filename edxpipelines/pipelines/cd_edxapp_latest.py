@@ -315,6 +315,23 @@ def install_pipelines(save_config_locally, dry_run, variable_files,
         cmd_line_vars
     )
 
+    merge_back = edxapp.merge_back_branches(
+        edxapp_deploy_group,
+        constants.BRANCH_CLEANUP_PIPELINE_NAME,
+        variable_files,
+        cmd_line_vars
+    )
+
+    # Specify the upstream deploy pipeline materials for this branch-merging pipeline.
+    for deploy_pipeline in (prod_edx_md, prod_edge_md):
+        merge_back.ensure_material(
+            PipelineMaterial(
+                pipeline_name=deploy_pipeline.name,
+                stage_name=constants.DEPLOY_AMI_STAGE_NAME,
+                material_name='deploy_pipeline_{}'.format(deploy_pipeline.name),
+            )
+        )
+
     gcc.save_updated_config(save_config_locally=save_config_locally, dry_run=dry_run)
 
 if __name__ == "__main__":

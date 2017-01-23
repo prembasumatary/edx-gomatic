@@ -4,3 +4,10 @@ edxapp_subapps:
   - lms
 play_name: "edxapp"
 db_migration_user: "www-data"
+
+github_org: edx
+github_repo: edx-platform
+rc_branch: release-candidate
+release_branch: release
+release_to_master_branch: release-mergeback-to-master
+master_branch: master
