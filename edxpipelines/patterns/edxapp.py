@@ -248,11 +248,11 @@ def generate_deploy_stages(pipeline_name_build, auto_deploy_ami=False):
     # Create the stage to deploy the AMI.
     #
     def builder(pipeline, config):
-        ami_file_location = utils.ArtifactLocation(
+        built_ami_file_location = utils.ArtifactLocation(
             pipeline_name_build,
-            constants.BASE_AMI_SELECTION_STAGE_NAME,
-            constants.BASE_AMI_SELECTION_JOB_NAME,
-            constants.BASE_AMI_OVERRIDE_FILENAME
+            constants.BUILD_AMI_STAGE_NAME,
+            constants.BUILD_AMI_JOB_NAME,
+            constants.BUILD_AMI_FILENAME,
         )
         stages.generate_deploy_ami(
             pipeline,
@@ -260,8 +260,15 @@ def generate_deploy_stages(pipeline_name_build, auto_deploy_ami=False):
             config['asgard_token'],
             config['aws_access_key_id'],
             config['aws_secret_access_key'],
-            ami_file_location,
+            built_ami_file_location,
             manual_approval=not auto_deploy_ami
+        )
+
+        base_ami_file_location = utils.ArtifactLocation(
+            pipeline_name_build,
+            constants.BASE_AMI_SELECTION_STAGE_NAME,
+            constants.BASE_AMI_SELECTION_JOB_NAME,
+            constants.BASE_AMI_OVERRIDE_FILENAME
         )
 
         pipeline.ensure_unencrypted_secure_environment_variables({'GITHUB_TOKEN': config['github_token']})
@@ -272,7 +279,7 @@ def generate_deploy_stages(pipeline_name_build, auto_deploy_ami=False):
             '$GITHUB_TOKEN',
             '$GO_REVISION_EDX_PLATFORM',
             config['edx_environment'],
-            base_ami_artifact=ami_file_location,
+            base_ami_artifact=base_ami_file_location,
             ami_tag_app='edx_platform',
         )
         return pipeline
