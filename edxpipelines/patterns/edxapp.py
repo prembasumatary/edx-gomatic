@@ -541,6 +541,9 @@ def merge_back_branches(edxapp_deploy_group, pipeline_name, variable_files, cmd_
         org=config['github_org'],
         repo=config['github_repo'],
         token=config['github_token'],
+        initial_poll_wait=config['initial_poll_wait'],
+        max_poll_tries=config['max_poll_tries'],
+        poll_interval=config['poll_interval'],
         manual_approval=False
     )
 

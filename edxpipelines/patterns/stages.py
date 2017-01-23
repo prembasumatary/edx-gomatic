@@ -1352,6 +1352,9 @@ def generate_poll_tests_and_merge_pr(pipeline,
                                      org,
                                      repo,
                                      token,
+                                     initial_poll_wait,
+                                     max_poll_tries,
+                                     poll_interval,
                                      manual_approval):
     """
     Generates a stage that is used to:
@@ -1371,9 +1374,9 @@ def generate_poll_tests_and_merge_pr(pipeline,
     """
     pipeline.ensure_environment_variables(
         {
-            'MAX_PR_TEST_POLL_TRIES': '10',
-            'PR_TEST_INITIAL_WAIT_INTERVAL': '5',
-            'PR_TEST_POLL_INTERVAL': '20'
+            'PR_TEST_INITIAL_WAIT_INTERVAL': str(initial_poll_wait),
+            'MAX_PR_TEST_POLL_TRIES': str(max_poll_tries),
+            'PR_TEST_POLL_INTERVAL': str(poll_interval)
         }
     )
     pipeline.ensure_unencrypted_secure_environment_variables(

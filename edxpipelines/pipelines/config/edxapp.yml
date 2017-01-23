@@ -11,3 +11,8 @@ rc_branch: release-candidate
 release_branch: release
 release_to_master_branch: release-mergeback-to-master
 master_branch: master
+
+# For edx-platform tests, wait 35 minutes before polling. Then poll every 20 seconds for 15 minutes.
+initial_poll_wait: 2100
+max_poll_tries: 45
+poll_interval: 20
