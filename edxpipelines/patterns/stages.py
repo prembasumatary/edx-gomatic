@@ -1224,7 +1224,6 @@ def generate_merge_branch_and_tag(pipeline,
                                   stage_name,
                                   org,
                                   repo,
-                                  source_branch,
                                   target_branch,
                                   head_sha,
                                   token,
@@ -1240,7 +1239,6 @@ def generate_merge_branch_and_tag(pipeline,
         stage_name (str): Name of the stage
         org (str): Name of the github organization that holds the repository (e.g. edx)
         repo (str): Name of repository (e.g edx-platform)
-        source_branch (str): Name of the branch to merge into the target branch
         target_branch (str): Name of the branch into which to merge the source branch
         head_sha (str): commit SHA or environment variable holding the SHA to tag as the release
         token (str): the github token used to create all these things. Will be an env_var 'GIT_TOKEN'
@@ -1265,7 +1263,7 @@ def generate_merge_branch_and_tag(pipeline,
         merge_branch_job,
         org,
         repo,
-        source_branch,
+        head_sha,
         target_branch,
         fast_forward_only
     )
