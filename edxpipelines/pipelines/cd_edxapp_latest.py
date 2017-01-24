@@ -318,6 +318,7 @@ def install_pipelines(save_config_locally, dry_run, variable_files,
     merge_back = edxapp.merge_back_branches(
         edxapp_deploy_group,
         constants.BRANCH_CLEANUP_PIPELINE_NAME,
+        prod_edx_md.name,
         variable_files,
         cmd_line_vars
     )

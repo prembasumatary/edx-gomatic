@@ -1012,6 +1012,7 @@ def generate_tag_commit(job,
                         input_file=None,
                         commit_sha=None,
                         branch_name=None,
+                        deploy_artifact=None,
                         tag_name=None,
                         tag_message=None,
                         runif='passed'):
@@ -1059,6 +1060,11 @@ def generate_tag_commit(job,
         cmd_args.extend(('--tag_name', tag_name))
     if tag_message:
         cmd_args.extend(('--tag_message', tag_message))
+    if deploy_artifact:
+        cmd_args.append('--deploy_artifact ../{artifact_path}/{deploy_artifact}'.format(
+            artifact_path=constants.ARTIFACT_PATH,
+            deploy_artifact=deploy_artifact
+        ))
 
     return job.add_task(
         ExecTask(
