@@ -507,7 +507,6 @@ def merge_back_branches(edxapp_deploy_group, pipeline_name, variable_files, cmd_
         constants.GIT_MERGE_RC_BRANCH_STAGE_NAME,
         org=config['github_org'],
         repo=config['github_repo'],
-        source_branch=config['rc_branch'],
         target_branch=config['release_branch'],
         head_sha='$GO_REVISION_EDX_PLATFORM',
         token=config['github_token'],
