@@ -315,9 +315,17 @@ def install_pipelines(save_config_locally, dry_run, variable_files,
         cmd_line_vars
     )
 
+    deploy_artifact = utils.ArtifactLocation(
+        prod_edx_md.name,
+        constants.DEPLOY_AMI_STAGE_NAME,
+        constants.DEPLOY_AMI_JOB_NAME,
+        FetchArtifactFile(constants.DEPLOY_AMI_OUT_FILENAME)
+    )
+
     merge_back = edxapp.merge_back_branches(
         edxapp_deploy_group,
         constants.BRANCH_CLEANUP_PIPELINE_NAME,
+        deploy_artifact,
         variable_files,
         cmd_line_vars
     )

@@ -474,11 +474,12 @@ def rollback_asgs(edxapp_deploy_group, pipeline_name, build_pipeline, deploy_pip
     return pipeline
 
 
-def merge_back_branches(edxapp_deploy_group, pipeline_name, variable_files, cmd_line_vars):
+def merge_back_branches(edxapp_deploy_group, pipeline_name, deploy_artifact, variable_files, cmd_line_vars):
     """
     Arguments:
         edxapp_deploy_group (gomatic.PipelineGroup): The group in which to create this pipeline
         pipeline_name (str): The name of this pipeline
+        deploy_pipeline_name (str): The name of the deploy pipeline from which to fetch an artifact.
 
     Configuration Required:
         github_org
@@ -505,6 +506,7 @@ def merge_back_branches(edxapp_deploy_group, pipeline_name, variable_files, cmd_
     stages.generate_merge_branch_and_tag(
         pipeline,
         constants.GIT_MERGE_RC_BRANCH_STAGE_NAME,
+        deploy_artifact,
         org=config['github_org'],
         repo=config['github_repo'],
         target_branch=config['release_branch'],
