@@ -1222,7 +1222,7 @@ def generate_message_prs(pipeline,
 
 def generate_merge_branch_and_tag(pipeline,
                                   stage_name,
-                                  deploy_pipeline_name,
+                                  deploy_artifact,
                                   org,
                                   repo,
                                   target_branch,
@@ -1238,7 +1238,7 @@ def generate_merge_branch_and_tag(pipeline,
     Args:
         pipeline (gomatic.Pipeline): Pipeline to which this stage will be attached
         stage_name (str): Name of the stage
-        deploy_pipeline_name (str): Name of deploy pipeline from which to fetch artifact
+        deploy_artifact (ArtifactLocation): Location of deployment artifact file
         org (str): Name of the github organization that holds the repository (e.g. edx)
         repo (str): Name of repository (e.g edx-platform)
         target_branch (str): Name of the branch into which to merge the source branch
@@ -1274,23 +1274,24 @@ def generate_merge_branch_and_tag(pipeline,
     # Instruct the task to auto-generate tag name/message by not sending them in.
     tag_job = git_stage.ensure_job(constants.GIT_TAG_SHA_JOB_NAME)
 
-    # Fetch the AMI-deployment artifact to extract deployment time.
-    tag_job.add_task(
-        FetchArtifactTask(
-            pipeline=deploy_pipeline_name,
-            stage=constants.DEPLOY_AMI_STAGE_NAME,
-            job=constants.DEPLOY_AMI_JOB_NAME,
-            src=FetchArtifactFile(constants.DEPLOY_AMI_OUT_FILENAME),
-            dest=constants.ARTIFACT_PATH
+    if deploy_artifact:
+        # Fetch the AMI-deployment artifact to extract deployment time.
+        tag_job.add_task(
+            FetchArtifactTask(
+                pipeline=deploy_artifact.pipeline,
+                stage=deploy_artifact.stage,
+                job=deploy_artifact.job,
+                src=deploy_artifact.file_name,
+                dest=constants.ARTIFACT_PATH
+            )
         )
-    )
 
     tasks.generate_tag_commit(
         tag_job,
         org,
         repo,
         commit_sha=head_sha,
-        deploy_artifact=constants.DEPLOY_AMI_OUT_FILENAME
+        deploy_artifact_filename=deploy_artifact.file_name.as_xml_type_and_value[1] if deploy_artifact else None
     )
 
 

@@ -1012,7 +1012,7 @@ def generate_tag_commit(job,
                         input_file=None,
                         commit_sha=None,
                         branch_name=None,
-                        deploy_artifact=None,
+                        deploy_artifact_filename=None,
                         tag_name=None,
                         tag_message=None,
                         runif='passed'):
@@ -1032,6 +1032,7 @@ def generate_tag_commit(job,
         input_file (str): Name of file containing commit SHA.
         commit_sha (str): Commit SHA to tag.
         branch_name (str): Branch name whose HEAD will be tagged.
+        deploy_artifact_filename (str): Filename of the deploy artifact.
         tag_name (str): Name to use for the commit tag.
         tag_message (str): Message to use for the commit tag.
         runif (str): one of ['passed', 'failed', 'any'] Default: passed
@@ -1060,10 +1061,10 @@ def generate_tag_commit(job,
         cmd_args.extend(('--tag_name', tag_name))
     if tag_message:
         cmd_args.extend(('--tag_message', tag_message))
-    if deploy_artifact:
-        cmd_args.append('--deploy_artifact ../{artifact_path}/{deploy_artifact}'.format(
+    if deploy_artifact_filename:
+        cmd_args.append('--deploy_artifact ../{artifact_path}/{deploy_artifact_filename}'.format(
             artifact_path=constants.ARTIFACT_PATH,
-            deploy_artifact=deploy_artifact
+            deploy_artifact_filename=deploy_artifact_filename
         ))
 
     return job.add_task(
