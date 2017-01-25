@@ -1172,7 +1172,7 @@ def generate_poll_pr_tests(job,
             [
                 '/bin/bash',
                 '-c',
-                ' '.join(command),
+                command,
             ],
             working_dir='tubular',
             runif=runif
