@@ -1180,7 +1180,10 @@ def generate_poll_pr_tests(job,
     )
 
 
-def trigger_jenkins_build(job, jenkins_url, jenkins_user_name, jenkins_job_name, jenkins_params):
+def trigger_jenkins_build(
+        job, jenkins_url, jenkins_user_name, jenkins_job_name,
+        jenkins_params, timeout=30 * 60
+):
     """
     Generate a GoCD task that triggers a jenkins build and polls for its results.
 
@@ -1203,6 +1206,7 @@ def trigger_jenkins_build(job, jenkins_url, jenkins_user_name, jenkins_job_name,
         '--user_name {}'.format(jenkins_user_name),
         '--job {}'.format(jenkins_job_name),
         '--cause "Triggered by GoCD Pipeline ${GO_PIPELINE_NAME} build ${GO_PIPELINE_LABEL}"',
+        '--timeout', str(timeout)
     ]
     command.extend(
         '--param {} {}'.format(name, value)
