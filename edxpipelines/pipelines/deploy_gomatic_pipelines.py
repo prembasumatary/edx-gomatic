@@ -97,7 +97,6 @@ def install_pipeline(save_config_locally, dry_run, variable_files, cmd_line_vars
     job.add_task(
         ExecTask(
             [
-                '/usr/bin/python',
                 'deploy_pipelines.py',
                 '-v',
                 'tools',
