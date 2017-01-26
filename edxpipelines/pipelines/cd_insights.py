@@ -7,9 +7,9 @@ from gomatic import *
 # Used to import edxpipelines files - since the module is not installed.
 sys.path.append(path.dirname(path.dirname(path.dirname(path.abspath(__file__)))))
 
-import edxpipelines.utils as utils
+from edxpipelines import utils
 from edxpipelines.patterns import pipelines
-import edxpipelines.constants as constants
+from edxpipelines import constants
 
 
 @click.command()

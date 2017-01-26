@@ -3,7 +3,7 @@ import re
 from gomatic import *
 
 from gomatic.gocd.materials import PipelineMaterial
-import edxpipelines.utils as utils
+from edxpipelines import utils
 from edxpipelines import constants
 from edxpipelines.patterns import stages
 

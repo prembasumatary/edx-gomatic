@@ -1,6 +1,6 @@
 from gomatic import *
 
-import edxpipelines.constants as constants
+from edxpipelines import constants
 
 
 def generate_requirements_install(job, working_dir, runif="passed"):

@@ -3,7 +3,7 @@ import unittest
 
 from ddt import ddt, data, unpack
 import edxpipelines.utils as util
-import edxpipelines.constants as constants
+from edxpipelines import constants
 
 
 @ddt

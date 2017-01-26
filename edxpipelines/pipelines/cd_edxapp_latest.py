@@ -7,10 +7,10 @@ from gomatic import *
 # Used to import edxpipelines files - since the module is not installed.
 sys.path.append(path.dirname(path.dirname(path.dirname(path.abspath(__file__)))))
 
-import edxpipelines.utils as utils
-import edxpipelines.patterns.stages as stages
-import edxpipelines.patterns.pipelines as pipelines
-import edxpipelines.constants as constants
+from edxpipelines import utils
+from edxpipelines.patterns import stages
+from edxpipelines.patterns import pipelines
+from edxpipelines import constants
 from edxpipelines.patterns.authz import Permission, ensure_permissions
 from edxpipelines.patterns import edxapp
 from edxpipelines.materials import (

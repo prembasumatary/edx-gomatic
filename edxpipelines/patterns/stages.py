@@ -1,7 +1,7 @@
 from gomatic import *
 
-import edxpipelines.constants as constants
-import edxpipelines.patterns.tasks as tasks
+from edxpipelines import constants
+from edxpipelines.patterns import tasks
 
 
 def generate_asg_cleanup(pipeline,

@@ -7,7 +7,7 @@ import click
 # Used to import edxpipelines files - since the module is not installed.
 sys.path.append(path.dirname(path.dirname(path.dirname(path.abspath(__file__)))))
 
-import edxpipelines.utils as utils
+from edxpipelines import utils
 from edxpipelines.patterns import pipelines
 
 
