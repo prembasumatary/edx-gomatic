@@ -11,6 +11,7 @@ import edxpipelines.utils as utils
 import edxpipelines.patterns.stages as stages
 import edxpipelines.patterns.pipelines as pipelines
 import edxpipelines.constants as constants
+from edxpipelines.patterns.authz import Permission, ensure_permissions
 from edxpipelines.patterns import edxapp
 from edxpipelines.materials import (
     TUBULAR, CONFIGURATION, EDX_PLATFORM, EDX_SECURE, EDGE_SECURE,
@@ -110,7 +111,15 @@ def install_pipelines(save_config_locally, dry_run, variable_files,
     gcc.ensure_removal_of_pipeline_group('edxapp')
     gcc.ensure_removal_of_pipeline_group('edxapp_prod_deploys')
     edxapp_group = gcc.ensure_pipeline_group('edxapp')
+
+    ensure_permissions(edxapp_group, Permission.OPERATE, ['edxapp-operator'])
+    ensure_permissions(edxapp_group, Permission.VIEW, ['edxapp-operator'])
+
     edxapp_deploy_group = gcc.ensure_pipeline_group('edxapp_prod_deploys')
+
+    ensure_permissions(edxapp_deploy_group, Permission.ADMINS, ['deploy'])
+    ensure_permissions(edxapp_deploy_group, Permission.OPERATE, ['prod-deploy-operators'])
+    ensure_permissions(edxapp_deploy_group, Permission.VIEW, ['prod-deploy-operators'])
 
     cut_branch = edxapp.cut_branch(edxapp_group, variable_files, cmd_line_vars)
     prerelease_materials = edxapp.prerelease_materials(edxapp_group, variable_files + stage_variable_files, cmd_line_vars)
