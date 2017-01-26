@@ -20,3 +20,6 @@ requirements:
 
 test_requirements: requirements
 	pip install -r requirements/test_requirements.txt
+
+validate:
+	pytest -k test_scripts
