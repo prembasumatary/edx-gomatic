@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-from itertools import groupby
 import sys
 from os import path
 import click
@@ -21,10 +20,14 @@ from edxpipelines.materials import (
 )
 
 
-@pipeline_script
-def install_pipelines(save_config_locally, dry_run, variable_files,
-                      env_variable_files, cmd_line_vars):
+@pipeline_script(environments=('stage', 'prod-edx', 'prod-edge'))
+def install_pipelines(gcc, config, env_configs):
     """
+    Arguments:
+        gcc (GoCdConfigurator)
+        config (dict)
+        env_config (dict)
+
     Variables needed for this pipeline:
     - gocd_username
     - gocd_password
@@ -44,24 +47,6 @@ def install_pipelines(save_config_locally, dry_run, variable_files,
     - configuration_secure_version
     - configuration_internal_version
     """
-
-    # Merge the configuration files/variables together
-    config = utils.merge_files_and_dicts(variable_files, list(cmd_line_vars,))
-    env_vars = {
-        env: tuple(file for _, file in files)
-        for env, files
-        in groupby(
-            sorted(env_variable_files),
-            lambda (env, file): env,
-        )
-    }
-    env_configs = {
-        env: utils.merge_files_and_dicts(variable_files + files, list(cmd_line_vars))
-        for env, files in env_vars.items()
-    }
-
-    # Create the pipeline
-    gcc = GoCdConfigurator(HostRestClient(config['gocd_url'], config['gocd_username'], config['gocd_password'], ssl=True))
     gcc.ensure_removal_of_pipeline_group('edxapp')
     gcc.ensure_removal_of_pipeline_group('edxapp_prod_deploys')
     edxapp_group = gcc.ensure_pipeline_group('edxapp')
@@ -311,7 +296,6 @@ def install_pipelines(save_config_locally, dry_run, variable_files,
             )
         )
 
-    gcc.save_updated_config(save_config_locally=save_config_locally, dry_run=dry_run)
 
 if __name__ == "__main__":
     install_pipelines()
