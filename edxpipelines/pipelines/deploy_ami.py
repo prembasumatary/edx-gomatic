@@ -12,8 +12,7 @@ from edxpipelines.patterns import pipelines
 from edxpipelines.pipelines.script import pipeline_script
 
 
-@pipeline_script()
-def install_pipeline(configurator, config, env_configs):
+def install_pipelines(configurator, config, env_configs):
     """
     Variables needed for this pipeline:
     - gocd_username
@@ -43,4 +42,4 @@ def install_pipeline(configurator, config, env_configs):
     print "done"
 
 if __name__ == "__main__":
-    install_pipeline()
+    pipeline_script(install_pipelines)

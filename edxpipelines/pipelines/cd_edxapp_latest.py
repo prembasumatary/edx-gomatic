@@ -20,7 +20,6 @@ from edxpipelines.materials import (
 )
 
 
-@pipeline_script(environments=('stage', 'prod-edx', 'prod-edge'))
 def install_pipelines(configurator, config, env_configs):
     """
     Arguments:
@@ -298,4 +297,4 @@ def install_pipelines(configurator, config, env_configs):
 
 
 if __name__ == "__main__":
-    install_pipelines()
+    pipeline_script(install_pipelines, environments=('stage', 'prod-edx', 'prod-edge'))

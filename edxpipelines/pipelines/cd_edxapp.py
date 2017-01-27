@@ -14,7 +14,6 @@ from edxpipelines import constants
 from edxpipelines.pipelines.script import pipeline_script
 
 
-@pipeline_script()
 def install_pipelines(configurator, config, env_configs):
     """
     Variables needed for this pipeline:
@@ -202,4 +201,4 @@ def install_pipelines(configurator, config, env_configs):
 
 
 if __name__ == "__main__":
-    install_pipelines()
+    pipeline_script(install_pipelines)

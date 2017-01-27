@@ -14,8 +14,7 @@ from edxpipelines.constants import *
 from edxpipelines.pipelines.script import pipeline_script
 
 
-@pipeline_script()
-def install_pipeline(configurator, config, env_configs):
+def install_pipelines(configurator, config, env_configs):
     pipeline = configurator \
         .ensure_pipeline_group(DRUPAL_PIPELINE_GROUP_NAME) \
         .ensure_replacement_of_pipeline(DEPLOY_MARKETING_PIPELINE_NAME) \
@@ -174,4 +173,4 @@ def install_pipeline(configurator, config, env_configs):
 
 
 if __name__ == '__main__':
-    install_pipeline()
+    pipeline_script(install_pipelines)

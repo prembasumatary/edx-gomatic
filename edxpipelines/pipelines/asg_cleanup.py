@@ -13,8 +13,7 @@ from edxpipelines.patterns import stages
 from edxpipelines.pipelines.script import pipeline_script
 
 
-@pipeline_script()
-def install_pipeline(configurator, config, env_configs):
+def install_pipelines(configurator, config, env_configs):
     """
     Variables needed for this pipeline:
     - gocd_username
@@ -42,4 +41,4 @@ def install_pipeline(configurator, config, env_configs):
     stages.generate_asg_cleanup(pipeline, config['asgard_api_endpoints'], config['asgard_token'], config['aws_access_key_id'], config['aws_secret_access_key'])
 
 if __name__ == "__main__":
-    install_pipeline()
+    pipeline_script(install_pipelines)

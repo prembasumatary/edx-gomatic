@@ -14,8 +14,7 @@ from edxpipelines.patterns import tasks
 from edxpipelines.pipelines.script import pipeline_script
 
 
-@pipeline_script()
-def install_pipeline(configurator, config, env_configs):
+def install_pipelines(configurator, config, env_configs):
     """
     Variables needed for this pipeline:
     materials: A list of dictionaries of the materials used in this pipeline
@@ -100,4 +99,4 @@ def install_pipeline(configurator, config, env_configs):
 
 
 if __name__ == "__main__":
-    install_pipeline()
+    pipeline_script(install_pipelines)
