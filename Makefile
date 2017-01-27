@@ -7,10 +7,10 @@ test.%:
 	tox -- --script edxpipelines/pipelines/$*.py
 
 diff:
-	env SAVE_CONFIG=true tox
+	tox -- --save-config
 
 diff.%:
-	env SAVE_CONFIG=true tox -- --script edxpipelines/pipelines/$*.py
+	tox -- --script edxpipelines/pipelines/$*.py --save-config
 
 quality:
 	pep8 --config=.pep8 edxpipelines

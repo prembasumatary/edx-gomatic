@@ -57,7 +57,15 @@ def print_failure_report(failures):
         default=False,
         is_flag=True,
 )
-def run_pipelines(environment, config_file, script, verbose, dry_run):
+@click.option(
+    '--save-config', 'save_config_locally',
+    envvar='SAVE_CONFIG',
+    help='Save the pipeline configuration xml locally.',
+    required=False,
+    default=False,
+    is_flag=True
+)
+def run_pipelines(environment, config_file, script, verbose, dry_run, save_config_locally):
     """
 
     Args:
@@ -86,6 +94,7 @@ def run_pipelines(environment, config_file, script, verbose, dry_run):
             ensure_pipeline(
                 script_name,
                 dry_run=dry_run,
+                save_config_locally=save_config_locally,
                 **script
             )
             success.append(script_name)
