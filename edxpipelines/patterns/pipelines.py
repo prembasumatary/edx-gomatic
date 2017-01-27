@@ -51,18 +51,19 @@ def generate_deploy_pipeline(configurator,
     return configurator
 
 
-def generate_basic_multistage_pipeline(play,
-                                       pipeline_group,
-                                       playbook_path,
-                                       app_repo,
-                                       service_name,
-                                       hipchat_room,
-                                       config,
-                                       save_config_locally,
-                                       dry_run,
-                                       post_migration_stages=(),
-                                       skip_migrations=False,
-                                       **kwargs):
+def generate_basic_multistage_pipeline(
+        configurator,
+        play,
+        pipeline_group,
+        playbook_path,
+        app_repo,
+        service_name,
+        hipchat_room,
+        config,
+        post_migration_stages=(),
+        skip_migrations=False,
+        **kwargs
+):
     """
     This pattern generates a pipeline that is suitable for the majority of edX's independently-deployable applications
     (IDAs).
@@ -81,15 +82,13 @@ def generate_basic_multistage_pipeline(play,
     """
     environment = config['edx_environment']
     deployment = config['edx_deployment']
-    gcc = GoCdConfigurator(
-        HostRestClient(config['gocd_url'], config['gocd_username'], config['gocd_password'], ssl=True))
 
     application_name = service_name
     application_path = '/edx/app/' + service_name
     application_user = service_name
     hipchat_token = config['hipchat_token']
 
-    pipeline = gcc.ensure_pipeline_group(pipeline_group) \
+    pipeline = configurator.ensure_pipeline_group(pipeline_group) \
         .ensure_replacement_of_pipeline('-'.join([environment, deployment, play])) \
         .ensure_material(GitMaterial(config['tubular_url'],
                                      branch=config.get('tubular_version', 'master'),
@@ -270,4 +269,3 @@ def generate_basic_multistage_pipeline(play,
         hipchat_token=hipchat_token,
         runif='any'
     )
-    gcc.save_updated_config(save_config_locally=save_config_locally, dry_run=dry_run)

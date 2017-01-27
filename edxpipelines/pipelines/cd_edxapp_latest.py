@@ -21,10 +21,10 @@ from edxpipelines.materials import (
 
 
 @pipeline_script(environments=('stage', 'prod-edx', 'prod-edge'))
-def install_pipelines(gcc, config, env_configs):
+def install_pipelines(configurator, config, env_configs):
     """
     Arguments:
-        gcc (GoCdConfigurator)
+        configurator (GoCdConfigurator)
         config (dict)
         env_config (dict)
 
@@ -47,14 +47,14 @@ def install_pipelines(gcc, config, env_configs):
     - configuration_secure_version
     - configuration_internal_version
     """
-    gcc.ensure_removal_of_pipeline_group('edxapp')
-    gcc.ensure_removal_of_pipeline_group('edxapp_prod_deploys')
-    edxapp_group = gcc.ensure_pipeline_group('edxapp')
+    configurator.ensure_removal_of_pipeline_group('edxapp')
+    configurator.ensure_removal_of_pipeline_group('edxapp_prod_deploys')
+    edxapp_group = configurator.ensure_pipeline_group('edxapp')
 
     ensure_permissions(edxapp_group, Permission.OPERATE, ['edxapp-operator'])
     ensure_permissions(edxapp_group, Permission.VIEW, ['edxapp-operator'])
 
-    edxapp_deploy_group = gcc.ensure_pipeline_group('edxapp_prod_deploys')
+    edxapp_deploy_group = configurator.ensure_pipeline_group('edxapp_prod_deploys')
 
     ensure_permissions(edxapp_deploy_group, Permission.ADMINS, ['deploy'])
     ensure_permissions(edxapp_deploy_group, Permission.OPERATE, ['prod-deploy-operators'])

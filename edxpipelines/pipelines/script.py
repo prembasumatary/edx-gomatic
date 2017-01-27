@@ -81,9 +81,14 @@ def pipeline_script(environments=()):
             }
 
             # Create the pipeline
-            gcc = GoCdConfigurator(HostRestClient(config['gocd_url'], config['gocd_username'], config['gocd_password'], ssl=True))
-            return_val = func(gcc, config, env_configs)
-            gcc.save_updated_config(save_config_locally=save_config_locally, dry_run=dry_run)
+            configurator = GoCdConfigurator(HostRestClient(
+                config['gocd_url'],
+                config['gocd_username'],
+                config['gocd_password'],
+                ssl=True
+            ))
+            return_val = func(configurator, config, env_configs)
+            configurator.save_updated_config(save_config_locally=save_config_locally, dry_run=dry_run)
             return return_val
 
         return cli
