@@ -21,7 +21,9 @@ def ensure_pipeline(script, dry_run=False, **kwargs):
             args = [args]
         for arg in args:
             script_args.append('--{}'.format(key))
-            script_args.append(arg)
+            if not isinstance(arg, list):
+                arg = [arg]
+            script_args.extend(arg)
 
     command = ['python', script] + script_args
     logging.debug("Executing script: {}".format(subprocess.list2cmdline(command)))
