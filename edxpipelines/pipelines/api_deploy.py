@@ -10,9 +10,9 @@ from os import path
 # Used to import edxpipelines files - since the module is not installed.
 sys.path.append(path.dirname(path.dirname(path.dirname(path.abspath(__file__)))))
 
-import edxpipelines.utils as utils
-import edxpipelines.pipelines.api_build as api_build
-import edxpipelines.constants as constants
+from edxpipelines import utils
+from edxpipelines.pipelines import api_build
+from edxpipelines import constants
 
 
 @click.command()
