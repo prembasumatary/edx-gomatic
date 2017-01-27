@@ -157,16 +157,16 @@ class TestPipelineHelpers(unittest.TestCase):
         self.assertRaises(Exception, util.validate_pipeline_permutations, permutation)
 
     @data(
-        ({'pipeline_name': 'blah'}, 'bmd', ('blah_B-M-D', 'blah_B-M-D')),
-        ({'pipeline_name': 'blah'}, 'md', ('blah_M-D', 'blah_B')),
-        ({'pipeline_name': 'blah'}, 'b', ('blah_B', 'blah_B')),
+        ('blah', 'bmd', ('blah_B-M-D', 'blah_B-M-D')),
+        ('blah', 'md', ('blah_M-D', 'blah_B')),
+        ('blah', 'b', ('blah_B', 'blah_B')),
     )
     @unpack
     def test_determine_pipeline_names(self, config, bmd_steps, expected_tuple):
         self.assertEqual(util.determine_pipeline_names(config, bmd_steps), expected_tuple)
 
     @data(
-        ({'pipeline_name': 'blah'}, 'dmb'),
+        ('blah', 'dmb'),
     )
     @unpack
     def test_invalid_input_determine_pipeline_names(self, config, bmd_steps):
