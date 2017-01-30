@@ -1,4 +1,5 @@
 import os.path
+import os
 
 from edxpipelines.utils import ArtifactLocation
 import pytest
@@ -62,3 +63,7 @@ def test_upstream_stages(script_result, script_name):
     )
 
     assert required_stages - provided_stages == set([])
+
+
+def test_scripts_are_executable(script_name):
+    assert os.access(script_name, os.X_OK)
