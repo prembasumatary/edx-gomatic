@@ -33,7 +33,7 @@ def pytest_generate_tests(metafunc):
         metafunc.parametrize(
             'script',
             script_configs,
-            ids=[script.get('script') for script in script_configs],
+            ids=lambda script: script.get('script'),
             scope='module'
         )
 

@@ -67,3 +67,53 @@ def test_upstream_stages(script_result, script_name):
 
 def test_scripts_are_executable(script_name):
     assert os.access(script_name, os.X_OK)
+
+
+def find_available_stages(script_result, target_pipeline, target_stage):
+    """
+    Yields the names of all stages inside ``target_pipeline`` that are available
+    by depending on ``target_stage``.
+    """
+    for pipeline in script_result.iter('pipeline'):
+        if pipeline.get('name') != target_pipeline:
+            continue
+
+        for stage in pipeline.iter('stage'):
+            stage_name = stage.get('name')
+            yield stage_name
+            if stage_name == target_stage:
+                return
+
+
+def test_upstream_stages_for_artifacts(script_result, script_name):
+    if script_name in ['edxpipelines/pipelines/api_deploy.py']:
+        pytest.xfail("{} is known to be non-independent".format(script_name))
+
+    required_artifacts = set(
+        (
+            pipeline.get('name'),  # This pipeline
+            fetch.get('pipeline'),  # The upstream pipeline
+            fetch.get('stage'),  # The upstream stage
+        )
+        for pipeline in script_result.iter('pipeline')
+        for fetch in pipeline.iter('fetchartifact')
+        if fetch.get('pipeline') != pipeline.get('name')
+    )
+
+    available_stages = set(
+        (
+            pipeline.get('name'),  # This pipeline
+            pipeline_material.get('pipelineName'),  # The upstream pipeline
+            stage,  # The upstream stage
+        )
+        for pipeline in script_result.iter('pipeline')
+        for materials in pipeline.iter('materials')
+        for pipeline_material in materials.findall('pipeline')
+        for stage in find_available_stages(
+            script_result,
+            pipeline_material.get('pipelineName'),
+            pipeline_material.get('stageName')
+        ),
+    )
+
+    assert required_artifacts - available_stages == set([])
