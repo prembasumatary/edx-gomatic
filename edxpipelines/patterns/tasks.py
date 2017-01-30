@@ -14,24 +14,20 @@ def generate_requirements_install(job, working_dir, runif="passed"):
         runif (str): one of ['passed', 'failed', 'any'] Default: passed
 
     Returns:
-        The pair of newly created tasks (gomatic.gocd.tasks.ExecTask)
+        The newly created task (gomatic.gocd.tasks.ExecTask)
 
     """
-    tasks = []
-
-    for pip in ('pip', 'pip3'):
-        tasks.append(job.add_task(
-            ExecTask(
-                [
-                    '/bin/bash',
-                    '-c',
-                    'sudo {} install -r requirements.txt'.format(pip)
-                ],
-                working_dir=working_dir,
-                runif=runif
-            )
-        ))
-    return tuple(tasks)
+    return job.add_task(
+        ExecTask(
+            [
+                '/bin/bash',
+                '-c',
+                'sudo pip install -r requirements.txt'
+            ],
+            working_dir=working_dir,
+            runif=runif
+        )
+    )
 
 
 def generate_launch_instance(job, optional_override_files=[], runif="passed"):
