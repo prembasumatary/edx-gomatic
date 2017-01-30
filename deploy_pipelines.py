@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-
 import logging
 import os.path
 import pprint
@@ -27,7 +26,7 @@ def ensure_pipeline(script, dry_run=False, **kwargs):
             script_args.append('--{}'.format(key))
             script_args.append(arg)
 
-    command = [script] + script_args
+    command = ['python', script] + script_args
     logging.debug("Executing script: {}".format(subprocess.list2cmdline(command)))
     result = subprocess.check_output(command, stderr=subprocess.STDOUT)
     if dry_run and os.environ.get('SAVE_CONFIG'):

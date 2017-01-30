@@ -41,6 +41,7 @@ def generate_asg_cleanup(pipeline,
     tasks.generate_requirements_install(job, 'tubular')
     job.add_task(ExecTask(
         [
+            '/usr/bin/python',
             'scripts/cleanup-asgs.py'
         ],
         working_dir="tubular")
@@ -115,10 +116,10 @@ def generate_base_ami_selection(pipeline,
                 'mkdir -p {artifact_path};'
                 'if [[ $BASE_AMI_ID_OVERRIDE != \'yes\' ]];'
                 '  then echo "Finding base AMI ID from active ELB/ASG in EDP.";'
-                '  {ami_script} --environment $EDX_ENVIRONMENT --deployment $DEPLOYMENT --play $PLAY --out_file {override_artifact};'
+                '  /usr/bin/python {ami_script} --environment $EDX_ENVIRONMENT --deployment $DEPLOYMENT --play $PLAY --out_file {override_artifact};'
                 'elif [[ -n $BASE_AMI_ID ]];'
                 '  then echo "Using specified base AMI ID of \'$BASE_AMI_ID\'";'
-                '  {ami_script} --override $BASE_AMI_ID --out_file {override_artifact};'
+                '  /usr/bin/python {ami_script} --override $BASE_AMI_ID --out_file {override_artifact};'
                 'else echo "Using environment base AMI ID";'
                 '  echo "{empty_dict}" > {override_artifact}; fi;'.format(
                     artifact_path='../' + constants.ARTIFACT_PATH,
@@ -491,7 +492,8 @@ def generate_deploy_ami(pipeline,
     )
     job.ensure_artifacts(set([BuildArtifact(artifact_path)]))
 
-    deploy_command = \
+    deploy_command =\
+        '/usr/bin/python ' \
         'scripts/asgard-deploy.py ' \
         '--out_file ../{} '.format(artifact_path)
 
@@ -556,6 +558,7 @@ def generate_edp_validation(pipeline,
     job.add_task(
         ExecTask(
             [
+                '/usr/bin/python',
                 'scripts/validate_edp.py'
             ],
             working_dir='tubular'
@@ -566,6 +569,7 @@ def generate_edp_validation(pipeline,
             [
                 '/bin/bash',
                 '-c',
+                '/usr/bin/python '
                 'scripts/submit_hipchat_msg.py '
                 '-m '
                 '"${AMI_ID} is not tagged for ${AMI_ENVIRONMENT}-${AMI_DEPLOYMENT}-${AMI_PLAY}. '
@@ -817,6 +821,7 @@ def generate_rollback_asg_stage(
 
     job.add_task(ExecTask(
         [
+            '/usr/bin/python',
             'scripts/rollback_asg.py',
             '--config_file', deploy_file_location.file_name,
             '--out_file', '../{}'.format(artifact_path),
