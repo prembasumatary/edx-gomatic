@@ -268,7 +268,7 @@ def format_RSA_key(job, output_path, key):
                 '-c',
                 'touch {output_path} && '
                 'chmod 600 {output_path} && '
-                'tubular/scripts/format_rsa_key.py --key "{key}" --output-file {output_path}'.format(
+                'python tubular/scripts/format_rsa_key.py --key "{key}" --output-file {output_path}'.format(
                     output_path=output_path, key=key
                 )
             ]
@@ -299,7 +299,7 @@ def _fetch_secure_repo(job, secure_dir, secure_repo_envvar, secure_version_envva
                 '-c',
                 'touch github_key.pem && '
                 'chmod 600 github_key.pem && '
-                'tubular/scripts/format_rsa_key.py --key "$PRIVATE_GITHUB_KEY" --output-file github_key.pem && '
+                'python tubular/scripts/format_rsa_key.py --key "$PRIVATE_GITHUB_KEY" --output-file github_key.pem && '
                 "GIT_SSH_COMMAND='/usr/bin/ssh -o StrictHostKeyChecking=no -i github_key.pem' "
                 '/usr/bin/git clone ${secure_repo_envvar} {secure_dir} && '
                 'cd {secure_dir} && '
@@ -494,7 +494,7 @@ def generate_backup_drupal_database(job, site_env):
             [
                 '/bin/bash',
                 '-c',
-                'scripts/drupal_backup_database.py '
+                'python scripts/drupal_backup_database.py '
                 '--env {site_env} '
                 '--username $PRIVATE_ACQUIA_USERNAME '
                 '--password $PRIVATE_ACQUIA_PASSWORD'.format(site_env=site_env)
@@ -548,7 +548,7 @@ def generate_clear_varnish_cache(job, site_env):
             [
                 '/bin/bash',
                 '-c',
-                'scripts/drupal_clear_varnish.py '
+                'python scripts/drupal_clear_varnish.py '
                 '--env {site_env} '
                 '--username $PRIVATE_ACQUIA_USERNAME '
                 '--password $PRIVATE_ACQUIA_PASSWORD'.format(site_env=site_env)
@@ -582,7 +582,7 @@ def generate_drupal_deploy(job, site_env, tag_file):
             [
                 '/bin/bash',
                 '-c',
-                'scripts/drupal_deploy.py '
+                'python scripts/drupal_deploy.py '
                 '--env {site_env} '
                 '--username $PRIVATE_ACQUIA_USERNAME '
                 '--password $PRIVATE_ACQUIA_PASSWORD '
@@ -616,7 +616,7 @@ def generate_fetch_tag(job, site_env, path_name):
             [
                 '/bin/bash',
                 '-c',
-                'scripts/drupal_fetch_deployed_tag.py '
+                'python scripts/drupal_fetch_deployed_tag.py '
                 '--env {site_env} '
                 '--username $PRIVATE_ACQUIA_USERNAME '
                 '--password $PRIVATE_ACQUIA_PASSWORD '
@@ -741,6 +741,7 @@ def generate_create_release_candidate_branch_and_pr(job,
     """
     command = ' '.join(
         [
+            'python',
             'scripts/create_release_candidate.py',
             '--org {org}',
             '--repo {repo}',
@@ -797,6 +798,7 @@ def generate_create_branch(job,
 
     """
     command = [
+        'python',
         'scripts/cut_branch.py',
         '--org', org,
         '--repo', repo,
@@ -859,6 +861,7 @@ def generate_create_pr(job,
     job.ensure_artifacts(set([BuildArtifact(output_file_path)]))
 
     cmd_args = [
+        'python',
         'scripts/create_pr.py',
         '--org {org}',
         '--repo {repo}',
@@ -925,6 +928,7 @@ def generate_merge_branch(job,
     job.ensure_artifacts(set([BuildArtifact(output_file_path)]))
 
     cmd_args = [
+        'python',
         'scripts/merge_branch.py',
         '--org {org}',
         '--repo {repo}',
@@ -977,6 +981,7 @@ def generate_merge_pr(job,
         The newly created task (gomatic.gocd.tasks.ExecTask)
     """
     cmd_args = [
+        'python',
         'scripts/merge_pr.py',
         '--org {org}',
         '--repo {repo}',
@@ -1041,6 +1046,7 @@ def generate_tag_commit(job,
 
     """
     cmd_args = [
+        'python',
         'scripts/create_tag.py',
         '--org', org,
         '--repo', repo,
@@ -1099,6 +1105,7 @@ def generate_check_pr_tests(job,
 
     """
     cmd_args = [
+        'python',
         'scripts/check_pr_tests_status.py',
         '--org {org}',
         '--repo {repo}',
@@ -1148,6 +1155,7 @@ def generate_poll_pr_tests(job,
 
     """
     cmd_args = [
+        'python',
         'scripts/poll_pr_tests_status.py',
         '--org {org}',
         '--repo {repo}',
@@ -1196,6 +1204,7 @@ def trigger_jenkins_build(
         jenkins_param (dict): parameter names and values to pass to the job
     """
     command = [
+        'python ',
         'scripts/jenkins_trigger_build.py',
         '--url {}'.format(jenkins_url),
         '--user_name {}'.format(jenkins_user_name),
@@ -1248,6 +1257,7 @@ def _generate_message_pull_requests_in_commit_range(
         gomatic.task.Task
     """
     command = [
+        'python ',
         'scripts/message_prs_in_range.py',
         '--org', org,
         '--token', token,
