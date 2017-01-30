@@ -64,11 +64,10 @@ def dummy_ensure_pipeline(script_name):
 
 @pytest.fixture(scope='module')
 def script_result(script, pytestconfig):
-    script_name = script.pop('script')
+    script_name = script.get('script')
 
     if pytestconfig.getoption('live'):
         ensure_pipeline(
-            script_name,
             dry_run=True,
             save_config_locally=True,
             **script
@@ -78,3 +77,8 @@ def script_result(script, pytestconfig):
 
     input_tree = ElementTree.parse('config-after.xml', parser=PARSER)
     return canonicalize_gocd(input_tree)
+
+
+@pytest.fixture(scope='module')
+def script_name(script):
+     return script.get('script')
