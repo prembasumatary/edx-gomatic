@@ -11,6 +11,7 @@ from gomatic import GoCdConfigurator, empty_config
 from edxpipelines.deploy import ensure_pipeline
 from edxpipelines.canonicalize import canonicalize_gocd, PARSER
 
+
 def pytest_generate_tests(metafunc):
     """
     Generate test instances for all repositories to be checked.
@@ -81,4 +82,4 @@ def script_result(script, pytestconfig):
 
 @pytest.fixture(scope='module')
 def script_name(script):
-     return script.get('script')
+    return script.get('script')
