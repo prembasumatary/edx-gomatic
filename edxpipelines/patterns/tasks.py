@@ -401,6 +401,79 @@ def generate_check_migration_duration(job,
     ))
 
 
+def generate_migration_rollback(
+        job,
+        sub_application_name=None,
+        runif="passed"
+):
+    """
+    Generates GoCD task that runs migrations via an Ansible script.
+
+    Assumes:
+        - The play will be run using the continuous delivery Ansible config constants.ANSIBLE_CONTINUOUS_DELIVERY_CONFIG
+
+    Args:
+        job (gomatic.job.Job): the gomatic job to which the run migrations task will be added
+        sub_application_name (str): additional command to be passed to the migrate app {cms|lms}
+        runif (str): one of ['passed', 'failed', 'any'] Default: passed
+
+    Returns:
+        The newly created task (gomatic.gocd.tasks.ExecTask)
+
+    """
+
+    migration_artifact_path = '{}/rollback/migrations'.format(constants.ARTIFACT_PATH)
+    generate_target_directory(job, migration_artifact_path)
+    job.ensure_artifacts(
+        set(
+            [BuildArtifact(migration_artifact_path)]
+        )
+    )
+
+    command = ' '.join(
+        [
+            'for migration_input_file in ../{migration_artifact_path}/*_migration_plan.yml do',
+            'export ANSIBLE_HOST_KEY_CHECKING=False;',
+            'export ANSIBLE_SSH_ARGS="-o ControlMaster=auto -o ControlPersist=30m";',
+            'PRIVATE_KEY=`/bin/pwd`/../{artifact_path}/key.pem;',
+            'ansible-playbook',
+            '-vvvv',
+            '-i ../{artifact_path}/ansible_inventory',
+            '--private-key=$PRIVATE_KEY',
+            '--module-path=playbooks/library',
+            '--user=ubuntu',
+            '-e APPLICATION_PATH=$APPLICATION_PATH',
+            '-e APPLICATION_NAME=$APPLICATION_NAME',
+            '-e APPLICATION_USER=$APPLICATION_USER',
+            '-e ARTIFACT_PATH=`/bin/pwd`/../{artifact_path}/migrations',
+            '-e DB_MIGRATION_USER=$DB_MIGRATION_USER',
+            '-e DB_MIGRATION_PASS=$DB_MIGRATION_PASS',
+            '-e ../{artifact_path}/${{migration_input_file}}'
+        ]
+    )
+
+    command = command.format(
+        artifact_path=constants.ARTIFACT_PATH,
+        migration_artifact_path=migration_artifact_path
+    )
+    if sub_application_name is not None:
+        command += '-e SUB_APPLICATION_NAME={sub_application_name} '.format(sub_application_name=sub_application_name)
+
+    command += ' playbooks/continuous_delivery/rollback_migrations.yml done || exit'
+
+    return job.add_task(
+        ExecTask(
+            [
+                '/bin/bash',
+                '-c',
+                command
+            ],
+            working_dir=constants.PUBLIC_CONFIGURATION_DIR,
+            runif=runif
+        )
+    )
+
+
 def format_RSA_key(job, output_path, key):
     """
     Formats an RSA key for use in future jobs. Does not last between stages.

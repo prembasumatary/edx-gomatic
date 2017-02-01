@@ -487,6 +487,134 @@ def rollback_asgs(
     return pipeline
 
 
+def rollback_database(pipeline_group, pipeline_name, config, build_pipeline, deploy_pipeline):
+    """
+    Arguments:
+        pipeline_group (gomatic.PipelineGroup): The group in which to create this pipeline
+        pipeline_name (str): The name of this pipeline
+        config (dict): the confiuration dictonary for the rollback pipeline's EDC
+        build_pipeline (gomatic.Pipeline): Pipeline source of the launch info (ami-id)
+        deploy_pipeline (gomatic.Pipeline): Pipeline source of the migration information
+
+    Configuration Required:
+        aws_access_key_id
+        aws_secret_access_key
+        hipchat_token
+        ec2_vpc_subnet_id
+        ec2_security_group_id
+        ec2_instance_profile_name
+        db_migration_user
+        db_migration_pass
+        play_name
+        application_name
+        edxapp_subapps
+    """
+    # In order to roll back the migrations:
+    # - Launch instance
+    # - LMS default/CSMH Rollback migrations
+    # - CMS default/CSMH Rollback migrations
+    # - Terminate instances
+    pipeline = pipeline_group.ensure_replacement_of_pipeline(pipeline_name)
+
+    ansible_inventory_location = utils.ArtifactLocation(
+        pipeline.name,
+        constants.LAUNCH_INSTANCE_STAGE_NAME,
+        constants.LAUNCH_INSTANCE_JOB_NAME,
+        'ansible_inventory'
+    )
+    instance_ssh_key_location = utils.ArtifactLocation(
+        pipeline.name,
+        constants.LAUNCH_INSTANCE_STAGE_NAME,
+        constants.LAUNCH_INSTANCE_JOB_NAME,
+        'key.pem'
+    )
+    base_ami_file_location = utils.ArtifactLocation(
+        build_pipeline.name,
+        constants.BASE_AMI_SELECTION_STAGE_NAME,
+        constants.BASE_AMI_SELECTION_JOB_NAME,
+        FetchArtifactFile(constants.BASE_AMI_OVERRIDE_FILENAME)
+    )
+
+    for material in (
+        TUBULAR, CONFIGURATION, EDX_PLATFORM, EDX_SECURE, EDGE_SECURE,
+        EDX_MICROSITE, EDX_INTERNAL, EDGE_INTERNAL,
+    ):
+        pipeline.ensure_material(material())
+
+    # Specify the upstream deploy pipeline material for this rollback pipeline.
+    # Assumes there's only a single upstream pipeline material for this pipeline.
+    pipeline.ensure_material(
+        PipelineMaterial(
+            pipeline_name=deploy_pipeline.name,
+            stage_name=constants.DEPLOY_AMI_STAGE_NAME,
+            material_name='deploy_pipeline',
+        )
+    )
+
+    # We need the build_pipeline upstream so that we can fetch the AMI selection artifact from it
+    pipeline.ensure_material(
+        PipelineMaterial(
+            pipeline_name=build_pipeline.name,
+            stage_name=constants.BASE_AMI_SELECTION_STAGE_NAME,
+            material_name='select_base_ami',
+        )
+    )
+
+    # Create the armed stage as this pipeline needs to auto-execute
+    stages.generate_armed_stage(pipeline, constants.ARMED_JOB_NAME)
+
+    # launch instance
+    launch_stage = stages.generate_launch_instance(
+        pipeline,
+        config['aws_access_key_id'],
+        config['aws_secret_access_key'],
+        config['ec2_vpc_subnet_id'],
+        config['ec2_security_group_id'],
+        config['ec2_instance_profile_name'],
+        None,
+        upstream_build_artifact=base_ami_file_location
+    )
+    launch_stage.set_has_manual_approval()
+
+    # Create a a stage for migration rollback.
+    rollback_stages = []
+    for sub_app in config['edxapp_subapps']:
+        migration_artifact = utils.ArtifactLocation(
+            deploy_pipeline.name,
+            constants.APPLY_MIGRATIONS_STAGE + "_" + sub_app,
+            constants.APPLY_MIGRATIONS_JOB,
+            "migrations"
+        )
+
+        stages.generate_rollback_migrations(
+            pipeline,
+            db_migration_pass=config['db_migration_pass'],
+            inventory_location=ansible_inventory_location,
+            instance_key_location=instance_ssh_key_location,
+            migration_info_location=migration_artifact,
+            application_user=config['db_migration_user'],
+            application_name=config['play_name'],
+            application_path=config['application_path'],
+            sub_application_name=sub_app
+        )
+
+    launch_info_location = utils.ArtifactLocation(
+        pipeline.name,
+        launch_stage.name,
+        constants.LAUNCH_INSTANCE_JOB_NAME,
+        constants.LAUNCH_INSTANCE_FILENAME
+    )
+    stages.generate_terminate_instance(
+        pipeline,
+        launch_info_location,
+        config['aws_access_key_id'],
+        config['aws_secret_access_key'],
+        config['hipchat_token']
+    )
+
+    return pipeline
+
+
 def merge_back_branches(edxapp_deploy_group, pipeline_name, deploy_artifact, config):
     """
     Arguments:
