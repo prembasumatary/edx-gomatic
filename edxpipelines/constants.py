@@ -50,6 +50,7 @@ BRANCH_CLEANUP_PIPELINE_NAME = 'edxapp_branch_cleanup'
 
 # Tubular configuration
 TUBULAR_SLEEP_WAIT_TIME = '20'
+MAX_EMAIL_TRIES = '10'
 
 # Defaults
 ARTIFACT_PATH = 'target'
@@ -73,6 +74,7 @@ BASE_AMI_OVERRIDE_FILENAME = 'ami_override.yml'
 CREATE_BRANCH_FILENAME = 'branch.yml'
 MERGE_BRANCH_FILENAME = 'merge_branch_sha.yml'
 CREATE_BRANCH_PR_FILENAME = 'create_branch_pr.yml'
+MIGRATION_RESULT_FILENAME = 'migration_result.yml'
 
 # AWS Defaults
 EC2_REGION = 'us-east-1'
