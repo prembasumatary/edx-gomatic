@@ -246,6 +246,60 @@ def generate_run_migrations(job, sub_application_name=None, runif="passed"):
     )
 
 
+def generate_check_migration_duration(job,
+                                      input_file,
+                                      duration_threshold,
+                                      from_address,
+                                      to_addresses,
+                                      ses_region=None,
+                                      runif='passed'):
+    """
+    Generates a task that checks a migration's duration against a threshold.
+    If the threshold is exceeded, alert via email.
+
+    Args:
+        job (gomatic.Job): the Job to attach this stage to.
+        input_file (str): Name of file containing migration duration.
+        duration_threshold (int): Migration threshold in seconds.
+        from_address (str): Single "From:" email address for alert email.
+        to_addresses (list(str)): List of "To:" email addresses for alert email.
+        ses_region (str): AWS region whose SES to use.
+        runif (str): one of ['passed', 'failed', 'any'] Default: passed
+
+    Returns:
+        The newly created task (gomatic.gocd.tasks.ExecTask)
+    """
+    cmd_args = [
+        'python',
+        'scripts/check_migrate_duration.py',
+        '--input_file',
+        '../{artifact_path}/{input_file}'.format(
+            artifact_path=constants.ARTIFACT_PATH,
+            input_file=input_file
+        ),
+        '--duration_threshold', str(duration_threshold),
+        '--instance_data',
+        '${GO_SERVER_URL/:8154/}pipelines/${GO_PIPELINE_NAME}/${GO_PIPELINE_COUNTER}/${GO_STAGE_NAME}/${GO_STAGE_COUNTER}',
+        '--from_address', from_address
+    ]
+    if ses_region:
+        cmd_args.extend(('--aws_ses_region', ses_region))
+    for email in to_addresses:
+        cmd_args.extend(('--alert_email', email))
+
+    return job.add_task(
+        ExecTask(
+            [
+                '/bin/bash',
+                '-c',
+                ' '.join(cmd_args)
+            ],
+            working_dir='tubular',
+            runif=runif
+        )
+    )
+
+
 def format_RSA_key(job, output_path, key):
     """
     Formats an RSA key for use in future jobs. Does not last between stages.

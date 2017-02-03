@@ -592,6 +592,9 @@ def generate_run_migrations(pipeline,
                             application_user,
                             application_name,
                             application_path,
+                            duration_threshold=None,
+                            from_address=None,
+                            to_addresses=None,
                             sub_application_name=None,
                             manual_approval=False):
     """
@@ -606,6 +609,9 @@ def generate_run_migrations(pipeline,
         application_user (str): Username to use while running the migrations
         application_name (str): Name of the application (e.g. edxapp, programs, etc...)
         application_path (str): path of the application installed on the target machine
+        duration_threshold (int): Threshold in seconds over which a migration duration will be alerted.
+        from_address (str): Any migration duration email alert will be from this address.
+        to_addresses (list(str)): List of To: addresses for migration duration email alerts.
         sub_application_name (str): any sub application to insert in to the migrations commands {cms|lms}
         manual_approval (bool): Should this stage require manual approval?
 
@@ -619,9 +625,15 @@ def generate_run_migrations(pipeline,
             'APPLICATION_PATH': application_path,
             'DB_MIGRATION_USER': 'migrate',
             'ARTIFACT_PATH': constants.ARTIFACT_PATH,
-            'ANSIBLE_CONFIG': constants.ANSIBLE_CONTINUOUS_DELIVERY_CONFIG,
+            'ANSIBLE_CONFIG': constants.ANSIBLE_CONTINUOUS_DELIVERY_CONFIG
         }
     )
+    if duration_threshold:
+        pipeline.ensure_environment_variables(
+            {
+                'MAX_EMAIL_TRIES': constants.MAX_EMAIL_TRIES
+            }
+        )
     pipeline.ensure_encrypted_environment_variables(
         {
             'DB_MIGRATION_PASS': db_migration_pass,
@@ -681,6 +693,15 @@ def generate_run_migrations(pipeline,
 
     tasks.generate_requirements_install(job, 'configuration')
     tasks.generate_run_migrations(job, sub_application_name)
+
+    if duration_threshold:
+        tasks.generate_check_migration_duration(
+            job,
+            constants.MIGRATION_RESULT_FILENAME,
+            duration_threshold,
+            from_address,
+            to_addresses
+        )
 
     # Cleanup EC2 instance if running the migrations failed.
     # I think this should be left for the terminate instance stage

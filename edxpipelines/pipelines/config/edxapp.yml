@@ -5,6 +5,16 @@ edxapp_subapps:
 play_name: "edxapp"
 db_migration_user: "www-data"
 
+# Migration duration alerting on stage.
+migration_duration_threshold: 10
+alert_from_address: migration.alert@tools.edx.org
+alert_to_addresses:
+  - bbeggs@edx.org
+  - jeskew@edx.org
+  - feanil@edx.org
+  - cale@edx.org
+
+# Branch merging and cleanup post-deploy.
 github_org: edx
 github_repo: edx-platform
 rc_branch: release-candidate
