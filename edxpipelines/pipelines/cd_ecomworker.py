@@ -67,8 +67,8 @@ def install_pipeline(save_config_locally, dry_run, variable_files, cmd_line_vars
     pipelines.generate_basic_multistage_pipeline(
         play='ecomworker',
         pipeline_group='E-Commerce',
-        playbook_path='playbooks/edx-east/discovery.yml',
-        app_repo='https://github.com/edx/discovery.git',
+        playbook_path='playbooks/edx-east/ecomworker.yml',
+        app_repo='https://github.com/edx/ecommerce-worker.git',
         service_name='ecomworker',
         hipchat_room='release',
         config=config,
