@@ -274,7 +274,7 @@ def generate_check_migration_duration(job,
         'python',
         'scripts/check_migrate_duration.py',
         '--migration_file',
-        '../{artifact_path}/{input_file}'.format(
+        '../{artifact_path}/migrations/{input_file}'.format(
             artifact_path=constants.ARTIFACT_PATH,
             input_file=input_file
         ),
