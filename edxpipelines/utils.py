@@ -29,7 +29,7 @@ def dict_merge(*args):
 
     """
     if len(args) < 1:
-        return []
+        return {}
     elif len(args) == 1:
         return args[0]
     else:
