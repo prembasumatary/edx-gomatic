@@ -1490,7 +1490,7 @@ def generate_build_value_stream_map_url(pipeline):
           exit 1
         fi
         printf -- '---\n- deploy_value_stream_map: "{base_url}/$GO_PIPELINE_NAME/$GO_PIPELINE_LABEL"' > {filepath}
-    '''.format(base_url=constants.BASE_VALUE_STREAM_MAP_URL, filepath=value_stream_mapl_filepath)
+    '''.format(base_url=constants.BASE_VALUE_STREAM_MAP_URL, filepath=value_stream_map_filepath)
     job.add_task(
         ExecTask(
             [
