@@ -70,6 +70,7 @@ def generate_launch_instance(job, optional_override_files=[], runif="passed"):
             '-e ebs_volume_size=$EBS_VOLUME_SIZE ',
             '-e hipchat_token=$HIPCHAT_TOKEN ',
             '-e hipchat_room="$HIPCHAT_ROOM" ',
+            '-e ec2_timeout=900 '
         ]
     )
     command = command.format(artifact_path=constants.ARTIFACT_PATH)
