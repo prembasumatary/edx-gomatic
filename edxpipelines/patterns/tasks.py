@@ -273,7 +273,7 @@ def generate_check_migration_duration(job,
     cmd_args = [
         'python',
         'scripts/check_migrate_duration.py',
-        '--input_file',
+        '--migration_file',
         '../{artifact_path}/{input_file}'.format(
             artifact_path=constants.ARTIFACT_PATH,
             input_file=input_file
