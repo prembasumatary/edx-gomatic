@@ -140,7 +140,7 @@ def generate_basic_multistage_pipeline(
         pipeline.name,
         ami_selection_stage.name,
         constants.BASE_AMI_SELECTION_JOB_NAME,
-        FetchArtifactFile(constants.BASE_AMI_OVERRIDE_FILENAME)
+        constants.BASE_AMI_OVERRIDE_FILENAME,
     )
 
     # Launch a new instance on which to build the AMI

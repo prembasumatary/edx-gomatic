@@ -122,7 +122,7 @@ def build_migrate_deploy_subset_pipeline(
             pipeline.name,
             constants.BASE_AMI_SELECTION_STAGE_NAME,
             constants.BASE_AMI_SELECTION_JOB_NAME,
-            FetchArtifactFile(constants.BASE_AMI_OVERRIDE_FILENAME),
+            constants.BASE_AMI_OVERRIDE_FILENAME,
         )
 
     launch_stage = stages.generate_launch_instance(
@@ -249,7 +249,10 @@ def generate_migrate_stages(pipeline, config):
     return pipeline
 
 
-def generate_deploy_stages(pipeline_name_build, auto_deploy_ami=False):
+def generate_deploy_stages(
+        pipeline_name_build, prod_build_pipelines, stage_deploy_pipeline,
+        auto_deploy_ami=False
+):
     #
     # Create the stage to deploy the AMI.
     #
@@ -278,13 +281,18 @@ def generate_deploy_stages(pipeline_name_build, auto_deploy_ami=False):
         )
 
         pipeline.ensure_unencrypted_secure_environment_variables({'GITHUB_TOKEN': config['github_token']})
-        stages.generate_message_prs(
+        stages.generate_deployment_messages(
             pipeline,
+            prod_build_pipelines,
+            stage_deploy_pipeline,
             'edx',
             'edx-platform',
             '$GITHUB_TOKEN',
             '$GO_REVISION_EDX_PLATFORM',
-            config['edx_environment'],
+            constants.ReleaseStatus[config['edx_environment']],
+            config['jira_user'],
+            config['jira_password'],
+            config['github_token'],
             base_ami_artifact=base_ami_file_location,
             ami_tag_app='edx_platform',
         )
@@ -398,7 +406,11 @@ def generate_e2e_test_stage(pipeline, config):
     )
 
 
-def rollback_asgs(edxapp_deploy_group, pipeline_name, build_pipeline, deploy_pipeline, config):
+def rollback_asgs(
+        edxapp_deploy_group, pipeline_name, build_pipeline,
+        deploy_pipeline, config,
+        prod_build_pipelines, stage_deploy_pipeline,
+):
     """
     Arguments:
         edxapp_deploy_group (gomatic.PipelineGroup): The group in which to create this pipeline
@@ -475,13 +487,18 @@ def rollback_asgs(edxapp_deploy_group, pipeline_name, build_pipeline, deploy_pip
 
     # Message PRs being rolled back
     pipeline.ensure_unencrypted_secure_environment_variables({'GITHUB_TOKEN': config['github_token']})
-    stages.generate_message_prs(
+    stages.generate_deployment_messages(
         pipeline,
+        prod_build_pipelines,
+        stage_deploy_pipeline,
         'edx',
         'edx-platform',
         '$GITHUB_TOKEN',
         '$GO_REVISION_EDX_PLATFORM',
-        'rollback',
+        constants.ReleaseStatus.ROLLED_BACK,
+        config['jira_user'],
+        config['jira_password'],
+        config['github_token'],
         base_ami_artifact=base_ami_file_location,
         ami_tag_app='edx_platform',
     )
