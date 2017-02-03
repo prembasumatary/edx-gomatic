@@ -74,7 +74,7 @@ BASE_AMI_OVERRIDE_FILENAME = 'ami_override.yml'
 CREATE_BRANCH_FILENAME = 'branch.yml'
 MERGE_BRANCH_FILENAME = 'merge_branch_sha.yml'
 CREATE_BRANCH_PR_FILENAME = 'create_branch_pr.yml'
-MIGRATION_RESULT_FILENAME = 'migration_result.yml'
+MIGRATION_RESULT_FILENAME = 'default_migration_result.yml'
 
 # AWS Defaults
 EC2_REGION = 'us-east-1'
