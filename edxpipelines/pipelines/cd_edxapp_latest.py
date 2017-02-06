@@ -13,73 +13,20 @@ from edxpipelines.patterns import pipelines
 from edxpipelines import constants
 from edxpipelines.patterns.authz import Permission, ensure_permissions
 from edxpipelines.patterns import edxapp
+from edxpipelines.pipelines.script import pipeline_script
 from edxpipelines.materials import (
     TUBULAR, CONFIGURATION, EDX_PLATFORM, EDX_SECURE, EDGE_SECURE,
     EDX_MICROSITE, EDX_INTERNAL, EDGE_INTERNAL
 )
 
 
-@click.command()
-@click.option(
-    '--save-config', 'save_config_locally',
-    envvar='SAVE_CONFIG',
-    help='Save the pipeline configuration xml locally.',
-    required=False,
-    default=False,
-    is_flag=True
-)
-@click.option(
-    '--dry-run',
-    envvar='DRY_RUN',
-    help='Perform a dry run of the pipeline installation, and save the pre/post xml configurations locally.',
-    required=False,
-    default=False,
-    is_flag=True
-)
-@click.option(
-    '--variable_file', 'variable_files',
-    multiple=True,
-    help='Path to yaml variable file with a dictionary of key/value pairs to be used as variables in the script.',
-    required=False,
-    default=[]
-)
-@click.option(
-    '--stage-variable-file', 'stage_variable_files',
-    multiple=True,
-    help='Path to yaml variable file with a dictionary of key/value pairs '
-         'to be used as variables in the script, scoped to the stage environment.',
-    required=False,
-    default=[]
-)
-@click.option(
-    '--prod-edge-variable-file', 'prod_edge_variable_files',
-    multiple=True,
-    help='Path to yaml variable file with a dictionary of key/value pairs '
-         'to be used as variables in the script, scoped to the prod-edge environment.',
-    required=False,
-    default=[]
-)
-@click.option(
-    '--prod-edx-variable-file', 'prod_edx_variable_files',
-    multiple=True,
-    help='Path to yaml variable file with a dictionary of key/value pairs '
-         'to be used as variables in the script, scoped to the prod-edx environment.',
-    required=False,
-    default=[]
-)
-@click.option(
-    '-e', '--variable', 'cmd_line_vars',
-    multiple=True,
-    help='Key/value used as a replacement variable in this script, as in KEY=VALUE.',
-    required=False,
-    type=(str, str),
-    nargs=2,
-    default={}
-)
-def install_pipelines(save_config_locally, dry_run, variable_files,
-                      stage_variable_files, prod_edx_variable_files,
-                      prod_edge_variable_files, cmd_line_vars):
+def install_pipelines(configurator, config, env_configs):
     """
+    Arguments:
+        configurator (GoCdConfigurator)
+        config (dict)
+        env_config (dict)
+
     Variables needed for this pipeline:
     - gocd_username
     - gocd_password
@@ -99,30 +46,27 @@ def install_pipelines(save_config_locally, dry_run, variable_files,
     - configuration_secure_version
     - configuration_internal_version
     """
-
-    # Merge the configuration files/variables together
-    config = utils.merge_files_and_dicts(variable_files, list(cmd_line_vars,))
-    stage_config = utils.merge_files_and_dicts(variable_files + stage_variable_files, list(cmd_line_vars))
-    prod_edx_config = utils.merge_files_and_dicts(variable_files + prod_edx_variable_files, list(cmd_line_vars))
-    prod_edge_config = utils.merge_files_and_dicts(variable_files + prod_edge_variable_files, list(cmd_line_vars))
-
-    # Create the pipeline
-    gcc = GoCdConfigurator(HostRestClient(config['gocd_url'], config['gocd_username'], config['gocd_password'], ssl=True))
-    gcc.ensure_removal_of_pipeline_group('edxapp')
-    gcc.ensure_removal_of_pipeline_group('edxapp_prod_deploys')
-    edxapp_group = gcc.ensure_pipeline_group('edxapp')
+    configurator.ensure_removal_of_pipeline_group('edxapp')
+    configurator.ensure_removal_of_pipeline_group('edxapp_prod_deploys')
+    edxapp_group = configurator.ensure_pipeline_group('edxapp')
 
     ensure_permissions(edxapp_group, Permission.OPERATE, ['edxapp-operator'])
     ensure_permissions(edxapp_group, Permission.VIEW, ['edxapp-operator'])
 
-    edxapp_deploy_group = gcc.ensure_pipeline_group('edxapp_prod_deploys')
+    edxapp_deploy_group = configurator.ensure_pipeline_group('edxapp_prod_deploys')
 
     ensure_permissions(edxapp_deploy_group, Permission.ADMINS, ['deploy'])
     ensure_permissions(edxapp_deploy_group, Permission.OPERATE, ['prod-deploy-operators'])
     ensure_permissions(edxapp_deploy_group, Permission.VIEW, ['prod-deploy-operators'])
 
-    cut_branch = edxapp.cut_branch(edxapp_group, variable_files, cmd_line_vars)
-    prerelease_materials = edxapp.prerelease_materials(edxapp_group, variable_files + stage_variable_files, cmd_line_vars)
+    cut_branch = edxapp.cut_branch(
+        edxapp_group,
+        config,
+    )
+    prerelease_materials = edxapp.prerelease_materials(
+        edxapp_group,
+        env_configs['stage'],
+    )
 
     stage_b = edxapp.build_migrate_deploy_subset_pipeline(
         edxapp_group,
@@ -135,7 +79,7 @@ def install_pipelines(save_config_locally, dry_run, variable_files,
                 configuration_url=CONFIGURATION().url,
             ),
         ],
-        config=stage_config,
+        config=env_configs['stage'],
         pipeline_name="STAGE_edxapp_B",
         ami_artifact=None,
         auto_run=True,
@@ -153,7 +97,7 @@ def install_pipelines(save_config_locally, dry_run, variable_files,
         post_cleanup_builders=[
             edxapp.generate_e2e_test_stage,
         ],
-        config=stage_config,
+        config=env_configs['stage'],
         pipeline_name="STAGE_edxapp_M-D",
         ami_artifact=utils.ArtifactLocation(
             stage_b.name,
@@ -184,7 +128,7 @@ def install_pipelines(save_config_locally, dry_run, variable_files,
                 configuration_url=CONFIGURATION().url,
             ),
         ],
-        config=prod_edx_config,
+        config=env_configs['prod-edx'],
         pipeline_name="PROD_edx_edxapp_B",
         ami_artifact=None,
         auto_run=True,
@@ -201,7 +145,7 @@ def install_pipelines(save_config_locally, dry_run, variable_files,
                 configuration_url=CONFIGURATION().url,
             ),
         ],
-        config=prod_edge_config,
+        config=env_configs['prod-edge'],
         pipeline_name="PROD_edge_edxapp_B",
         ami_artifact=None,
         auto_run=True,
@@ -216,7 +160,10 @@ def install_pipelines(save_config_locally, dry_run, variable_files,
             )
         )
 
-    manual_verification = edxapp.manual_verification(edxapp_deploy_group, variable_files, cmd_line_vars)
+    manual_verification = edxapp.manual_verification(
+        edxapp_deploy_group,
+        config,
+    )
 
     manual_verification.ensure_material(
         PipelineMaterial(
@@ -254,7 +201,7 @@ def install_pipelines(save_config_locally, dry_run, variable_files,
                 auto_deploy_ami=True,
             )
         ],
-        config=prod_edx_config,
+        config=env_configs['prod-edx'],
         pipeline_name="PROD_edx_edxapp_M-D",
         ami_artifact=utils.ArtifactLocation(
             prod_edx_b.name,
@@ -278,7 +225,7 @@ def install_pipelines(save_config_locally, dry_run, variable_files,
                 auto_deploy_ami=True,
             )
         ],
-        config=prod_edge_config,
+        config=env_configs['prod-edge'],
         pipeline_name="PROD_edge_edxapp_M-D",
         ami_artifact=utils.ArtifactLocation(
             prod_edge_b.name,
@@ -314,16 +261,14 @@ def install_pipelines(save_config_locally, dry_run, variable_files,
         'PROD_edx_edxapp_Rollback_latest',
         prod_edx_b,
         prod_edx_md,
-        variable_files + prod_edx_variable_files,
-        cmd_line_vars
+        env_configs['prod-edx'],
     )
     rollback_edge = edxapp.rollback_asgs(
         edxapp_deploy_group,
         'PROD_edge_edxapp_Rollback_latest',
         prod_edge_b,
         prod_edge_md,
-        variable_files + prod_edge_variable_files,
-        cmd_line_vars
+        env_configs['prod-edge'],
     )
 
     deploy_artifact = utils.ArtifactLocation(
@@ -337,8 +282,7 @@ def install_pipelines(save_config_locally, dry_run, variable_files,
         edxapp_deploy_group,
         constants.BRANCH_CLEANUP_PIPELINE_NAME,
         deploy_artifact,
-        variable_files,
-        cmd_line_vars
+        config,
     )
 
     # Specify the upstream deploy pipeline materials for this branch-merging pipeline.
@@ -351,7 +295,6 @@ def install_pipelines(save_config_locally, dry_run, variable_files,
             )
         )
 
-    gcc.save_updated_config(save_config_locally=save_config_locally, dry_run=dry_run)
 
 if __name__ == "__main__":
-    install_pipelines()
+    pipeline_script(install_pipelines, environments=('stage', 'prod-edx', 'prod-edge'))

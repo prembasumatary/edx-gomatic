@@ -9,42 +9,10 @@ sys.path.append(path.dirname(path.dirname(path.dirname(path.abspath(__file__))))
 
 from edxpipelines import utils
 from edxpipelines.patterns import pipelines
+from edxpipelines.pipelines.script import pipeline_script
 
 
-@click.command()
-@click.option(
-    '--save-config', 'save_config_locally',
-    envvar='SAVE_CONFIG',
-    help='Save the pipeline configuration xml locally.',
-    required=False,
-    default=False,
-    is_flag=True
-)
-@click.option(
-    '--dry-run',
-    envvar='DRY_RUN',
-    help='Perform a dry run of the pipeline installation, and save the pre/post xml configurations locally.',
-    required=False,
-    default=False,
-    is_flag=True
-)
-@click.option(
-    '--variable_file', 'variable_files',
-    multiple=True,
-    help='Path to yaml variable file with a dictionary of key/value pairs to be used as variables in the script.',
-    required=False,
-    default=[]
-)
-@click.option(
-    '-e', '--variable', 'cmd_line_vars',
-    multiple=True,
-    help='Key/value used as a replacement variable in this script, as in KEY=VALUE.',
-    required=False,
-    type=(str, str),
-    nargs=2,
-    default={}
-)
-def install_pipeline(save_config_locally, dry_run, variable_files, cmd_line_vars):
+def install_pipelines(configurator, config, env_configs):
     """
     Variables needed for this pipeline:
     - gocd_username
@@ -61,10 +29,9 @@ def install_pipeline(save_config_locally, dry_run, variable_files, cmd_line_vars
     - ec2_instance_profile_name
     - base_ami_id
     """
-    config = utils.merge_files_and_dicts(variable_files, list(cmd_line_vars, ))
-
     version_env_var = '$GO_REVISION_CREDENTIALS'
     pipelines.generate_basic_multistage_pipeline(
+        configurator,
         play='credentials',
         pipeline_group='E-Commerce',
         playbook_path='playbooks/edx-east/credentials.yml',
@@ -72,12 +39,10 @@ def install_pipeline(save_config_locally, dry_run, variable_files, cmd_line_vars
         service_name='credentials',
         hipchat_room='release',
         config=config,
-        save_config_locally=save_config_locally,
-        dry_run=dry_run,
         app_version=version_env_var,
         CREDENTIALS_VERSION=version_env_var
     )
 
 
 if __name__ == "__main__":
-    install_pipeline()
+    pipeline_script(install_pipelines)

@@ -1,44 +1,14 @@
 #!/usr/bin/env python
 import logging
-import os.path
 import pprint
 import subprocess
 import sys
-import tempfile
 
 import click
 import yaml
-from canonicalize_gocd import canonicalize_file
+from edxpipelines.deploy import ensure_pipeline
 
 logging.basicConfig(stream=sys.stdout, level=logging.INFO, datefmt='%Y-%m-%d %H:%M:%S')
-
-
-def ensure_pipeline(script, dry_run=False, **kwargs):
-    script_args = []
-
-    if dry_run:
-        script_args.append('--dry-run')
-
-    for key, args in sorted(kwargs.items()):
-        if not isinstance(args, list):
-            args = [args]
-        for arg in args:
-            script_args.append('--{}'.format(key))
-            script_args.append(arg)
-
-    command = ['python', script] + script_args
-    logging.debug("Executing script: {}".format(subprocess.list2cmdline(command)))
-    result = subprocess.check_output(command, stderr=subprocess.STDOUT)
-    if dry_run and os.environ.get('SAVE_CONFIG'):
-        with tempfile.NamedTemporaryFile() as before_out, tempfile.NamedTemporaryFile() as after_out:
-            canonicalize_file('config-before.xml', before_out)
-            canonicalize_file('config-after.xml', after_out)
-            subprocess.call([
-                'git', '--no-pager',
-                'diff', '--no-index', '--color-words',
-                before_out.name, after_out.name
-            ])
-    return result
 
 
 def parse_config(environment, config_file_path, script_filter=None):
@@ -87,7 +57,15 @@ def print_failure_report(failures):
         default=False,
         is_flag=True,
 )
-def run_pipelines(environment, config_file, script, verbose, dry_run):
+@click.option(
+    '--save-config', 'save_config_locally',
+    envvar='SAVE_CONFIG',
+    help='Save the pipeline configuration xml locally.',
+    required=False,
+    default=False,
+    is_flag=True
+)
+def run_pipelines(environment, config_file, script, verbose, dry_run, save_config_locally):
     """
 
     Args:
@@ -116,6 +94,7 @@ def run_pipelines(environment, config_file, script, verbose, dry_run):
             ensure_pipeline(
                 script_name,
                 dry_run=dry_run,
+                save_config_locally=save_config_locally,
                 **script
             )
             success.append(script_name)

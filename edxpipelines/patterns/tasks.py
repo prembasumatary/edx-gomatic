@@ -692,20 +692,20 @@ def generate_refresh_metadata(job, runif='passed'):
     """
     command = ' '.join(
         [
-            'export ANSIBLE_HOST_KEY_CHECKING=False;'
-            'export ANSIBLE_SSH_ARGS="-o ControlMaster=auto -o ControlPersist=30m";'
-            'PRIVATE_KEY=`/bin/pwd`/../../key.pem;'
-            'ansible-playbook '
-            '-vvvv '
-            '-i ../../ansible_inventory '
-            '--private-key=$PRIVATE_KEY '
-            '--user=ubuntu '
-            '-e APPLICATION_PATH=$APPLICATION_PATH '
-            '-e APPLICATION_NAME=$APPLICATION_NAME '
-            '-e APPLICATION_USER=$APPLICATION_USER '
-            '-e HIPCHAT_TOKEN=$HIPCHAT_TOKEN '
-            '-e HIPCHAT_ROOM="$HIPCHAT_ROOM" '
-            'discovery_refresh_metadata.yml '
+            'export ANSIBLE_HOST_KEY_CHECKING=False;',
+            'export ANSIBLE_SSH_ARGS="-o ControlMaster=auto -o ControlPersist=30m";',
+            'PRIVATE_KEY=`/bin/pwd`/../../key.pem;',
+            'ansible-playbook',
+            '-vvvv',
+            '-i ../../ansible_inventory',
+            '--private-key=$PRIVATE_KEY',
+            '--user=ubuntu',
+            '-e APPLICATION_PATH=$APPLICATION_PATH',
+            '-e APPLICATION_NAME=$APPLICATION_NAME',
+            '-e APPLICATION_USER=$APPLICATION_USER',
+            '-e HIPCHAT_TOKEN=$HIPCHAT_TOKEN',
+            '-e HIPCHAT_ROOM="$HIPCHAT_ROOM"',
+            'discovery_refresh_metadata.yml',
         ]
     )
 
@@ -736,20 +736,20 @@ def generate_update_index(job, runif='passed'):
     """
     command = ' '.join(
         [
-            'export ANSIBLE_HOST_KEY_CHECKING=False;'
-            'export ANSIBLE_SSH_ARGS="-o ControlMaster=auto -o ControlPersist=30m";'
-            'PRIVATE_KEY=`/bin/pwd`/../../key.pem;'
-            'ansible-playbook '
-            '-vvvv '
-            '-i ../../ansible_inventory '
-            '--private-key=$PRIVATE_KEY '
-            '--user=ubuntu '
-            '-e APPLICATION_PATH=$APPLICATION_PATH '
-            '-e APPLICATION_NAME=$APPLICATION_NAME '
-            '-e APPLICATION_USER=$APPLICATION_USER '
-            '-e HIPCHAT_TOKEN=$HIPCHAT_TOKEN '
-            '-e HIPCHAT_ROOM="$HIPCHAT_ROOM" '
-            'haystack_update_index.yml '
+            'export ANSIBLE_HOST_KEY_CHECKING=False;',
+            'export ANSIBLE_SSH_ARGS="-o ControlMaster=auto -o ControlPersist=30m";',
+            'PRIVATE_KEY=`/bin/pwd`/../../key.pem;',
+            'ansible-playbook',
+            '-vvvv',
+            '-i ../../ansible_inventory',
+            '--private-key=$PRIVATE_KEY',
+            '--user=ubuntu',
+            '-e APPLICATION_PATH=$APPLICATION_PATH',
+            '-e APPLICATION_NAME=$APPLICATION_NAME',
+            '-e APPLICATION_USER=$APPLICATION_USER',
+            '-e HIPCHAT_TOKEN=$HIPCHAT_TOKEN',
+            '-e HIPCHAT_ROOM="$HIPCHAT_ROOM"',
+            'haystack_update_index.yml',
         ]
     )
 

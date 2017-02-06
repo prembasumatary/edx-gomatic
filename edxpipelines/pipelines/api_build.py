@@ -10,6 +10,7 @@ from os import path
 sys.path.append(path.dirname(path.dirname(path.dirname(path.abspath(__file__)))))
 
 from edxpipelines import utils
+from edxpipelines.pipelines.script import pipeline_script
 
 SETUP_STAGE_NAME = 'setup'
 WAIT_FOR_TRAVIS_JOB_NAME = 'wait-for-travis'
@@ -22,42 +23,7 @@ PACKAGE_SOURCE_JOB_NAME = 'package-source'
 API_MANAGER_WORKING_DIR = 'api-manager'
 
 
-@click.command()
-@click.option('--save-config',
-              'save_config_locally',
-              envvar='SAVE_CONFIG',
-              help='Save the pipeline configuration xml locally',
-              required=False,
-              default=False)
-@click.option('--dry-run',
-              envvar='DRY_RUN',
-              help='do a dry run of  the pipeline installation, and save the pre/post xml configurations locally',
-              required=False,
-              default=False,
-              is_flag=True)
-@click.option('--variable_file',
-              'variable_files',
-              multiple=True,
-              help='path to yaml variable file with a dictionary of key/value pairs to be used as variables in the script',
-              required=False,
-              default=[])
-@click.option('-e',
-              '--variable',
-              'cmd_line_vars',
-              multiple=True,
-              help='key/value of a variable used as a replacement in this script',
-              required=False,
-              type=(str, str),
-              nargs=2,
-              default={})
-def install_pipeline(save_config_locally, dry_run, variable_files, cmd_line_vars):
-    config = utils.merge_files_and_dicts(variable_files, list(cmd_line_vars, ))
-
-    configurator = GoCdConfigurator(HostRestClient(config['gocd_url'],
-                                                   config['gocd_username'],
-                                                   config['gocd_password'],
-                                                   ssl=True))
-
+def install_pipelines(configurator, config, env_configs):
     pipeline = configurator \
         .ensure_pipeline_group(config['pipeline']['group']) \
         .ensure_replacement_of_pipeline(config['pipeline']['name']) \
@@ -133,8 +99,6 @@ def install_pipeline(save_config_locally, dry_run, variable_files, cmd_line_vars
         )
     )
 
-    configurator.save_updated_config(save_config_locally=save_config_locally, dry_run=dry_run)
-
 
 if __name__ == '__main__':
-    install_pipeline()
+    pipeline_script(install_pipelines)

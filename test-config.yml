@@ -1,0 +1,51 @@
+---
+global-config:
+    materials: []
+    upstream_pipelines: []
+    jenkins_verifications: []
+    upstream_pipeline:
+        pipeline_name: dummy_pipeline_name
+        stage_name: dummy_stage_name
+        material_name: dummy_material_name
+    pipeline:
+        group: dummy_pipeline_group
+        name: dummy_pipeline_name
+        build: dummy_pipeline_build
+    aws:
+        log_level: dummy_log_level
+        rate_limit: dummy_rate_limit
+        metrics: dummy_metrics
+        burst_limit: dummy_burst_limit
+        access_key_id: dummy_access_key_id
+        secret_access_key: dummy_secret_access_key
+    upstream_origins:
+        edxapp: dummy_edxapp
+        catalog: dummy_catalog
+    log_lambda:
+        splunk_host: dummy_splunk_host
+        splunk_token: dummy_splunk_token
+        acct_id: dummy_acct_id
+        kms_key: dummy_kms_key
+        subnet_list: dummy_subnet_list
+        sg_list: dummy_sg_list
+        environment: dummy_environment
+        deployment: dummy_deployment
+    github:
+        server_uri: dummy_server_uri
+        repository: dummy_repository
+        branch: dummy_branch
+        api_uri: dummy_api_uri
+        api_poll_wait_s: dummy_api_poll_wait_s
+        api_poll_retries: api_poll_retries
+    upstream_deploy_artifact:
+        pipeline_name: dummy_pipeline_name
+        stage_name: dummy_stage_name
+        job_name: dummy_job_name
+        artifact_name: dummy_artifact_name
+
+stage:
+    edx_environment: stage
+prod-edx:
+    edx_environment: prod
+prod-edge:
+    edx_environment: prod

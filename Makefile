@@ -3,17 +3,20 @@
 test:
 	tox
 
-test.%:
-	tox -- --script edxpipelines/pipelines/$*.py
+dryrun:
+	tox -- --live -k test_script
+
+dryrun.%:
+	tox -- --live -k test_script -k $*
 
 diff:
-	env SAVE_CONFIG=true tox
+	tox -e dryrun -- --save-config
 
 diff.%:
-	env SAVE_CONFIG=true tox -- --script edxpipelines/pipelines/$*.py
+	tox -e dryrun -- --script edxpipelines/pipelines/$*.py --save-config
 
 quality:
-	pep8 --config=.pep8 edxpipelines
+	tox -e quality
 
 requirements:
 	pip install -r requirements.txt

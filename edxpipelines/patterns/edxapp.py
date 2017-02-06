@@ -18,13 +18,11 @@ from edxpipelines.materials import (
 )
 
 
-def cut_branch(edxapp_group, variable_files, cmd_line_vars):
+def cut_branch(edxapp_group, config):
     """
     Variables needed for this pipeline:
     - git_token
     """
-    config = utils.merge_files_and_dicts(variable_files, list(cmd_line_vars,))
-
     pipeline = edxapp_group.ensure_replacement_of_pipeline('edxapp_cut_release_candidate')
 
     edx_platform_master = EDX_PLATFORM(branch="master", ignore_patterns=[])
@@ -46,7 +44,7 @@ def cut_branch(edxapp_group, variable_files, cmd_line_vars):
     return pipeline
 
 
-def prerelease_materials(edxapp_group, variable_files, cmd_line_vars):
+def prerelease_materials(edxapp_group, config):
     """
     Variables needed for this pipeline:
     - gocd_username
@@ -59,14 +57,13 @@ def prerelease_materials(edxapp_group, variable_files, cmd_line_vars):
     - aws_secret_access_key
     - ec2_vpc_subnet_id
     - ec2_security_group_id
+
     - ec2_instance_profile_name
     - base_ami_id
 
     Optional variables:
     - configuration_secure_version
     """
-    config = utils.merge_files_and_dicts(variable_files, list(cmd_line_vars,))
-
     pipeline = edxapp_group.ensure_replacement_of_pipeline("prerelease_edxapp_materials_latest")
 
     for material in (
@@ -316,14 +313,12 @@ def generate_cleanup_stages(pipeline, config, launch_stage):
     return pipeline
 
 
-def manual_verification(edxapp_deploy_group, variable_files, cmd_line_vars):
+def manual_verification(edxapp_deploy_group, config):
     """
     Variables needed for this pipeline:
     materials: A list of dictionaries of the materials used in this pipeline
     upstream_pipelines: a list of dictionaries of the upstream pipelines that feed in to the manual verification
     """
-    config = utils.merge_files_and_dicts(variable_files, list(cmd_line_vars,))
-
     pipeline = edxapp_deploy_group.ensure_replacement_of_pipeline("manual_verification_edxapp_prod_early_ami_build")
 
     for material in (
@@ -403,7 +398,7 @@ def generate_e2e_test_stage(pipeline, config):
     )
 
 
-def rollback_asgs(edxapp_deploy_group, pipeline_name, build_pipeline, deploy_pipeline, variable_files, cmd_line_vars):
+def rollback_asgs(edxapp_deploy_group, pipeline_name, build_pipeline, deploy_pipeline, config):
     """
     Arguments:
         edxapp_deploy_group (gomatic.PipelineGroup): The group in which to create this pipeline
@@ -418,8 +413,6 @@ def rollback_asgs(edxapp_deploy_group, pipeline_name, build_pipeline, deploy_pip
         aws_secret_access_key
         hipchat_token
     """
-    config = utils.merge_files_and_dicts(variable_files, list(cmd_line_vars,))
-
     pipeline = edxapp_deploy_group.ensure_replacement_of_pipeline(pipeline_name)\
                                   .ensure_environment_variables({'WAIT_SLEEP_TIME': config['tubular_sleep_wait_time']})
 
@@ -496,7 +489,7 @@ def rollback_asgs(edxapp_deploy_group, pipeline_name, build_pipeline, deploy_pip
     return pipeline
 
 
-def merge_back_branches(edxapp_deploy_group, pipeline_name, deploy_artifact, variable_files, cmd_line_vars):
+def merge_back_branches(edxapp_deploy_group, pipeline_name, deploy_artifact, config):
     """
     Arguments:
         edxapp_deploy_group (gomatic.PipelineGroup): The group in which to create this pipeline
@@ -512,8 +505,6 @@ def merge_back_branches(edxapp_deploy_group, pipeline_name, deploy_artifact, var
         master_branch
         github_token
     """
-    config = utils.merge_files_and_dicts(variable_files, list(cmd_line_vars,))
-
     pipeline = edxapp_deploy_group.ensure_replacement_of_pipeline(pipeline_name)
 
     for material in (

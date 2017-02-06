@@ -66,7 +66,7 @@ def canonicalize_gocd(config_xml):
 
     Arguments:
         config_xml (ElementTree): A GoCD config xml file.
-    
+
     Returns (ElementTree): A canonicalized GoCD config xml file.
     """
     return ElementTree.ElementTree(canonicalize_element(config_xml.getroot()))

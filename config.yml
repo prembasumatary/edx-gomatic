@@ -117,18 +117,16 @@ tools:
       - *play-edxapp
       - "../gomatic-secure/gocd/vars/tools/edxapp-cutbranch.yml"
       - "../gomatic-secure/gocd/vars/tools/environment-play/edxapp-manual-verification-latest.yml"
-    stage-variable-file:
-      - *deployment-edx
-      - *stage-edx
-      - "../gomatic-secure/gocd/vars/tools/environment-deployment-play/stage-edx-edxapp-latest.yml"
-    prod-edx-variable-file:
-      - *deployment-edx
-      - *prod-edx
-      - *prod-edx-edxapp-latest-secure
-    prod-edge-variable-file:
-      - *deployment-edge
-      - *prod-edge
-      - *prod-edge-edxapp-latest-secure
+    env-variable-file:
+      - ['stage', *deployment-edx]
+      - ['stage', *stage-edx]
+      - ['stage', "../gomatic-secure/gocd/vars/tools/environment-deployment-play/stage-edx-edxapp-latest.yml"]
+      - ['prod-edx', *deployment-edx]
+      - ['prod-edx', *prod-edx]
+      - ['prod-edx', *prod-edx-edxapp-latest-secure]
+      - ['prod-edge', *deployment-edge]
+      - ['prod-edge', *prod-edge]
+      - ['prod-edge', *prod-edge-edxapp-latest-secure]
     enabled: True
 
   ## END OF EDXAPP WHICH BUILDS PROD/EDGE AMIS in PARALLEL WITH STAGE DEPLOYMENT
