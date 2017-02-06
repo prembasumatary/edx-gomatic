@@ -14,7 +14,7 @@ from edxpipelines.canonicalize import canonicalize_gocd, PARSER
 
 def pytest_generate_tests(metafunc):
     """
-    Generate test instances for all repositories to be checked.
+    Generate test instances for all scripts to be checked.
     """
 
     if 'script' in metafunc.fixturenames:
@@ -23,6 +23,7 @@ def pytest_generate_tests(metafunc):
         with config_file.open() as config_file_stream:
             config_data = yaml.safe_load(config_file_stream)
 
+        # Read all of the scripts from the specified config.yml file.
         script_configs = [
             script
             for environment, scripts in config_data.items()
@@ -30,6 +31,7 @@ def pytest_generate_tests(metafunc):
             if environment != 'anchors' and script.pop('enabled')
         ]
 
+        # Inject those scripts via the `script` argument to tests and fixtures
         metafunc.parametrize(
             'script',
             script_configs,
@@ -39,11 +41,18 @@ def pytest_generate_tests(metafunc):
 
 
 class MirrorDict(dict):
+    """
+    A dict that returns a dummy string for any missing keys.
+    """
     def __missing__(self, key):
         return "dummy_{}".format(key)
 
 
 def dummy_ensure_pipeline(script_name):
+    """
+    Run ``script_name`` against a dummy GoCdConfigurator set to
+    export the config-after.xml.
+    """
     configurator = GoCdConfigurator(empty_config())
 
     env_configs = defaultdict(MirrorDict)
@@ -65,6 +74,10 @@ def dummy_ensure_pipeline(script_name):
 
 @pytest.fixture(scope='module')
 def script_result(script, pytestconfig):
+    """
+    A pytest fixture that loads executes a script (either against a live server
+    or a dummy server), and returns the parsed results in canonical format.
+    """
     script_name = script.get('script')
 
     if pytestconfig.getoption('live'):
@@ -82,4 +95,7 @@ def script_result(script, pytestconfig):
 
 @pytest.fixture(scope='module')
 def script_name(script):
+    """
+    A pytest fixture that returns the name of the supplied script.
+    """
     return script.get('script')
