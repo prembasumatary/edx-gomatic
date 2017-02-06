@@ -44,6 +44,8 @@ CREATE_MASTER_MERGE_PR_STAGE_NAME = 'create_master_merge_pr'
 CREATE_MASTER_MERGE_PR_JOB_NAME = 'create_master_merge_pr_job'
 CHECK_PR_TESTS_AND_MERGE_STAGE_NAME = 'check_pr_tests_and_merge'
 CHECK_PR_TESTS_AND_MERGE_JOB_NAME = 'check_pr_tests_and_merge_job'
+BUILD_VALUE_STREAM_MAP_URL_STAGE_NAME = 'build_value_stream_map_url'
+BUILD_VALUE_STREAM_MAP_URL_JOB_NAME = 'build_value_stream_map_url_job'
 
 # Pipeline names
 BRANCH_CLEANUP_PIPELINE_NAME = 'edxapp_branch_cleanup'
@@ -75,6 +77,8 @@ CREATE_BRANCH_FILENAME = 'branch.yml'
 MERGE_BRANCH_FILENAME = 'merge_branch_sha.yml'
 CREATE_BRANCH_PR_FILENAME = 'create_branch_pr.yml'
 MIGRATION_RESULT_FILENAME = 'default_migration_result.yml'
+BASE_VALUE_STREAM_MAP_URL = 'https://gocd.tools.edx.org/go/pipelines/value_stream_map'
+VALUE_STREAM_MAP_FILENAME = 'value_stream_map.yaml'
 
 # AWS Defaults
 EC2_REGION = 'us-east-1'

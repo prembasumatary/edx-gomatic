@@ -1452,3 +1452,53 @@ def generate_poll_tests_and_merge_pr(pipeline,
     )
 
     return git_stage
+
+
+def generate_build_value_stream_map_url(pipeline):
+    """
+    Genrates a stage that is used to build and serialize the value_stream_map url for a pipeline.
+
+    Generates 1 artifact:
+        value_stream_map.yaml   - YAML file that contains the value_stream_map URL.
+
+    Args:
+        pipeline (gomatic.Pipeline):
+
+    Returns:
+        gomatic.Stage
+    """
+    # Create the stage
+    stage = pipeline.ensure_stage(constants.BUILD_VALUE_STREAM_MAP_URL_STAGE_NAME)
+
+    # Create the job
+    job = stage.ensure_job(constants.BUILD_VALUE_STREAM_MAP_URL_JOB_NAME)
+
+    # Add task to generate the directory where the value_stream_map.yaml file will be written.
+    tasks.generate_target_directory(job)
+
+    # Add task to upload the value_stream_map.yaml file.
+    value_stream_map_filepath = '{artifact_path}/{file_name}'.format(
+        artifact_path=constants.ARTIFACT_PATH,
+        file_name=constants.VALUE_STREAM_MAP_FILENAME
+    )
+    job.ensure_artifacts(set([value_stream_map_filepath]))
+
+    # Script to generate the value_stream_map_url and write it out to value_stream_map.yaml
+    script = '''
+        if [ -z "$GO_PIPELINE_NAME" ] || [ -z "$GO_PIPELINE_LABEL" ]; then
+          echo "Error: missing GO_PIPELINE_NAME and/or GO_PIPELINE_LABEL" 1>&2
+          exit 1
+        fi
+        printf -- '---\n- deploy_value_stream_map: "{base_url}/$GO_PIPELINE_NAME/$GO_PIPELINE_LABEL"' > {filepath}
+    '''.format(base_url=constants.BASE_VALUE_STREAM_MAP_URL, filepath=value_stream_map_filepath)
+    job.add_task(
+        ExecTask(
+            [
+                '/bin/bash',
+                '-c',
+                script
+            ]
+        )
+    )
+
+    return stage
