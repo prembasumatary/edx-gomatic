@@ -54,36 +54,33 @@ def generate_launch_instance(job, optional_override_files=[], runif="passed"):
                              BuildArtifact('{}/ansible_inventory'.format(constants.ARTIFACT_PATH)),
                              BuildArtifact('{}/launch_info.yml'.format(constants.ARTIFACT_PATH))]))
 
-    command = ' '.join(
-        [
-            'ansible-playbook ',
-            '-vvvv ',
-            '--module-path=playbooks/library ',
-            '-i "localhost," ',
-            '-c local ',
-            '-e artifact_path=`/bin/pwd`/../{artifact_path} ',
-            '-e base_ami_id=$BASE_AMI_ID ',
-            '-e ec2_vpc_subnet_id=$EC2_VPC_SUBNET_ID ',
-            '-e ec2_security_group_id=$EC2_SECURITY_GROUP_ID ',
-            '-e ec2_instance_type=$EC2_INSTANCE_TYPE ',
-            '-e ec2_instance_profile_name=$EC2_INSTANCE_PROFILE_NAME ',
-            '-e ebs_volume_size=$EBS_VOLUME_SIZE ',
-            '-e hipchat_token=$HIPCHAT_TOKEN ',
-            '-e hipchat_room="$HIPCHAT_ROOM" ',
-            '-e ec2_timeout=900 '
-        ]
-    )
-    command = command.format(artifact_path=constants.ARTIFACT_PATH)
+    command = [
+        'ansible-playbook',
+        '-vvvv',
+        '--module-path=playbooks/library',
+        '-i "localhost,"',
+        '-c local',
+        '-e artifact_path=`/bin/pwd`/../{} '.format(constants.ARTIFACT_PATH),
+        '-e base_ami_id=$BASE_AMI_ID',
+        '-e ec2_vpc_subnet_id=$EC2_VPC_SUBNET_ID',
+        '-e ec2_security_group_id=$EC2_SECURITY_GROUP_ID',
+        '-e ec2_instance_type=$EC2_INSTANCE_TYPE',
+        '-e ec2_instance_profile_name=$EC2_INSTANCE_PROFILE_NAME',
+        '-e ebs_volume_size=$EBS_VOLUME_SIZE',
+        '-e hipchat_token=$HIPCHAT_TOKEN',
+        '-e hipchat_room="$HIPCHAT_ROOM"',
+        '-e ec2_timeout=900',
+    ]
     for override_file in optional_override_files:
-        command += ' -e @../{override_file} '.format(override_file=override_file)
-    command += ' playbooks/continuous_delivery/launch_instance.yml'
+        command.append(' -e @../{} '.format(override_file))
+    command.append('playbooks/continuous_delivery/launch_instance.yml')
 
     return job.add_task(
         ExecTask(
             [
                 '/bin/bash',
                 '-c',
-                command
+                ' '.join(command)
             ],
             working_dir=constants.PUBLIC_CONFIGURATION_DIR,
             runif=runif
@@ -108,43 +105,40 @@ def generate_create_ami(job, runif="passed", **kwargs):
 
     """
     job.ensure_artifacts(set([BuildArtifact('{}/ami.yml'.format(constants.ARTIFACT_PATH))]))
-    command = ' '.join(
-        [
-            'ansible-playbook',
-            '-vvvv',
-            '--module-path=playbooks/library',
-            '-i "localhost,"',
-            '-c local',
-            '-e @../{artifact_path}/launch_info.yml',
-            '-e play=$PLAY',
-            '-e deployment=$DEPLOYMENT',
-            '-e edx_environment=$EDX_ENVIRONMENT',
-            '-e app_repo=$APP_REPO',
-            '-e configuration_repo=$CONFIGURATION_REPO',
-            '-e configuration_version=$GO_REVISION_CONFIGURATION',
-            '-e configuration_secure_repo=$CONFIGURATION_SECURE_REPO',
-            '-e cache_id=$GO_PIPELINE_COUNTER',
-            '-e ec2_region=$EC2_REGION',
-            '-e artifact_path=`/bin/pwd`/../{artifact_path}',
-            '-e hipchat_token=$HIPCHAT_TOKEN',
-            '-e hipchat_room="$HIPCHAT_ROOM"',
-            '-e ami_wait=$AMI_WAIT',
-            '-e no_reboot=$NO_REBOOT',
-            '-e extra_name_identifier=$GO_PIPELINE_COUNTER'
-        ]
-    )
+    command = [
+        'ansible-playbook',
+        '-vvvv',
+        '--module-path=playbooks/library',
+        '-i "localhost,"',
+        '-c local',
+        '-e @../{}/launch_info.yml'.format(constants.ARTIFACT_PATH),
+        '-e play=$PLAY',
+        '-e deployment=$DEPLOYMENT',
+        '-e edx_environment=$EDX_ENVIRONMENT',
+        '-e app_repo=$APP_REPO',
+        '-e configuration_repo=$CONFIGURATION_REPO',
+        '-e configuration_version=$GO_REVISION_CONFIGURATION',
+        '-e configuration_secure_repo=$CONFIGURATION_SECURE_REPO',
+        '-e cache_id=$GO_PIPELINE_COUNTER',
+        '-e ec2_region=$EC2_REGION',
+        '-e artifact_path=`/bin/pwd`/../{}'.format(constants.ARTIFACT_PATH),
+        '-e hipchat_token=$HIPCHAT_TOKEN',
+        '-e hipchat_room="$HIPCHAT_ROOM"',
+        '-e ami_wait=$AMI_WAIT',
+        '-e no_reboot=$NO_REBOOT',
+        '-e extra_name_identifier=$GO_PIPELINE_COUNTER'
+    ]
 
-    command = command.format(artifact_path=constants.ARTIFACT_PATH)
     for k, v in sorted(kwargs.items()):
-        command += ' -e {key}={value} '.format(key=k, value=v)
-    command += 'playbooks/continuous_delivery/create_ami.yml'
+        command.append(' -e {key}={value} '.format(key=k, value=v))
+    command.append('playbooks/continuous_delivery/create_ami.yml')
 
     return job.add_task(
         ExecTask(
             [
                 '/bin/bash',
                 '-c',
-                command
+                ' '.join(command),
             ],
             working_dir=constants.PUBLIC_CONFIGURATION_DIR,
             runif=runif
@@ -208,38 +202,35 @@ def generate_run_migrations(job, sub_application_name=None, runif="passed"):
         )
     )
 
-    command = ' '.join(
-        [
-            'mkdir -p {artifact_path}/migrations;'
-            'export ANSIBLE_HOST_KEY_CHECKING=False;'
-            'export ANSIBLE_SSH_ARGS="-o ControlMaster=auto -o ControlPersist=30m";'
-            'PRIVATE_KEY=`/bin/pwd`/../{artifact_path}/key.pem;'
-            'ansible-playbook '
-            '-vvvv '
-            '-i ../{artifact_path}/ansible_inventory '
-            '--private-key=$PRIVATE_KEY '
-            '--module-path=playbooks/library '
-            '--user=ubuntu '
-            '-e APPLICATION_PATH=$APPLICATION_PATH '
-            '-e APPLICATION_NAME=$APPLICATION_NAME '
-            '-e APPLICATION_USER=$APPLICATION_USER '
-            '-e ARTIFACT_PATH=`/bin/pwd`/../{artifact_path}/migrations '
-            '-e DB_MIGRATION_USER=$DB_MIGRATION_USER '
-            '-e DB_MIGRATION_PASS=$DB_MIGRATION_PASS '
-        ]
-    )
+    command = [
+        'mkdir -p {}/migrations;'.format(constants.ARTIFACT_PATH),
+        'export ANSIBLE_HOST_KEY_CHECKING=False;',
+        'export ANSIBLE_SSH_ARGS="-o ControlMaster=auto -o ControlPersist=30m";',
+        'PRIVATE_KEY=`/bin/pwd`/../{}/key.pem;'.format(constants.ARTIFACT_PATH),
+        'ansible-playbook',
+        '-vvvv',
+        '-i ../{}/ansible_inventory '.format(constants.ARTIFACT_PATH),
+        '--private-key=$PRIVATE_KEY',
+        '--module-path=playbooks/library',
+        '--user=ubuntu',
+        '-e APPLICATION_PATH=$APPLICATION_PATH',
+        '-e APPLICATION_NAME=$APPLICATION_NAME',
+        '-e APPLICATION_USER=$APPLICATION_USER',
+        '-e ARTIFACT_PATH=`/bin/pwd`/../{}/migrations '.format(constants.ARTIFACT_PATH),
+        '-e DB_MIGRATION_USER=$DB_MIGRATION_USER',
+        '-e DB_MIGRATION_PASS=$DB_MIGRATION_PASS',
+    ]
 
-    command = command.format(artifact_path=constants.ARTIFACT_PATH)
     if sub_application_name is not None:
-        command += '-e SUB_APPLICATION_NAME={sub_application_name} '.format(sub_application_name=sub_application_name)
-    command += 'playbooks/continuous_delivery/run_migrations.yml'
+        command.append('-e SUB_APPLICATION_NAME={} '.format(sub_application_name))
+    command.append('playbooks/continuous_delivery/run_migrations.yml')
 
     return job.add_task(
         ExecTask(
             [
                 '/bin/bash',
                 '-c',
-                command
+                ' '.join(command)
             ],
             working_dir=constants.PUBLIC_CONFIGURATION_DIR,
             runif=runif
@@ -488,36 +479,33 @@ def generate_run_app_playbook(job, internal_dir, secure_dir, playbook_path, runi
         The newly created task (gomatic.gocd.tasks.ExecTask)
 
     """
-    command = ' '.join(
-        [
-            'chmod 600 ../{artifact_path}/key.pem;',
-            'export ANSIBLE_HOST_KEY_CHECKING=False;',
-            'export ANSIBLE_SSH_ARGS="-o ControlMaster=auto -o ControlPersist=30m";',
-            'PRIVATE_KEY=$(/bin/pwd)/../{artifact_path}/key.pem;'
-            'ansible-playbook',
-            '-vvvv',
-            '--private-key=$PRIVATE_KEY',
-            '--user=ubuntu',
-            '--module-path=playbooks/library ',
-            '-i ../{artifact_path}/ansible_inventory '
-            '-e @../{artifact_path}/launch_info.yml',
-            '-e @../{internal_dir}/ansible/vars/${{DEPLOYMENT}}.yml',
-            '-e @../{internal_dir}/ansible/vars/${{EDX_ENVIRONMENT}}-${{DEPLOYMENT}}.yml',
-            '-e @../{secure_dir}/ansible/vars/${{DEPLOYMENT}}.yml',
-            '-e @../{secure_dir}/ansible/vars/${{EDX_ENVIRONMENT}}-${{DEPLOYMENT}}.yml',
-        ]
-    )
-    command = command.format(secure_dir=secure_dir, internal_dir=internal_dir, artifact_path=constants.ARTIFACT_PATH)
+    command = [
+        'chmod 600 ../{}/key.pem;'.format(constants.ARTIFACT_PATH),
+        'export ANSIBLE_HOST_KEY_CHECKING=False;',
+        'export ANSIBLE_SSH_ARGS="-o ControlMaster=auto -o ControlPersist=30m";',
+        'PRIVATE_KEY=$(/bin/pwd)/../{}/key.pem;'.format(constants.ARTIFACT_PATH),
+        'ansible-playbook',
+        '-vvvv',
+        '--private-key=$PRIVATE_KEY',
+        '--user=ubuntu',
+        '--module-path=playbooks/library',
+        '-i ../{}/ansible_inventory '.format(constants.ARTIFACT_PATH),
+        '-e @../{}/launch_info.yml'.format(constants.ARTIFACT_PATH),
+        '-e @../{}/ansible/vars/${{DEPLOYMENT}}.yml'.format(internal_dir),
+        '-e @../{}/ansible/vars/${{EDX_ENVIRONMENT}}-${{DEPLOYMENT}}.yml'.format(internal_dir),
+        '-e @../{}/ansible/vars/${{DEPLOYMENT}}.yml'.format(secure_dir),
+        '-e @../{}/ansible/vars/${{EDX_ENVIRONMENT}}-${{DEPLOYMENT}}.yml'.format(secure_dir),
+    ]
     for k, v in sorted(kwargs.items()):
-        command += ' -e {key}={value} '.format(key=k, value=v)
-    command += playbook_path
+        command.append(' -e {key}={value} '.format(key=k, value=v))
+    command.append(playbook_path)
 
     return job.add_task(
         ExecTask(
             [
                 '/bin/bash',
                 '-c',
-                command
+                ' '.join(command),
             ],
             working_dir=constants.PUBLIC_CONFIGURATION_DIR,
             runif=runif
@@ -690,31 +678,29 @@ def generate_refresh_metadata(job, runif='passed'):
         The newly created task (gomatic.gocd.tasks.ExecTask)
 
     """
-    command = ' '.join(
-        [
-            'export ANSIBLE_HOST_KEY_CHECKING=False;',
-            'export ANSIBLE_SSH_ARGS="-o ControlMaster=auto -o ControlPersist=30m";',
-            'PRIVATE_KEY=`/bin/pwd`/../../key.pem;',
-            'ansible-playbook',
-            '-vvvv',
-            '-i ../../ansible_inventory',
-            '--private-key=$PRIVATE_KEY',
-            '--user=ubuntu',
-            '-e APPLICATION_PATH=$APPLICATION_PATH',
-            '-e APPLICATION_NAME=$APPLICATION_NAME',
-            '-e APPLICATION_USER=$APPLICATION_USER',
-            '-e HIPCHAT_TOKEN=$HIPCHAT_TOKEN',
-            '-e HIPCHAT_ROOM="$HIPCHAT_ROOM"',
-            'discovery_refresh_metadata.yml',
-        ]
-    )
+    command = [
+        'export ANSIBLE_HOST_KEY_CHECKING=False;',
+        'export ANSIBLE_SSH_ARGS="-o ControlMaster=auto -o ControlPersist=30m";',
+        'PRIVATE_KEY=`/bin/pwd`/../../key.pem;',
+        'ansible-playbook',
+        '-vvvv',
+        '-i ../../ansible_inventory',
+        '--private-key=$PRIVATE_KEY',
+        '--user=ubuntu',
+        '-e APPLICATION_PATH=$APPLICATION_PATH',
+        '-e APPLICATION_NAME=$APPLICATION_NAME',
+        '-e APPLICATION_USER=$APPLICATION_USER',
+        '-e HIPCHAT_TOKEN=$HIPCHAT_TOKEN',
+        '-e HIPCHAT_ROOM="$HIPCHAT_ROOM"',
+        'discovery_refresh_metadata.yml',
+    ]
 
     return job.add_task(
         ExecTask(
             [
                 '/bin/bash',
                 '-c',
-                command
+                ' '.join(command),
             ],
             working_dir='configuration/playbooks/continuous_delivery/',
             runif=runif
@@ -734,31 +720,29 @@ def generate_update_index(job, runif='passed'):
         The newly created task (gomatic.gocd.tasks.ExecTask)
 
     """
-    command = ' '.join(
-        [
-            'export ANSIBLE_HOST_KEY_CHECKING=False;',
-            'export ANSIBLE_SSH_ARGS="-o ControlMaster=auto -o ControlPersist=30m";',
-            'PRIVATE_KEY=`/bin/pwd`/../../key.pem;',
-            'ansible-playbook',
-            '-vvvv',
-            '-i ../../ansible_inventory',
-            '--private-key=$PRIVATE_KEY',
-            '--user=ubuntu',
-            '-e APPLICATION_PATH=$APPLICATION_PATH',
-            '-e APPLICATION_NAME=$APPLICATION_NAME',
-            '-e APPLICATION_USER=$APPLICATION_USER',
-            '-e HIPCHAT_TOKEN=$HIPCHAT_TOKEN',
-            '-e HIPCHAT_ROOM="$HIPCHAT_ROOM"',
-            'haystack_update_index.yml',
-        ]
-    )
+    command = [
+        'export ANSIBLE_HOST_KEY_CHECKING=False;',
+        'export ANSIBLE_SSH_ARGS="-o ControlMaster=auto -o ControlPersist=30m";',
+        'PRIVATE_KEY=`/bin/pwd`/../../key.pem;',
+        'ansible-playbook',
+        '-vvvv',
+        '-i ../../ansible_inventory',
+        '--private-key=$PRIVATE_KEY',
+        '--user=ubuntu',
+        '-e APPLICATION_PATH=$APPLICATION_PATH',
+        '-e APPLICATION_NAME=$APPLICATION_NAME',
+        '-e APPLICATION_USER=$APPLICATION_USER',
+        '-e HIPCHAT_TOKEN=$HIPCHAT_TOKEN',
+        '-e HIPCHAT_ROOM="$HIPCHAT_ROOM"',
+        'haystack_update_index.yml',
+    ]
 
     return job.add_task(
         ExecTask(
             [
                 '/bin/bash',
                 '-c',
-                command
+                ' '.join(command),
             ],
             working_dir='configuration/playbooks/continuous_delivery/',
             runif=runif
@@ -790,33 +774,23 @@ def generate_create_release_candidate_branch_and_pr(job,
         The newly created task (gomatic.gocd.tasks.ExecTask)
 
     """
-    command = ' '.join(
-        [
-            'python',
-            'scripts/create_release_candidate.py',
-            '--org {org}',
-            '--repo {repo}',
-            '--source_branch {source_branch}',
-            '--target_branch {target_branch}',
-            '--pr_target_branch {pr_target_branch}',
-            '--token $GIT_TOKEN'
-        ]
-    )
-
-    command = command.format(
-        org=org,
-        repo=repo,
-        source_branch=source_branch,
-        target_branch=target_branch,
-        pr_target_branch=pr_target_branch
-    )
+    command = [
+        'python',
+        'scripts/create_release_candidate.py',
+        '--org', org,
+        '--repo', repo,
+        '--source_branch', source_branch,
+        '--target_branch', target_branch,
+        '--pr_target_branch', pr_target_branch,
+        '--token $GIT_TOKEN'
+    ]
 
     return job.add_task(
         ExecTask(
             [
                 '/bin/bash',
                 '-c',
-                command
+                ' '.join(command),
             ],
             working_dir='tubular',
             runif=runif
@@ -1255,7 +1229,7 @@ def trigger_jenkins_build(
         jenkins_param (dict): parameter names and values to pass to the job
     """
     command = [
-        'python ',
+        'python',
         'scripts/jenkins_trigger_build.py',
         '--url {}'.format(jenkins_url),
         '--user_name {}'.format(jenkins_user_name),
@@ -1308,7 +1282,7 @@ def _generate_message_pull_requests_in_commit_range(
         gomatic.task.Task
     """
     command = [
-        'python ',
+        'python',
         'scripts/message_prs_in_range.py',
         '--org', org,
         '--token', token,
