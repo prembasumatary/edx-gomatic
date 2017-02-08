@@ -26,7 +26,7 @@ def ansible_task(
             (before variables). These will be joined with whitespace.
         verbosity (int): How many ``-v`` parameters to add when running ansible
 
-    Return: An ExecTask that executes the ansible play.
+    Returns: An ExecTask that executes the ansible play.
     """
     if prefix is None:
         prefix = []
@@ -72,6 +72,38 @@ def ansible_task(
         runif=runif
     )
 
+
+def tubular_task(script, arguments, prefix=None, runif='passed'):
+    """
+    Execute a tubular script in a standard way.
+
+    Arguments:
+        script (str): The name of the script inside tubular/script.
+        arguments (list): A list of bash snippets to append as arguments to the script name.
+            Will be whitespace-separated.
+        prefix (list): A list of bash snippets to prepend to script execution. Will be
+            whitespace-separated.
+        runif (str): One of 'passed', 'failed', or 'any'. Specifies whether to run this task.
+
+    Returns: An ExecTask that runs a tubular script.
+    """
+    if prefix is None:
+        prefix = []
+
+    command = prefix + [
+        'python',
+        'scripts/{}'.format(script),
+    ] + arguments
+
+    return ExecTask(
+        [
+            '/bin/bash',
+            '-c',
+            ' '.join(command)
+        ],
+        working_dir='tubular',
+        runif=runif
+    )
 
 def generate_requirements_install(job, working_dir, runif="passed"):
     """
@@ -290,8 +322,6 @@ def generate_check_migration_duration(job,
         The newly created task (gomatic.gocd.tasks.ExecTask)
     """
     cmd_args = [
-        'python',
-        'scripts/check_migrate_duration.py',
         '--migration_file',
         '../{artifact_path}/migrations/{input_file}'.format(
             artifact_path=constants.ARTIFACT_PATH,
@@ -307,17 +337,11 @@ def generate_check_migration_duration(job,
     for email in to_addresses:
         cmd_args.extend(('--alert_email', email))
 
-    return job.add_task(
-        ExecTask(
-            [
-                '/bin/bash',
-                '-c',
-                ' '.join(cmd_args)
-            ],
-            working_dir='tubular',
-            runif=runif
-        )
-    )
+    return job.add_task(tubular_task(
+        'check_migrate_duration.py',
+        cmd_args,
+        runif=runif,
+    ))
 
 
 def format_RSA_key(job, output_path, key):
@@ -331,19 +355,14 @@ def format_RSA_key(job, output_path, key):
     Returns:
         The newly created task (gomatic.gocd.tasks.ExecTask)
     """
-    return job.add_task(
-        ExecTask(
-            [
-                '/bin/bash',
-                '-c',
-                'touch {output_path} && '
-                'chmod 600 {output_path} && '
-                'python tubular/scripts/format_rsa_key.py --key "{key}" --output-file {output_path}'.format(
-                    output_path=output_path, key=key
-                )
-            ]
-        )
-    )
+    return job.add_task(tubular_task(
+        'format_rsa_key.py',
+        prefix=[
+            'touch {} &&'.format(output_path),
+            'chmod 600 {} &&'.format(output_path),
+        ],
+        arguments=['--key', '"{}"'.format(key), '--output-file', output_path],
+    ))
 
 
 def _fetch_secure_repo(job, secure_dir, secure_repo_envvar, secure_version_envvar, secure_repo_name, runif="passed"):
@@ -547,19 +566,14 @@ def generate_backup_drupal_database(job, site_env):
     Returns:
         The newly created task (gomatic.gocd.tasks.ExecTask)
     """
-    return job.add_task(
-        ExecTask(
-            [
-                '/bin/bash',
-                '-c',
-                'python scripts/drupal_backup_database.py '
-                '--env {site_env} '
-                '--username $PRIVATE_ACQUIA_USERNAME '
-                '--password $PRIVATE_ACQUIA_PASSWORD'.format(site_env=site_env)
-            ],
-            working_dir='tubular'
-        )
-    )
+    return job.add_task(tubular_task(
+        'drupal_backup_database.py',
+        [
+            '--env', site_env,
+            '--username $PRIVATE_ACQUIA_USERNAME',
+            '--password $PRIVATE_ACQUIA_PASSWORD',
+        ]
+    ))
 
 
 def generate_flush_drupal_caches(job, site_env):
@@ -601,19 +615,14 @@ def generate_clear_varnish_cache(job, site_env):
     Returns:
         The newly created task (gomatic.gocd.tasks.ExecTask)
     """
-    return job.add_task(
-        ExecTask(
-            [
-                '/bin/bash',
-                '-c',
-                'python scripts/drupal_clear_varnish.py '
-                '--env {site_env} '
-                '--username $PRIVATE_ACQUIA_USERNAME '
-                '--password $PRIVATE_ACQUIA_PASSWORD'.format(site_env=site_env)
-            ],
-            working_dir='tubular'
-        )
-    )
+    return job.add_task(tubular_task(
+        'drupal_clear_varnish.py',
+        [
+            '--env', site_env,
+            '--username $PRIVATE_ACQUIA_USERNAME',
+            '--password $PRIVATE_ACQUIA_PASSWORD',
+        ]
+    ))
 
 
 def generate_drupal_deploy(job, site_env, tag_file):
@@ -635,22 +644,18 @@ def generate_drupal_deploy(job, site_env, tag_file):
     Returns:
         The newly created task (gomatic.gocd.tasks.ExecTask)
     """
-    return job.add_task(
-        ExecTask(
-            [
-                '/bin/bash',
-                '-c',
-                'python scripts/drupal_deploy.py '
-                '--env {site_env} '
-                '--username $PRIVATE_ACQUIA_USERNAME '
-                '--password $PRIVATE_ACQUIA_PASSWORD '
-                '--tag $(cat ../{artifact_path}/{tag_file})'.format(site_env=site_env,
-                                                                    tag_file=tag_file,
-                                                                    artifact_path=constants.ARTIFACT_PATH)
-            ],
-            working_dir='tubular'
-        )
-    )
+    return job.add_task(tubular_task(
+        'drupal_deploy.py',
+        [
+            '--env', site_env,
+            '--username $PRIVATE_ACQUIA_USERNAME',
+            '--password $PRIVATE_ACQUIA_PASSWORD',
+            '--tag $(cat ../{artifact_path}/{tag_file})'.format(
+                tag_file=tag_file,
+                artifact_path=constants.ARTIFACT_PATH,
+            )
+        ]
+    ))
 
 
 def generate_fetch_tag(job, site_env, path_name):
@@ -669,20 +674,15 @@ def generate_fetch_tag(job, site_env, path_name):
     Returns:
         The newly created task (gomatic.gocd.tasks.ExecTask)
     """
-    return job.add_task(
-        ExecTask(
-            [
-                '/bin/bash',
-                '-c',
-                'python scripts/drupal_fetch_deployed_tag.py '
-                '--env {site_env} '
-                '--username $PRIVATE_ACQUIA_USERNAME '
-                '--password $PRIVATE_ACQUIA_PASSWORD '
-                '--path_name {path_name}'.format(site_env=site_env, path_name=path_name)
-            ],
-            working_dir='tubular'
-        )
-    )
+    return job.add_task(tubular_task(
+        'drupal_fetch_deployed_tag.py',
+        [
+            '--env', site_env,
+            '--username $PRIVATE_ACQUIA_USERNAME',
+            '--password $PRIVATE_ACQUIA_PASSWORD',
+            '--path_name', path_name,
+        ]
+    ))
 
 
 def generate_refresh_metadata(job, runif='passed'):
@@ -782,28 +782,18 @@ def generate_create_release_candidate_branch_and_pr(job,
         The newly created task (gomatic.gocd.tasks.ExecTask)
 
     """
-    command = [
-        'python',
-        'scripts/create_release_candidate.py',
-        '--org', org,
-        '--repo', repo,
-        '--source_branch', source_branch,
-        '--target_branch', target_branch,
-        '--pr_target_branch', pr_target_branch,
-        '--token $GIT_TOKEN'
-    ]
-
-    return job.add_task(
-        ExecTask(
-            [
-                '/bin/bash',
-                '-c',
-                ' '.join(command),
-            ],
-            working_dir='tubular',
-            runif=runif
-        )
-    )
+    return job.add_task(tubular_task(
+        'create_release_candidate.py',
+        [
+            '--org', org,
+            '--repo', repo,
+            '--source_branch', source_branch,
+            '--target_branch', target_branch,
+            '--pr_target_branch', pr_target_branch,
+            '--token $GIT_TOKEN',
+        ],
+        runif=runif,
+    ))
 
 
 def generate_create_branch(job,
@@ -830,9 +820,7 @@ def generate_create_branch(job,
         The newly created task (gomatic.gocd.tasks.ExecTask)
 
     """
-    command = [
-        'python',
-        'scripts/cut_branch.py',
+    args = [
         '--org', org,
         '--repo', repo,
         '--target_branch', target_branch,
@@ -844,22 +832,16 @@ def generate_create_branch(job,
     ]
 
     if source_branch:
-        command.extend(['--source_branch', source_branch])
+        args.extend(['--source_branch', source_branch])
 
     if sha:
-        command.extend(['--sha', sha])
+        args.extend(['--sha', sha])
 
-    return job.add_task(
-        ExecTask(
-            [
-                '/bin/bash',
-                '-c',
-                ' '.join(command),
-            ],
-            working_dir='tubular',
-            runif=runif
-        )
-    )
+    return job.add_task(tubular_task(
+        'cut_branch.py',
+        args,
+        runif=runif,
+    ))
 
 
 def generate_create_pr(job,
@@ -894,40 +876,21 @@ def generate_create_pr(job,
     job.ensure_artifacts(set([BuildArtifact(output_file_path)]))
 
     cmd_args = [
-        'python',
-        'scripts/create_pr.py',
-        '--org {org}',
-        '--repo {repo}',
-        '--source_branch {source_branch}',
-        '--target_branch {target_branch}',
-        '--title "{title}"',
-        '--body "{body}"',
+        '--org', org,
+        '--repo', repo,
+        '--source_branch', source_branch,
+        '--target_branch', target_branch,
+        '--title "{}"'.format(title),
+        '--body "{}"'.format(body),
         '--token $GIT_TOKEN',
-        '--output_file ../{output_file_path}'
+        '--output_file ../{}'.format(output_file_path),
     ]
-    command = ' '.join(cmd_args)
 
-    command = command.format(
-        org=org,
-        repo=repo,
-        source_branch=source_branch,
-        target_branch=target_branch,
-        title=title,
-        body=body,
-        output_file_path=output_file_path
-    )
-
-    return job.add_task(
-        ExecTask(
-            [
-                '/bin/bash',
-                '-c',
-                command
-            ],
-            working_dir='tubular',
-            runif=runif
-        )
-    )
+    return job.add_task(tubular_task(
+        'create_pr.py',
+        cmd_args,
+        runif=runif
+    ))
 
 
 def generate_merge_branch(job,
@@ -961,37 +924,20 @@ def generate_merge_branch(job,
     job.ensure_artifacts(set([BuildArtifact(output_file_path)]))
 
     cmd_args = [
-        'python',
-        'scripts/merge_branch.py',
-        '--org {org}',
-        '--repo {repo}',
-        '--source_branch {source_branch}',
-        '--target_branch {target_branch}',
-        '--output_file ../{output_file_path}'
+        '--org', org,
+        '--repo', repo,
+        '--source_branch', source_branch,
+        '--target_branch', target_branch,
+        '--output_file ../{}'.format(output_file_path)
     ]
     if fast_forward_only:
         cmd_args.append('--fast_forward_only')
-    command = ' '.join(cmd_args)
 
-    command = command.format(
-        org=org,
-        repo=repo,
-        source_branch=source_branch,
-        target_branch=target_branch,
-        output_file_path=output_file_path
-    )
-
-    return job.add_task(
-        ExecTask(
-            [
-                '/bin/bash',
-                '-c',
-                command
-            ],
-            working_dir='tubular',
-            runif=runif
-        )
-    )
+    return job.add_task(tubular_task(
+        'merge_branch.py',
+        cmd_args,
+        runif=runif,
+    ))
 
 
 def generate_merge_pr(job,
@@ -1014,33 +960,17 @@ def generate_merge_pr(job,
         The newly created task (gomatic.gocd.tasks.ExecTask)
     """
     cmd_args = [
-        'python',
-        'scripts/merge_pr.py',
-        '--org {org}',
-        '--repo {repo}',
-        '--input_file ../{artifact_path}/{input_file}',
+        '--org', org,
+        '--repo', repo,
+        '--input_file ../{}/{}'.format(constants.ARTIFACT_PATH, input_file),
         '--token $GIT_TOKEN',
     ]
-    command = ' '.join(cmd_args)
 
-    command = command.format(
-        org=org,
-        repo=repo,
-        artifact_path=constants.ARTIFACT_PATH,
-        input_file=input_file,
-    )
-
-    return job.add_task(
-        ExecTask(
-            [
-                '/bin/bash',
-                '-c',
-                command
-            ],
-            working_dir='tubular',
-            runif=runif
-        )
-    )
+    return job.add_task(tubular_task(
+        'merge_pr.py',
+        cmd_args,
+        runif=runif
+    ))
 
 
 def generate_tag_commit(job,
@@ -1079,8 +1009,6 @@ def generate_tag_commit(job,
 
     """
     cmd_args = [
-        'python',
-        'scripts/create_tag.py',
         '--org', org,
         '--repo', repo,
         '--token $GIT_TOKEN',
@@ -1104,17 +1032,11 @@ def generate_tag_commit(job,
             deploy_artifact_filename=deploy_artifact_filename
         ))
 
-    return job.add_task(
-        ExecTask(
-            [
-                '/bin/bash',
-                '-c',
-                ' '.join(cmd_args)
-            ],
-            working_dir='tubular',
-            runif=runif
-        )
-    )
+    return job.add_task(tubular_task(
+        'create_tag.py',
+        cmd_args,
+        runif=runif
+    ))
 
 
 def generate_check_pr_tests(job,
@@ -1138,33 +1060,16 @@ def generate_check_pr_tests(job,
 
     """
     cmd_args = [
-        'python',
-        'scripts/check_pr_tests_status.py',
-        '--org {org}',
-        '--repo {repo}',
-        '--input_file ../{artifact_path}/{input_file}',
+        '--org', org,
+        '--repo', repo,
+        '--input_file ../{}/{}'.format(constants.ARTIFACT_PATH, input_file),
         '--token $GIT_TOKEN',
     ]
-    command = ' '.join(cmd_args)
-
-    command = command.format(
-        org=org,
-        repo=repo,
-        artifact_path=constants.ARTIFACT_PATH,
-        input_file=input_file,
-    )
-
-    return job.add_task(
-        ExecTask(
-            [
-                '/bin/bash',
-                '-c',
-                command
-            ],
-            working_dir='tubular',
-            runif=runif
-        )
-    )
+    return job.add_task(tubular_task(
+        'check_pr_tests_status.py',
+        cmd_args,
+        runif=runif
+    ))
 
 
 def generate_poll_pr_tests(job,
@@ -1188,33 +1093,17 @@ def generate_poll_pr_tests(job,
 
     """
     cmd_args = [
-        'python',
-        'scripts/poll_pr_tests_status.py',
-        '--org {org}',
-        '--repo {repo}',
-        '--input_file ../{artifact_path}/{input_file}',
+        '--org', org,
+        '--repo', repo,
+        '--input_file ../{}/{}'.format(constants.ARTIFACT_PATH, input_file),
         '--token $GIT_TOKEN',
     ]
-    command = ' '.join(cmd_args)
 
-    command = command.format(
-        org=org,
-        repo=repo,
-        artifact_path=constants.ARTIFACT_PATH,
-        input_file=input_file,
-    )
-
-    return job.add_task(
-        ExecTask(
-            [
-                '/bin/bash',
-                '-c',
-                command,
-            ],
-            working_dir='tubular',
-            runif=runif
-        )
-    )
+    return job.add_task(tubular_task(
+        'poll_pr_tests_status.py',
+        cmd_args,
+        runif=runif
+    ))
 
 
 def trigger_jenkins_build(
@@ -1237,11 +1126,9 @@ def trigger_jenkins_build(
         jenkins_param (dict): parameter names and values to pass to the job
     """
     command = [
-        'python',
-        'scripts/jenkins_trigger_build.py',
-        '--url {}'.format(jenkins_url),
-        '--user_name {}'.format(jenkins_user_name),
-        '--job {}'.format(jenkins_job_name),
+        '--url', jenkins_url,
+        '--user_name', jenkins_user_name,
+        '--job', jenkins_job_name,
         '--cause "Triggered by GoCD Pipeline ${GO_PIPELINE_NAME} build ${GO_PIPELINE_LABEL}"',
         '--timeout', str(timeout)
     ]
@@ -1250,16 +1137,10 @@ def trigger_jenkins_build(
         for name, value in jenkins_params.items()
     )
 
-    return job.add_task(
-        ExecTask(
-            [
-                '/bin/bash',
-                '-c',
-                ' '.join(command)
-            ],
-            working_dir='tubular',
-        )
-    )
+    return job.add_task(tubular_task(
+        'jenkins_trigger_build.py',
+        command,
+    ))
 
 
 def _generate_message_pull_requests_in_commit_range(
@@ -1289,9 +1170,7 @@ def _generate_message_pull_requests_in_commit_range(
     Returns:
         gomatic.task.Task
     """
-    command = [
-        'python',
-        'scripts/message_prs_in_range.py',
+    arguments = [
         '--org', org,
         '--token', token,
         '--repo', repo,
@@ -1299,7 +1178,7 @@ def _generate_message_pull_requests_in_commit_range(
         '--{}'.format(message_type)
     ]
     if base_sha:
-        command.extend(['--base_sha', base_sha])
+        arguments.extend(['--base_sha', base_sha])
 
     if base_ami_artifact and ami_tag_app:
         job.add_task(
@@ -1312,7 +1191,7 @@ def _generate_message_pull_requests_in_commit_range(
             )
         )
 
-        command.extend([
+        arguments.extend([
             '--base_ami_tags', "../{}/{}".format(constants.ARTIFACT_PATH, base_ami_artifact.file_name),
             '--ami_tag_app', ami_tag_app,
         ])
@@ -1324,16 +1203,11 @@ def _generate_message_pull_requests_in_commit_range(
             )
         )
 
-    return job.add_task(
-        ExecTask(
-            [
-                '/bin/bash',
-                '-c',
-                ' '.join(command),
-            ],
-            working_dir='tubular',
-        )
-    )
+    return job.add_task(tubular_task(
+        'message_prs_in_range.py',
+        arguments,
+        runif=runif,
+    ))
 
 
 def generate_message_prs_stage(

@@ -66,7 +66,7 @@ def install_pipelines(configurator, config, env_configs):
 
     tasks.fetch_edx_mktg(clear_prod_caches_job, 'edx-mktg')
     tasks.generate_requirements_install(clear_prod_caches_job, 'tubular')
-    tasks.format_RSA_key(clear_prod_caches_job, 'edx-mktg/docroot/acquia_github_key.pem', '$PRIVATE_ACQUIA_GITHUB_KEY')
+    tasks.format_RSA_key(clear_prod_caches_job, '../edx-mktg/docroot/acquia_github_key.pem', '$PRIVATE_ACQUIA_GITHUB_KEY')
     tasks.generate_flush_drupal_caches(clear_prod_caches_job, PROD_ENV)
     tasks.generate_clear_varnish_cache(clear_prod_caches_job, PROD_ENV)
 
