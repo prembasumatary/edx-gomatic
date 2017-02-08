@@ -1353,3 +1353,65 @@ def generate_release_wiki_page(
         arguments,
         working_dir=None,
     ))
+
+
+def generate_base_ami_selection(
+        pipeline, job, aws_access_key_id, aws_secret_access_key,
+        play=None, deployment=None, edx_environment=None,
+        base_ami_id=None
+):
+    """
+    Pattern to find a base AMI for a particular EDP. Generates 1 artifact:
+        ami_override.yml    - YAML file that contains information about which base AMI to use in building AMI
+
+    Args:
+        pipeline (gomatic.Pipeline):
+        aws_access_key_id (str): AWS key ID for auth
+        aws_secret_access_key (str): AWS secret key for auth
+        play (str): Pipeline's play.
+        deployment (str): Pipeline's deployment.
+        edx_environment (str): Pipeline's environment.
+        base_ami_id (str): the ami-id used to launch the instance, or None to use the provided EDP
+    """
+    pipeline.ensure_encrypted_environment_variables(
+        {
+            'AWS_ACCESS_KEY_ID': aws_access_key_id,
+            'AWS_SECRET_ACCESS_KEY': aws_secret_access_key
+        }
+    )
+
+    pipeline.ensure_environment_variables(
+        {
+            'PLAY': play,
+            'DEPLOYMENT': deployment,
+            'EDX_ENVIRONMENT': edx_environment,
+            'BASE_AMI_ID': base_ami_id,
+            'BASE_AMI_ID_OVERRIDE': 'yes' if base_ami_id is not None else 'no',
+        }
+    )
+
+    # Generate an base-AMI-ID-overriding artifact.
+    base_ami_override_artifact = '{artifact_path}/{file_name}'.format(
+        artifact_path=constants.ARTIFACT_PATH,
+        file_name=constants.BASE_AMI_OVERRIDE_FILENAME
+    )
+    job.ensure_artifacts(set([BuildArtifact(base_ami_override_artifact)]))
+    job.add_task(bash_task(
+        """\
+            mkdir -p {artifact_path};
+            if [[ $BASE_AMI_ID_OVERRIDE != 'yes' ]];
+                then echo "Finding base AMI ID from active ELB/ASG in EDP.";
+                /usr/bin/python {ami_script} --environment $EDX_ENVIRONMENT --deployment $DEPLOYMENT --play $PLAY --out_file {override_artifact};
+            elif [[ -n $BASE_AMI_ID ]];
+                then echo "Using specified base AMI ID of '$BASE_AMI_ID'";
+                /usr/bin/python {ami_script} --override $BASE_AMI_ID --out_file {override_artifact};
+            else echo "Using environment base AMI ID";
+                echo "{empty_dict}" > {override_artifact}; fi;
+        """,
+        artifact_path='../' + constants.ARTIFACT_PATH,
+        ami_script='scripts/retrieve_base_ami.py',
+        empty_dict='{}',
+        override_artifact='../' + base_ami_override_artifact,
+        working_dir="tubular",
+        runif="passed"
+    ))

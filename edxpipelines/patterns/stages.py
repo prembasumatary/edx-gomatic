@@ -81,23 +81,6 @@ def generate_base_ami_selection(pipeline,
     Returns:
         gomatic.Stage
     """
-    pipeline.ensure_encrypted_environment_variables(
-        {
-            'AWS_ACCESS_KEY_ID': aws_access_key_id,
-            'AWS_SECRET_ACCESS_KEY': aws_secret_access_key
-        }
-    )
-
-    pipeline.ensure_environment_variables(
-        {
-            'PLAY': play,
-            'DEPLOYMENT': deployment,
-            'EDX_ENVIRONMENT': edx_environment,
-            'BASE_AMI_ID': base_ami_id,
-            'BASE_AMI_ID_OVERRIDE': 'yes' if base_ami_id is not None else 'no',
-        }
-    )
-
     stage = pipeline.ensure_stage(constants.BASE_AMI_SELECTION_STAGE_NAME)
 
     if manual_approval:
@@ -106,36 +89,9 @@ def generate_base_ami_selection(pipeline,
     # Install the requirements.
     job = stage.ensure_job(constants.BASE_AMI_SELECTION_JOB_NAME)
     tasks.generate_package_install(job, 'tubular')
-
-    # Generate an base-AMI-ID-overriding artifact.
-    base_ami_override_artifact = '{artifact_path}/{file_name}'.format(
-        artifact_path=constants.ARTIFACT_PATH,
-        file_name=constants.BASE_AMI_OVERRIDE_FILENAME
-    )
-    job.ensure_artifacts(set([BuildArtifact(base_ami_override_artifact)]))
-    job.add_task(
-        ExecTask(
-            [
-                '/bin/bash',
-                '-c',
-                'mkdir -p {artifact_path};'
-                'if [[ $BASE_AMI_ID_OVERRIDE != \'yes\' ]];'
-                '  then echo "Finding base AMI ID from active ELB/ASG in EDP.";'
-                '  /usr/bin/python {ami_script} --environment $EDX_ENVIRONMENT --deployment $DEPLOYMENT --play $PLAY --out_file {override_artifact};'
-                'elif [[ -n $BASE_AMI_ID ]];'
-                '  then echo "Using specified base AMI ID of \'$BASE_AMI_ID\'";'
-                '  /usr/bin/python {ami_script} --override $BASE_AMI_ID --out_file {override_artifact};'
-                'else echo "Using environment base AMI ID";'
-                '  echo "{empty_dict}" > {override_artifact}; fi;'.format(
-                    artifact_path='../' + constants.ARTIFACT_PATH,
-                    ami_script='scripts/retrieve_base_ami.py',
-                    empty_dict='{}',
-                    override_artifact='../' + base_ami_override_artifact
-                )
-            ],
-            working_dir="tubular",
-            runif="passed"
-        )
+    tasks.generate_base_ami_selection(
+        pipeline, job, aws_access_key_id, aws_secret_access_key,
+        play, deployment, edx_environment, base_ami_id,
     )
     return stage
 
