@@ -449,57 +449,6 @@ def generate_target_directory(job, directory_name=constants.ARTIFACT_PATH, runif
     ))
 
 
-def fetch_secure_configuration(job, secure_dir, runif="passed"):
-    """
-    Setup the configuration-secure repo for use in providing secrets.
-
-    Stage using this task must have the following environment variables:
-        CONFIGURATION_SECURE_REPO
-        CONFIGURATION_SECURE_VERSION
-
-    Args:
-        job (gomatic.job.Job): the gomatic job to which the playbook run task will be added
-        secure_dir (str): name of dir containing the edx-ops/configuration-secure repo
-        runif (str): one of ['passed', 'failed', 'any'] Default: passed
-
-    Returns:
-        The newly created task (gomatic.gocd.tasks.ExecTask)
-
-    """
-    return _fetch_secure_repo(
-        job, secure_dir,
-        "CONFIGURATION_SECURE_REPO",
-        "CONFIGURATION_SECURE_VERSION",
-        "configuration-secure"
-    )
-
-
-def fetch_gomatic_secure(job, secure_dir, runif="passed"):
-    """
-    Setup the gomatic-secure repo for use in providing secrets.
-
-    Stage using this task must have the following environment variables:
-        GOMATIC_SECURE_REPO
-        GOMATIC_SECURE_VERSION
-        PRIVATE_GITHUB_KEY
-
-    Args:
-        job (gomatic.job.Job): the gomatic job to which the task will be added
-        secure_dir (str): name of dir containing the edx-ops/gomatic-secure repo
-        runif (str): one of ['passed', 'failed', 'any'] Default: passed
-
-    Returns:
-        The newly created task (gomatic.gocd.tasks.ExecTask)
-
-    """
-    return _fetch_secure_repo(
-        job, secure_dir,
-        "GOMATIC_SECURE_REPO",
-        "GOMATIC_SECURE_VERSION",
-        "gomatic-secure"
-    )
-
-
 def fetch_edx_mktg(job, secure_dir, runif="passed"):
     """
     Setup the edx-mktg repo for use with Drupal deployment.
