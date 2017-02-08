@@ -211,25 +211,6 @@ def generate_run_play(pipeline,
     Returns:
         gomatic.Stage
     """
-    # setup the necessary environment variables
-    pipeline.ensure_encrypted_environment_variables(
-        {
-            'HIPCHAT_TOKEN': hipchat_token,
-            'PRIVATE_GITHUB_KEY': private_github_key
-        }
-    )
-    pipeline.ensure_environment_variables(
-        {
-            'PLAY': play,
-            'DEPLOYMENT': deployment,
-            'EDX_ENVIRONMENT': edx_environment,
-            'APP_REPO': app_repo,
-            'ARTIFACT_PATH': '{}/'.format(constants.ARTIFACT_PATH),
-            'HIPCHAT_ROOM': hipchat_room,
-            'ANSIBLE_CONFIG': constants.ANSIBLE_CONTINUOUS_DELIVERY_CONFIG,
-        }
-    )
-
     stage = pipeline.ensure_stage(constants.RUN_PLAY_STAGE_NAME)
     if manual_approval:
         stage.set_has_manual_approval()
@@ -240,25 +221,20 @@ def generate_run_play(pipeline,
     tasks.generate_requirements_install(job, 'configuration')
     tasks.generate_target_directory(job)
 
-    # fetch the key material
-    artifact_params = {
-        'pipeline': pipeline.name,
-        'stage': constants.LAUNCH_INSTANCE_STAGE_NAME,
-        'job': constants.LAUNCH_INSTANCE_JOB_NAME,
-        'src': FetchArtifactFile("key.pem"),
-        'dest': constants.ARTIFACT_PATH
-    }
-    job.add_task(FetchArtifactTask(**artifact_params))
-
-    # fetch the launch_info.yml
-    artifact_params['src'] = FetchArtifactFile('launch_info.yml')
-    job.add_task(FetchArtifactTask(**artifact_params))
-
-    # fetch the inventory file
-    artifact_params['src'] = FetchArtifactFile('ansible_inventory')
-    job.add_task(FetchArtifactTask(**artifact_params))
-
-    tasks.generate_run_app_playbook(job, configuration_internal_dir, configuration_secure_dir, playbook_with_path, **kwargs)
+    tasks.generate_run_app_playbook(
+        pipeline,
+        job=job,
+        playbook_with_path=playbook_with_path,
+        play=play,
+        deployment=deployment,
+        edx_environment=edx_environment,
+        app_repo=app_repo,
+        private_github_key=private_github_key,
+        hipchat_token=hipchat_token,
+        hipchat_room=hipchat_room,
+        configuration_secure_dir=configuration_secure_dir,
+        configuration_internal_dir=configuration_internal_dir,
+        **kwargs)
     return stage
 
 
