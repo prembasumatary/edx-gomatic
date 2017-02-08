@@ -1,3 +1,6 @@
+import re
+import textwrap
+
 from gomatic import *
 
 from edxpipelines import constants
@@ -105,6 +108,48 @@ def tubular_task(script, arguments, prefix=None, runif='passed'):
         runif=runif
     )
 
+
+def bash_task(script, working_dir=None, runif="passed", **kwargs):
+    '''
+    Execute a bash script in a standard way.
+
+    For example:
+
+    bash_task(
+        """\\
+            echo {message} &&
+            echo {message}
+        """,
+        message="'Help!'"
+    )
+
+    will cause the bash script "echo 'Help!' && echo 'Help!'" to run.
+
+    Arguments:
+        script: The script to execute. First, any **kwargs will be formatted
+            in to the script. Second, textwrap.dedent will be used to normalize
+            indentation. Third, any newlines with trailing spaces will be replaced
+            by single spaces.
+        working_dir (str): The directory to run the script in.
+        runif (str): One of 'passed', 'failed', or 'any'. Specifies whether to run this task.
+        **kwargs: Values to substitute into ``script``.
+    '''
+    return ExecTask(
+        [
+            '/bin/bash',
+            '-c',
+            re.sub(
+                r"$\s+",
+                " ",
+                textwrap.dedent(script.format(**kwargs)),
+                flags=re.MULTILINE
+            ).strip(),
+        ],
+        working_dir=working_dir,
+        runif=runif
+    )
+
+
 def generate_requirements_install(job, working_dir, runif="passed"):
     """
     Generates a command that runs:
@@ -119,17 +164,11 @@ def generate_requirements_install(job, working_dir, runif="passed"):
         The newly created task (gomatic.gocd.tasks.ExecTask)
 
     """
-    return job.add_task(
-        ExecTask(
-            [
-                '/bin/bash',
-                '-c',
-                'sudo pip install -r requirements.txt'
-            ],
-            working_dir=working_dir,
-            runif=runif
-        )
-    )
+    return job.add_task(bash_task(
+        'sudo pip install -r requirements.txt',
+        working_dir=working_dir,
+        runif=runif
+    ))
 
 
 def generate_launch_instance(job, optional_override_files=[], runif="passed"):
@@ -381,42 +420,33 @@ def _fetch_secure_repo(job, secure_dir, secure_repo_envvar, secure_version_envva
         The newly created task (gomatic.gocd.tasks.ExecTask)
 
     """
-    return job.add_task(
-        ExecTask(
-            [
-                '/bin/bash',
-                '-c',
-                'touch github_key.pem && '
-                'chmod 600 github_key.pem && '
-                'python tubular/scripts/format_rsa_key.py --key "$PRIVATE_GITHUB_KEY" --output-file github_key.pem && '
-                "GIT_SSH_COMMAND='/usr/bin/ssh -o StrictHostKeyChecking=no -i github_key.pem' "
-                '/usr/bin/git clone ${secure_repo_envvar} {secure_dir} && '
-                'cd {secure_dir} && '
-                '/usr/bin/git checkout ${secure_version_envvar} && '
-                '[ -d ../{artifact_path}/ ] && echo "Target Directory Exists" || mkdir ../{artifact_path}/ && '
-                '/usr/bin/git rev-parse HEAD > ../{artifact_path}/{secure_repo_name}_sha'.format(
-                    secure_dir=secure_dir,
-                    secure_repo_envvar=secure_repo_envvar,
-                    secure_version_envvar=secure_version_envvar,
-                    secure_repo_name=secure_repo_name,
-                    artifact_path=constants.ARTIFACT_PATH
-                )
-            ]
-        )
-    )
+    return job.add_task(bash_task(
+        """\
+            touch github_key.pem &&
+            chmod 600 github_key.pem &&
+            python tubular/scripts/format_rsa_key.py --key "$PRIVATE_GITHUB_KEY" --output-file github_key.pem &&
+            GIT_SSH_COMMAND='/usr/bin/ssh -o StrictHostKeyChecking=no -i github_key.pem'
+            /usr/bin/git clone ${secure_repo_envvar} {secure_dir} &&
+            cd {secure_dir} &&
+            /usr/bin/git checkout ${secure_version_envvar} &&
+            [ -d ../{artifact_path}/ ] && echo "Target Directory Exists" || mkdir ../{artifact_path}/ &&
+            /usr/bin/git rev-parse HEAD > ../{artifact_path}/{secure_repo_name}_sha
+        """,
+        secure_dir=secure_dir,
+        secure_repo_envvar=secure_repo_envvar,
+        secure_version_envvar=secure_version_envvar,
+        secure_repo_name=secure_repo_name,
+        artifact_path=constants.ARTIFACT_PATH,
+        runif=runif,
+    ))
 
 
 def generate_target_directory(job, directory_name=constants.ARTIFACT_PATH, runif="passed"):
-    return job.add_task(
-        ExecTask(
-            [
-                '/bin/bash',
-                '-c',
-                '[ -d {0} ] && echo "Directory Exists" || mkdir {0}'.format(directory_name)
-            ],
-            runif=runif
-        )
-    )
+    return job.add_task(bash_task(
+        '[ -d {dir_name} ] && echo "Directory Exists" || mkdir {dir_name}',
+        dir_name=directory_name,
+        runif=runif,
+    ))
 
 
 def fetch_secure_configuration(job, secure_dir, runif="passed"):
@@ -490,7 +520,8 @@ def fetch_edx_mktg(job, secure_dir, runif="passed"):
         job, secure_dir,
         "PRIVATE_MARKETING_REPOSITORY_URL",
         "MARKETING_REPOSITORY_VERSION",
-        "edx-mktg"
+        "edx-mktg",
+        runif=runif,
     )
 
 
@@ -588,16 +619,11 @@ def generate_flush_drupal_caches(job, site_env):
     Returns:
         The newly created task (gomatic.gocd.tasks.ExecTask)
     """
-    return job.add_task(
-        ExecTask(
-            [
-                '/bin/bash',
-                '-c',
-                'drush -y @edx.{site_env} cc all'.format(site_env=site_env)
-            ],
-            working_dir='edx-mktg/docroot'
-        )
-    )
+    return job.add_task(bash_task(
+        'drush -y @edx.{site_env} cc all',
+        site_env=site_env,
+        working_dir='edx-mktg/docroot',
+    ))
 
 
 def generate_clear_varnish_cache(job, site_env):
