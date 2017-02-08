@@ -189,7 +189,14 @@ def generate_package_install(job, working_dir, runif="passed", pip="pip3"):
     ))
 
 
-def generate_launch_instance(job, optional_override_files=[], runif="passed"):
+def generate_launch_instance(
+        pipeline, job, aws_access_key_id, aws_secret_access_key,
+        ec2_vpc_subnet_id, ec2_security_group_id, ec2_instance_profile_name,
+        base_ami_id, ec2_region=constants.EC2_REGION, ec2_instance_type=constants.EC2_INSTANCE_TYPE,
+        ec2_timeout=constants.EC2_LAUNCH_INSTANCE_TIMEOUT,
+        ec2_ebs_volume_size=constants.EC2_EBS_VOLUME_SIZE,
+        upstream_build_artifact=None, runif="passed"
+):
     """
     Generate the launch AMI job. This ansible script generates 3 artifacts:
         key.pem             - Private key material generated for this instance launch
@@ -209,9 +216,46 @@ def generate_launch_instance(job, optional_override_files=[], runif="passed"):
         The newly created task (gomatic.gocd.tasks.ExecTask)
 
     """
-    job.ensure_artifacts(set([BuildArtifact('{}/key.pem'.format(constants.ARTIFACT_PATH)),
-                             BuildArtifact('{}/ansible_inventory'.format(constants.ARTIFACT_PATH)),
-                             BuildArtifact('{}/launch_info.yml'.format(constants.ARTIFACT_PATH))]))
+    pipeline.ensure_encrypted_environment_variables(
+        {
+            'AWS_ACCESS_KEY_ID': aws_access_key_id,
+            'AWS_SECRET_ACCESS_KEY': aws_secret_access_key
+        }
+    )
+
+    pipeline.ensure_environment_variables(
+        {
+            'EC2_VPC_SUBNET_ID': ec2_vpc_subnet_id,
+            'EC2_SECURITY_GROUP_ID': ec2_security_group_id,
+            'EC2_ASSIGN_PUBLIC_IP': 'no',
+            'EC2_TIMEOUT': ec2_timeout,
+            'EC2_REGION': ec2_region,
+            'EBS_VOLUME_SIZE': ec2_ebs_volume_size,
+            'EC2_INSTANCE_TYPE': ec2_instance_type,
+            'EC2_INSTANCE_PROFILE_NAME': ec2_instance_profile_name,
+            'NO_REBOOT': 'no',
+            'BASE_AMI_ID': base_ami_id,
+            'ANSIBLE_CONFIG': constants.ANSIBLE_CONTINUOUS_DELIVERY_CONFIG,
+        }
+    )
+
+    # fetch the artifacts if there are any
+    optional_override_files = []
+    if upstream_build_artifact:
+        job.add_task(upstream_build_artifact.as_fetch_task(constants.ARTIFACT_PATH))
+        optional_override_files.append(
+            '{artifact_path}/{file_name}'
+            .format(
+                artifact_path=constants.ARTIFACT_PATH,
+                file_name=upstream_build_artifact.file_name
+            )
+        )
+
+    job.ensure_artifacts({
+        BuildArtifact('{}/key.pem'.format(constants.ARTIFACT_PATH)),
+        BuildArtifact('{}/ansible_inventory'.format(constants.ARTIFACT_PATH)),
+        BuildArtifact('{}/launch_info.yml'.format(constants.ARTIFACT_PATH))
+    })
 
     return job.add_task(ansible_task(
         variables=[

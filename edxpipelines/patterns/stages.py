@@ -138,29 +138,6 @@ def generate_launch_instance(pipeline,
     Returns:
 
     """
-    pipeline.ensure_encrypted_environment_variables(
-        {
-            'AWS_ACCESS_KEY_ID': aws_access_key_id,
-            'AWS_SECRET_ACCESS_KEY': aws_secret_access_key
-        }
-    )
-
-    pipeline.ensure_environment_variables(
-        {
-            'EC2_VPC_SUBNET_ID': ec2_vpc_subnet_id,
-            'EC2_SECURITY_GROUP_ID': ec2_security_group_id,
-            'EC2_ASSIGN_PUBLIC_IP': 'no',
-            'EC2_TIMEOUT': ec2_timeout,
-            'EC2_REGION': ec2_region,
-            'EBS_VOLUME_SIZE': ec2_ebs_volume_size,
-            'EC2_INSTANCE_TYPE': ec2_instance_type,
-            'EC2_INSTANCE_PROFILE_NAME': ec2_instance_profile_name,
-            'NO_REBOOT': 'no',
-            'BASE_AMI_ID': base_ami_id,
-            'ANSIBLE_CONFIG': constants.ANSIBLE_CONTINUOUS_DELIVERY_CONFIG,
-        }
-    )
-
     stage = pipeline.ensure_stage(constants.LAUNCH_INSTANCE_STAGE_NAME)
 
     if manual_approval:
@@ -171,20 +148,22 @@ def generate_launch_instance(pipeline,
     tasks.generate_package_install(job, 'tubular')
     tasks.generate_requirements_install(job, 'configuration')
 
-    # fetch the artifacts if there are any
-    artifacts = []
-    if upstream_build_artifact:
-        job.add_task(upstream_build_artifact.as_fetch_task(constants.ARTIFACT_PATH))
-        artifacts.append(
-            '{artifact_path}/{file_name}'
-            .format(
-                artifact_path=constants.ARTIFACT_PATH,
-                file_name=upstream_build_artifact.file_name
-            )
-        )
-
     # Create the instance-launching task.
-    tasks.generate_launch_instance(job, artifacts)
+    tasks.generate_launch_instance(
+        pipeline,
+        job,
+        aws_access_key_id=aws_access_key_id,
+        aws_secret_access_key=aws_secret_access_key,
+        ec2_vpc_subnet_id=ec2_vpc_subnet_id,
+        ec2_security_group_id=ec2_security_group_id,
+        ec2_instance_profile_name=ec2_instance_profile_name,
+        base_ami_id=base_ami_id,
+        ec2_region=ec2_region,
+        ec2_instance_type=ec2_instance_type,
+        ec2_timeout=ec2_timeout,
+        ec2_ebs_volume_size=ec2_ebs_volume_size,
+        upstream_build_artifact=upstream_build_artifact,
+    )
 
     return stage
 
