@@ -81,7 +81,7 @@ def install_pipelines(configurator, config, env_configs):
         jenkins_param = {key: param}
 
         job = jenkins_stage.ensure_job(pipeline_job_name)
-        tasks.generate_requirements_install(job, 'tubular')
+        tasks.generate_package_install(job, 'tubular')
         tasks.trigger_jenkins_build(job, jenkins_url, jenkins_user_name, jenkins_job_name, jenkins_param)
 
     manual_verification_stage = pipeline.ensure_stage(constants.MANUAL_VERIFICATION_STAGE_NAME)

@@ -38,7 +38,7 @@ def generate_asg_cleanup(pipeline,
         stage.set_has_manual_approval()
 
     job = stage.ensure_job("Cleanup-ASGS")
-    tasks.generate_requirements_install(job, 'tubular')
+    tasks.generate_package_install(job, 'tubular')
     job.add_task(ExecTask(
         [
             '/usr/bin/python',
@@ -100,7 +100,7 @@ def generate_base_ami_selection(pipeline,
 
     # Install the requirements.
     job = stage.ensure_job(constants.BASE_AMI_SELECTION_JOB_NAME)
-    tasks.generate_requirements_install(job, 'tubular')
+    tasks.generate_package_install(job, 'tubular')
 
     # Generate an base-AMI-ID-overriding artifact.
     base_ami_override_artifact = '{artifact_path}/{file_name}'.format(
@@ -207,7 +207,7 @@ def generate_launch_instance(pipeline,
 
     # Install the requirements.
     job = stage.ensure_job(constants.LAUNCH_INSTANCE_JOB_NAME)
-    tasks.generate_requirements_install(job, 'tubular')
+    tasks.generate_package_install(job, 'tubular')
     tasks.generate_requirements_install(job, 'configuration')
 
     # fetch the artifacts if there are any
@@ -305,7 +305,7 @@ def generate_run_play(pipeline,
 
     # Install the requirements.
     job = stage.ensure_job(constants.RUN_PLAY_JOB_NAME)
-    tasks.generate_requirements_install(job, 'tubular')
+    tasks.generate_package_install(job, 'tubular')
     tasks.generate_requirements_install(job, 'configuration')
     tasks.generate_target_directory(job)
 
@@ -408,7 +408,7 @@ def generate_create_ami_from_instance(pipeline,
 
     # Install the requirements.
     job = stage.ensure_job(constants.BUILD_AMI_JOB_NAME)
-    tasks.generate_requirements_install(job, 'tubular')
+    tasks.generate_package_install(job, 'tubular')
     tasks.generate_requirements_install(job, 'configuration')
 
     tasks.generate_target_directory(job)
@@ -474,7 +474,7 @@ def generate_deploy_ami(pipeline,
     if manual_approval:
         stage.set_has_manual_approval()
     job = stage.ensure_job(constants.DEPLOY_AMI_JOB_NAME)
-    tasks.generate_requirements_install(job, 'tubular')
+    tasks.generate_package_install(job, 'tubular')
     # Make the artifact directory if it does not exist
     job.add_task(ExecTask(
         [
@@ -554,7 +554,7 @@ def generate_edp_validation(pipeline,
     if manual_approval:
         stage.set_has_manual_approval()
     job = stage.ensure_job("EDPValidation")
-    tasks.generate_requirements_install(job, 'tubular')
+    tasks.generate_package_install(job, 'tubular')
     job.add_task(
         ExecTask(
             [
@@ -814,7 +814,7 @@ def generate_rollback_asg_stage(
     # Important: Do *not* automatically rollback! Always manual...
     stage.set_has_manual_approval()
     job = stage.ensure_job(constants.ROLLBACK_ASGS_JOB_NAME)
-    tasks.generate_requirements_install(job, 'tubular')
+    tasks.generate_package_install(job, 'tubular')
 
     artifact_params = {
         "pipeline": deploy_file_location.pipeline,
