@@ -168,7 +168,7 @@ def generate_requirements_install(job, working_dir, runif="passed"):
     ))
 
 
-def generate_package_install(job, working_dir, runif="passed"):
+def generate_package_install(job, working_dir, runif="passed", pip="pip3"):
     """
     Generates a command that runs:
     'sudo pip install -r requirements.txt'
@@ -183,9 +183,9 @@ def generate_package_install(job, working_dir, runif="passed"):
 
     """
     return job.add_task(bash_task(
-        'sudo pip install --upgrade .',
+        'sudo {} install --upgrade .'.format(pip),
         working_dir=working_dir,
-        runif=runif
+        runif=runif,
     ))
 
 
