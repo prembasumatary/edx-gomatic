@@ -276,7 +276,15 @@ def generate_launch_instance(
     ))
 
 
-def generate_create_ami(job, runif="passed", **kwargs):
+def generate_create_ami(
+        pipeline, job, play, deployment, edx_environment,
+        app_repo, configuration_secure_repo, aws_access_key_id,
+        aws_secret_access_key, configuration_repo=constants.PUBLIC_CONFIGURATION_REPO_URL,
+        ami_creation_timeout="3600", ami_wait='yes', cache_id='',
+        artifact_path=constants.ARTIFACT_PATH, hipchat_token='',
+        hipchat_room=constants.HIPCHAT_ROOM, manual_approval=False,
+        runif="passed", **kwargs
+):
     """
     TODO: Decouple AMI building and AMI tagging in to 2 different jobs/ansible scripts
 
@@ -292,6 +300,41 @@ def generate_create_ami(job, runif="passed", **kwargs):
         The newly created task (gomatic.gocd.tasks.ExecTask)
 
     """
+    pipeline.ensure_encrypted_environment_variables(
+        {
+            'AWS_ACCESS_KEY_ID': aws_access_key_id,
+            'AWS_SECRET_ACCESS_KEY': aws_secret_access_key,
+            'HIPCHAT_TOKEN': hipchat_token,
+        }
+    )
+
+    pipeline.ensure_environment_variables(
+        {
+            'PLAY': play,
+            'DEPLOYMENT': deployment,
+            'EDX_ENVIRONMENT': edx_environment,
+            'APP_REPO': app_repo,
+            'CONFIGURATION_REPO': configuration_repo,
+            'CONFIGURATION_SECURE_REPO': configuration_secure_repo,
+            'AMI_CREATION_TIMEOUT': ami_creation_timeout,
+            'AMI_WAIT': ami_wait,
+            'CACHE_ID': cache_id,  # gocd build number
+            'ARTIFACT_PATH': artifact_path,
+            'HIPCHAT_ROOM': hipchat_room,
+            'ANSIBLE_CONFIG': constants.ANSIBLE_CONTINUOUS_DELIVERY_CONFIG,
+        }
+    )
+
+    # fetch the key material
+    artifact_params = {
+        'pipeline': pipeline.name,
+        'stage': constants.LAUNCH_INSTANCE_STAGE_NAME,
+        'job': constants.LAUNCH_INSTANCE_JOB_NAME,
+        'src': FetchArtifactFile("launch_info.yml"),
+        'dest': constants.ARTIFACT_PATH
+    }
+    job.add_task(FetchArtifactTask(**artifact_params))
+
     job.ensure_artifacts(set([BuildArtifact('{}/ami.yml'.format(constants.ARTIFACT_PATH))]))
     variables = [
         '{}/launch_info.yml'.format(constants.ARTIFACT_PATH),

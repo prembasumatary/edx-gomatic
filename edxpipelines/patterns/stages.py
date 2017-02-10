@@ -288,50 +288,32 @@ def generate_create_ami_from_instance(pipeline,
     stage = pipeline.ensure_stage(constants.BUILD_AMI_STAGE_NAME)
     if manual_approval:
         stage.set_has_manual_approval()
-    pipeline.ensure_encrypted_environment_variables(
-        {
-            'AWS_ACCESS_KEY_ID': aws_access_key_id,
-            'AWS_SECRET_ACCESS_KEY': aws_secret_access_key,
-            'HIPCHAT_TOKEN': hipchat_token,
-        }
-    )
-
-    pipeline.ensure_environment_variables(
-        {
-            'PLAY': play,
-            'DEPLOYMENT': deployment,
-            'EDX_ENVIRONMENT': edx_environment,
-            'APP_REPO': app_repo,
-            'CONFIGURATION_REPO': configuration_repo,
-            'CONFIGURATION_SECURE_REPO': configuration_secure_repo,
-            'AMI_CREATION_TIMEOUT': ami_creation_timeout,
-            'AMI_WAIT': ami_wait,
-            'CACHE_ID': cache_id,  # gocd build number
-            'ARTIFACT_PATH': artifact_path,
-            'HIPCHAT_ROOM': hipchat_room,
-            'ANSIBLE_CONFIG': constants.ANSIBLE_CONTINUOUS_DELIVERY_CONFIG,
-        }
-    )
 
     # Install the requirements.
     job = stage.ensure_job(constants.BUILD_AMI_JOB_NAME)
     tasks.generate_package_install(job, 'tubular')
     tasks.generate_requirements_install(job, 'configuration')
-
     tasks.generate_target_directory(job)
 
-    # fetch the key material
-    artifact_params = {
-        'pipeline': pipeline.name,
-        'stage': constants.LAUNCH_INSTANCE_STAGE_NAME,
-        'job': constants.LAUNCH_INSTANCE_JOB_NAME,
-        'src': FetchArtifactFile("launch_info.yml"),
-        'dest': constants.ARTIFACT_PATH
-    }
-    job.add_task(FetchArtifactTask(**artifact_params))
-
     # Create an AMI from the instance
-    tasks.generate_create_ami(job, **kwargs)
+    tasks.generate_create_ami(
+        pipeline=pipeline,
+        job=job,
+        play=play,
+        deployment=deployment,
+        edx_environment=edx_environment,
+        app_repo=app_repo,
+        configuration_secure_repo=configuration_secure_repo,
+        aws_access_key_id=aws_access_key_id,
+        aws_secret_access_key=aws_secret_access_key,
+        configuration_repo=configuration_repo,
+        ami_creation_timeout=ami_creation_timeout,
+        ami_wait=ami_wait,
+        cache_id=cache_id,
+        artifact_path=artifact_path,
+        hipchat_token=hipchat_token,
+        hipchat_room=hipchat_room,
+        **kwargs)
 
     return stage
 
