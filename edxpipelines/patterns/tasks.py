@@ -1162,15 +1162,7 @@ def generate_message_pull_requests_in_commit_range(
         arguments.extend(['--base_sha', base_sha])
 
     if base_ami_artifact and ami_tag_app:
-        job.add_task(
-            FetchArtifactTask(
-                pipeline=base_ami_artifact.pipeline,
-                stage=base_ami_artifact.stage,
-                job=base_ami_artifact.job,
-                src=FetchArtifactFile(base_ami_artifact.file_name),
-                dest=constants.ARTIFACT_PATH,
-            )
-        )
+        job.add_task(base_ami_artifact.as_fetch_task(constants.ARTIFACT_PATH))
 
         arguments.extend([
             '--base_ami_tags', "../{}/{}".format(constants.ARTIFACT_PATH, base_ami_artifact.file_name),
@@ -1248,15 +1240,7 @@ def generate_release_wiki_page(
             '--in-file',
             input_wiki_id_path,
         ])
-        job.add_task(
-            FetchArtifactTask(
-                pipeline=input_artifact.pipeline,
-                stage=input_artifact.stage,
-                job=input_artifact.job,
-                src=FetchArtifactFile(input_artifact.file_name),
-                dest=input_wiki_id_path,
-            )
-        )
+        job.add_task(input_artifact.as_fetch_task(input_wiki_id_path))
     else:
         if parent_title:
             arguments.extend(['--parent-title', parent_title])
@@ -1270,15 +1254,7 @@ def generate_release_wiki_page(
         for artifact in (base, new):
             output_path = '{}/{}.{}'.format(constants.ARTIFACT_PATH, artifact.pipeline, artifact.file_name)
             compare_option.append(output_path)
-            job.add_task(
-                FetchArtifactTask(
-                    pipeline=artifact.pipeline,
-                    stage=artifact.stage,
-                    job=artifact.job,
-                    src=FetchArtifactFile(artifact.file_name),
-                    dest=output_path,
-                )
-            )
+            job.add_task(artifact.as_fetch_task(output_path))
         arguments.extend(compare_option)
 
     return job.add_task(tubular_task(

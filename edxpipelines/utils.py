@@ -3,16 +3,37 @@ from collections import namedtuple
 from constants import VALID_PIPELINE_STEP_PERMUTATIONS
 from copy import copy
 
+from gomatic import FetchArtifactFile, FetchArtifactDir, FetchArtifactTask
+
 
 class MergeConflict(Exception):
     pass
 
-ArtifactLocation = namedtuple(
-    "ArtifactLocation",
+
+class ArtifactLocation(namedtuple(
+    "ArtifactLocationBase",
     [
-        'pipeline', 'stage', 'job', 'file_name',
+        'pipeline', 'stage', 'job', 'file_name', 'is_dir'
     ]
-)
+)):
+    __slots__ = ()
+
+    def as_fetch_task(self, dest):
+        if self.is_dir:
+            src = FetchArtifactDir(self.file_name)
+        else:
+            src = FetchArtifactFile(self.file_name)
+
+        return FetchArtifactTask(
+            pipeline=self.pipeline,
+            stage=self.stage,
+            job=self.job,
+            src=src,
+            dest=dest
+        )
+
+# This sets the is_dir argument for ArtifactLocation to False by default
+ArtifactLocation.__new__.__defaults__ = (False,)
 
 
 def dict_merge(*args):

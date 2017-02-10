@@ -215,15 +215,7 @@ def generate_launch_instance(pipeline,
     # fetch the artifacts if there are any
     artifacts = []
     if upstream_build_artifact:
-        job.add_task(
-            FetchArtifactTask(
-                pipeline=upstream_build_artifact.pipeline,
-                stage=upstream_build_artifact.stage,
-                job=upstream_build_artifact.job,
-                src=FetchArtifactFile(upstream_build_artifact.file_name),
-                dest=constants.ARTIFACT_PATH,
-            )
-        )
+        job.add_task(upstream_build_artifact.as_fetch_task(constants.ARTIFACT_PATH))
         artifacts.append(
             '{artifact_path}/{file_name}'
             .format(
@@ -499,14 +491,7 @@ def generate_deploy_ami(pipeline,
         '--out_file ../{} '.format(artifact_path)
 
     if upstream_ami_artifact:
-        artifact_params = {
-            "pipeline": upstream_ami_artifact.pipeline,
-            "stage": upstream_ami_artifact.stage,
-            "job": upstream_ami_artifact.job,
-            "src": FetchArtifactFile(upstream_ami_artifact.file_name),
-            "dest": 'tubular'
-        }
-        job.add_task(FetchArtifactTask(**artifact_params))
+        job.add_task(upstream_ami_artifact.as_fetch_task('tubular'))
         deploy_command += '--config-file {}'.format(upstream_ami_artifact.file_name)
 
     else:
@@ -652,37 +637,16 @@ def generate_run_migrations(pipeline,
     job = stage.ensure_job(constants.APPLY_MIGRATIONS_JOB)
 
     # Fetch the Ansible inventory to use in reaching the EC2 instance.
-    artifact_params = {
-        "pipeline": inventory_location.pipeline,
-        "stage": inventory_location.stage,
-        "job": inventory_location.job,
-        "src": FetchArtifactFile(inventory_location.file_name),
-        "dest": constants.ARTIFACT_PATH
-    }
-    job.add_task(FetchArtifactTask(**artifact_params))
+    job.add_task(inventory_location.as_fetch_task(constants.ARTIFACT_PATH))
 
     # Fetch the SSH key to use in reaching the EC2 instance.
-    artifact_params = {
-        "pipeline": instance_key_location.pipeline,
-        "stage": instance_key_location.stage,
-        "job": instance_key_location.job,
-        "src": FetchArtifactFile(instance_key_location.file_name),
-        "dest": constants.ARTIFACT_PATH
-    }
-    job.add_task(FetchArtifactTask(**artifact_params))
+    job.add_task(instance_key_location.as_fetch_task(constants.ARTIFACT_PATH))
 
     # ensure the target directoy exists
     tasks.generate_target_directory(job)
 
     # fetch the launch_info.yml
-    artifact_params = {
-        "pipeline": launch_info_location.pipeline,
-        "stage": launch_info_location.stage,
-        "job": launch_info_location.job,
-        "src": FetchArtifactFile(launch_info_location.file_name),
-        "dest": constants.ARTIFACT_PATH
-    }
-    job.add_task(FetchArtifactTask(**artifact_params))
+    job.add_task(launch_info_location.as_fetch_task(constants.ARTIFACT_PATH))
 
     # The SSH key used to access the EC2 instance needs specific permissions.
     job.add_task(
@@ -753,16 +717,9 @@ def generate_terminate_instance(pipeline,
         stage.set_has_manual_approval()
 
     # Fetch the instance info to use in reaching the EC2 instance.
-    artifact_params = {
-        'pipeline': instance_info_location.pipeline,
-        'stage': instance_info_location.stage,
-        'job': instance_info_location.job,
-        'src': FetchArtifactFile(instance_info_location.file_name),
-        'dest': constants.ARTIFACT_PATH
-    }
     job = stage.ensure_job(constants.TERMINATE_INSTANCE_JOB_NAME)
     tasks.generate_requirements_install(job, 'configuration')
-    job.add_task(FetchArtifactTask(**artifact_params))
+    job.add_task(instance_info_location.as_fetch_task(constants.ARTIFACT_PATH))
 
     tasks.generate_ami_cleanup(job, runif=runif)
 
@@ -817,14 +774,7 @@ def generate_rollback_asg_stage(
     job = stage.ensure_job(constants.ROLLBACK_ASGS_JOB_NAME)
     tasks.generate_requirements_install(job, 'tubular')
 
-    artifact_params = {
-        "pipeline": deploy_file_location.pipeline,
-        "stage": deploy_file_location.stage,
-        "job": deploy_file_location.job,
-        "src": FetchArtifactFile(deploy_file_location.file_name),
-        "dest": 'tubular'
-    }
-    job.add_task(FetchArtifactTask(**artifact_params))
+    job.add_task(deploy_file_location.as_fetch_task('tubular'))
 
     job.add_task(ExecTask(
         [
@@ -909,37 +859,16 @@ def generate_ansible_stage(
     job = stage.ensure_job(stage_name + '_job')
 
     # Fetch the Ansible inventory to use in reaching the EC2 instance.
-    artifact_params = {
-        "pipeline": inventory_location.pipeline,
-        "stage": inventory_location.stage,
-        "job": inventory_location.job,
-        "src": FetchArtifactFile(inventory_location.file_name),
-        "dest": 'configuration'
-    }
-    job.add_task(FetchArtifactTask(**artifact_params))
+    job.add_task(inventory_location.as_fetch_task('configuration'))
 
     # Fetch the SSH key to use in reaching the EC2 instance.
-    artifact_params = {
-        "pipeline": instance_key_location.pipeline,
-        "stage": instance_key_location.stage,
-        "job": instance_key_location.job,
-        "src": FetchArtifactFile(instance_key_location.file_name),
-        "dest": 'configuration'
-    }
-    job.add_task(FetchArtifactTask(**artifact_params))
+    job.add_task(instance_key_location.as_fetch_task('configuration'))
 
     # ensure the target directoy exists
     tasks.generate_target_directory(job)
 
     # fetch the launch_info.yml
-    artifact_params = {
-        "pipeline": launch_info_location.pipeline,
-        "stage": launch_info_location.stage,
-        "job": launch_info_location.job,
-        "src": FetchArtifactFile(launch_info_location.file_name),
-        "dest": "target"
-    }
-    job.add_task(FetchArtifactTask(**artifact_params))
+    job.add_task(launch_info_location.as_fetch_task('target'))
 
     # The SSH key used to access the EC2 instance needs specific permissions.
     job.add_task(
@@ -1330,15 +1259,7 @@ def generate_merge_branch_and_tag(pipeline,
 
     if deploy_artifact:
         # Fetch the AMI-deployment artifact to extract deployment time.
-        tag_job.add_task(
-            FetchArtifactTask(
-                pipeline=deploy_artifact.pipeline,
-                stage=deploy_artifact.stage,
-                job=deploy_artifact.job,
-                src=FetchArtifactFile(deploy_artifact.file_name),
-                dest=constants.ARTIFACT_PATH
-            )
-        )
+        tag_job.add_task(deploy_artifact.as_fetch_task(constants.ARTIFACT_PATH))
 
     tasks.generate_tag_commit(
         tag_job,
