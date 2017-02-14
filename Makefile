@@ -15,9 +15,6 @@ diff:
 diff.%:
 	tox -e dryrun -- --script edxpipelines/pipelines/$*.py --save-config
 
-quality:
-	tox -e quality
-
 requirements:
 	pip install -r requirements.txt
 

@@ -8,4 +8,4 @@ install:
   - pip install tox
 
 # command to run tests
-script: make quality test
+script: tox
