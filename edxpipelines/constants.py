@@ -1,3 +1,5 @@
+from enum import Enum
+
 # Names for the standard stages/jobs
 ARM_PRERELEASE_STAGE = 'arm_prerelease'
 DEPLOY_AMI_STAGE_NAME = 'deploy_ami'
@@ -31,12 +33,8 @@ GIT_SETUP_STAGE_NAME = 'create_branch_and_pr'
 GIT_SETUP_JOB_NAME = 'create_branch_and_pr_job'
 GIT_CREATE_BRANCH_STAGE_NAME = 'create_branch'
 GIT_CREATE_BRANCH_JOB_NAME = 'create_branch_job'
-MESSAGE_PR_STAGE_NAME = 'message_pr_on_stage'
-MESSAGE_PR_STAGE_JOB_NAME = 'message_pr_on_stage_JOB'
-MESSAGE_PR_PROD_NAME = 'message_pr_on_prod'
-MESSAGE_PR_PROD_JOB_NAME = 'message_pr_on_prod_JOB'
-MESSAGE_PR_ROLLBACK_NAME = 'message_pr_rollback'
-MESSAGE_PR_ROLLBACK_JOB_NAME = 'message_pr_rollback_JOB'
+MESSAGE_PR_STAGE_NAME = 'message_pr_stage'
+MESSAGE_PR_JOB_NAME = 'message_pr_job'
 GIT_MERGE_RC_BRANCH_STAGE_NAME = 'merge_rc_branch'
 GIT_MERGE_RC_BRANCH_JOB_NAME = 'merge_rc_branch_job'
 GIT_TAG_SHA_JOB_NAME = 'tag_deployed_commit_job'
@@ -46,6 +44,7 @@ CHECK_PR_TESTS_AND_MERGE_STAGE_NAME = 'check_pr_tests_and_merge'
 CHECK_PR_TESTS_AND_MERGE_JOB_NAME = 'check_pr_tests_and_merge_job'
 BUILD_VALUE_STREAM_MAP_URL_STAGE_NAME = 'build_value_stream_map_url'
 BUILD_VALUE_STREAM_MAP_URL_JOB_NAME = 'build_value_stream_map_url_job'
+PUBLISH_WIKI_JOB_NAME = 'publish_wiki_job'
 
 # Pipeline names
 BRANCH_CLEANUP_PIPELINE_NAME = 'edxapp_branch_cleanup'
@@ -79,6 +78,7 @@ CREATE_BRANCH_PR_FILENAME = 'create_branch_pr.yml'
 MIGRATION_RESULT_FILENAME = 'default_migration_result.yml'
 BASE_VALUE_STREAM_MAP_URL = 'https://gocd.tools.edx.org/go/pipelines/value_stream_map'
 VALUE_STREAM_MAP_FILENAME = 'value_stream_map.yaml'
+RELEASE_WIKI_PAGE_ID_FILENAME = 'release_page_id.yml'
 
 # AWS Defaults
 EC2_REGION = 'us-east-1'
@@ -120,3 +120,12 @@ VALID_PIPELINE_STEP_PERMUTATIONS = {
     'md': 'M-D',
     'b': 'B'
 }
+
+
+class ReleaseStatus(Enum):
+    STAGED = 'STAGED'
+    DEPLOYED = 'DEPLOYED'
+    ROLLED_BACK = 'ROLLED_BACK'
+    stage = STAGED
+    prod = DEPLOYED
+    rollback = ROLLED_BACK

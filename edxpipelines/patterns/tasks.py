@@ -1136,8 +1136,8 @@ def trigger_jenkins_build(
     ))
 
 
-def _generate_message_pull_requests_in_commit_range(
-        job, org, repo, token, head_sha, message_type,
+def generate_message_pull_requests_in_commit_range(
+        job, org, repo, token, head_sha, release_status,
         runif='passed', base_sha=None, base_ami_artifact=None, ami_tag_app=None
 ):
     """
@@ -1151,7 +1151,7 @@ def _generate_message_pull_requests_in_commit_range(
         repo (str): The github repository
         token (str): The authentication token
         head_sha (str): The ending SHA
-        message_type (str): type of message to send one of ['release_stage', 'release_prod', 'release_rollback']
+        release_status (ReleaseStatus): type of message to send one of ['release_stage', 'release_prod', 'release_rollback']
         runif (str): one of ['passed', 'failed', 'any'] Default: passed
         base_sha (str): The sha to use as the base point for sending messages
             (any commits prior to this sha won't be messaged). (Optional)
@@ -1163,26 +1163,24 @@ def _generate_message_pull_requests_in_commit_range(
     Returns:
         gomatic.task.Task
     """
+    flag_for_release_status = {
+        constants.ReleaseStatus.STAGED: 'release_stage',
+        constants.ReleaseStatus.DEPLOYED: 'release_prod',
+        constants.ReleaseStatus.ROLLED_BACK: 'release_rollback',
+    }
+
     arguments = [
         '--org', org,
         '--token', token,
         '--repo', repo,
         '--head_sha', head_sha,
-        '--{}'.format(message_type)
+        '--{}'.format(flag_for_release_status[release_status])
     ]
     if base_sha:
         arguments.extend(['--base_sha', base_sha])
 
     if base_ami_artifact and ami_tag_app:
-        job.add_task(
-            FetchArtifactTask(
-                pipeline=base_ami_artifact.pipeline,
-                stage=base_ami_artifact.stage,
-                job=base_ami_artifact.job,
-                src=FetchArtifactFile(base_ami_artifact.file_name),
-                dest=constants.ARTIFACT_PATH,
-            )
-        )
+        job.add_task(base_ami_artifact.as_fetch_task(constants.ARTIFACT_PATH))
 
         arguments.extend([
             '--base_ami_tags', "../{}/{}".format(constants.ARTIFACT_PATH, base_ami_artifact.file_name),
@@ -1203,98 +1201,81 @@ def _generate_message_pull_requests_in_commit_range(
     ))
 
 
-def generate_message_prs_stage(
-    job, org, repo, token, head_sha, runif='passed',
-    base_sha=None, base_ami_artifact=None, ami_tag_app=None
+def generate_release_wiki_page(
+        pipeline, job, confluence_user, confluence_password, github_token,
+        release_status, ami_pairs, parent_title=None,
+        space=None, title=None, input_artifact=None,
 ):
     """
-    Generate a GoCD task that will message a set of pull requests within a range of commits that their commit has been
-    deployed to the staging environment.
+    Generate a release page on the wiki for all of the amis specified in ``ami_pairs``.
 
-    If base_sha is not supplied, then base_ami_artifact and ami_tag_app must both be supplied.
-
-    Args:
-        job (gomatic.job.Job): the gomatic job to which this task will be added
-        org (str): The github organization
-        repo (str): The github repository
-        token (str): The authentication token
-        head_sha (str): The ending SHA
-        runif (str): one of ['passed', 'failed', 'any'] Default: passed
-        base_sha (str): The sha to use as the base point for sending messages
-            (any commits prior to this sha won't be messaged). (Optional)
-        base_ami_artifact (ArtifactLocation): The location of the artifact that specifies
-            the base_ami and tags (Optional)
-        ami_tag_app (str): The name of the version tag on the AMI to extract the version from (Optional)
-
-
-    Returns:
-        gomatic.task.Task
+    Arguments:
+        pipeline (gomatic.Pipeline): The pipeline to add this task to.
+        job (gomatic.Job): The job to add this task to.
+        confluence_user (str): The username of the confluence user to post as.
+        confluence_password (str): The password of the confluence user to post as.
+        github_token (str): The github token to use when reading PR data from github.
+        release_status (ReleaseStatus): The current status of the release.
+        ami_pairs (list): A list of pairs of ArtifactLocations ``(base, new)``.
+            ``base`` specifies the location of the AMI description yml file of the
+            base AMI used to build ``new``. ``new`` specifies the location of the
+            AMI description yml file for the AMI being deployed.
+        parent_title (str): The title of the wiki page to post the new wiki page under.
+        space (str): The space to post the new wiki page to.
+        title (str): The title to post the wiki page with.
+        input_artifact (ArtifactLocation): The location of the RELEASE_WIKI_PAGE_ID_FILENAME
+            generated by a previous publication of a wiki page. Identifies which wiki
+            page to update. Mutually exclusive with parent_title/space/title.
     """
-    _generate_message_pull_requests_in_commit_range(
-        job, org, repo, token, head_sha, 'release_stage',
-        runif, base_ami_artifact=base_ami_artifact, ami_tag_app=ami_tag_app
+    if input_artifact and any([parent_title, space, title]):
+        raise ValueError("input_artifact and parent_title/space/title are mutually exclusive.")
+
+    pipeline.ensure_unencrypted_secure_environment_variables(
+        {
+            'CONFLUENCE_PASSWORD': confluence_password,
+            'GITHUB_TOKEN': github_token,
+        }
     )
 
-
-def generate_message_prs_prod(
-    job, org, repo, token, head_sha, runif='passed',
-    base_sha=None, base_ami_artifact=None, ami_tag_app=None
-):
-    """
-    Generate a GoCD task that will message a set of pull requests within a range of commits that their commit has been
-    deployed to the production environment.
-
-    If base_sha is not supplied, then base_ami_artifact and ami_tag_app must both be supplied.
-
-    Args:
-        job (gomatic.job.Job): the gomatic job to which this task will be added
-        org (str): The github organization
-        repo (str): The github repository
-        token (str): The authentication token
-        head_sha (str): The ending SHA
-        runif (str): one of ['passed', 'failed', 'any'] Default: passed
-        base_sha (str): The sha to use as the base point for sending messages
-            (any commits prior to this sha won't be messaged). (Optional)
-        base_ami_artifact (ArtifactLocation): The location of the artifact that specifies
-            the base_ami and tags (Optional)
-        ami_tag_app (str): The name of the version tag on the AMI to extract the version from (Optional)
-
-    Returns:
-        gomatic.task.Task
-    """
-    _generate_message_pull_requests_in_commit_range(
-        job, org, repo, token, head_sha, 'release_prod',
-        runif, base_ami_artifact=base_ami_artifact, ami_tag_app=ami_tag_app
+    wiki_id = '{}/{}'.format(
+        constants.ARTIFACT_PATH,
+        constants.RELEASE_WIKI_PAGE_ID_FILENAME,
     )
 
+    job.ensure_artifacts(set([BuildArtifact(wiki_id)]))
 
-def generate_message_prs_rollback(
-    job, org, repo, token, head_sha, runif='passed',
-    base_sha=None, base_ami_artifact=None, ami_tag_app=None
-):
-    """
-    Generate a GoCD task that will message a set of pull requests within a range of commits that their commit has been
-    rolled back from the production environment.
+    arguments = [
+        '--user', confluence_user,
+        '--password', '$CONFLUENCE_USER',
+        '--github-token', '$GITHUB_TOKEN',
+        '--status', release_status.value,
+        '--out-file', wiki_id,
+    ]
 
-    If base_sha is not supplied, then base_ami_artifact and ami_tag_app must both be supplied.
+    if input_artifact:
+        input_wiki_id_path = '{}/{}'.format(constants.ARTIFACT_PATH, 'input_release_page_id.yml')
+        arguments.extend([
+            '--in-file',
+            input_wiki_id_path,
+        ])
+        job.add_task(input_artifact.as_fetch_task(input_wiki_id_path))
+    else:
+        if parent_title:
+            arguments.extend(['--parent-title', parent_title])
+        if space:
+            arguments.extend(['--space', space])
+        if title:
+            arguments.extend(['--title', title])
 
-    Args:
-        job (gomatic.job.Job): the gomatic job to which this task will be added
-        org (str): The github organization
-        repo (str): The github repository
-        token (str): The authentication token
-        head_sha (str): The ending SHA
-        runif (str): one of ['passed', 'failed', 'any'] Default: passed
-        base_sha (str): The sha to use as the base point for sending messages
-            (any commits prior to this sha won't be messaged). (Optional)
-        base_ami_artifact (ArtifactLocation): The location of the artifact that specifies
-            the base_ami and tags (Optional)
-        ami_tag_app (str): The name of the version tag on the AMI to extract the version from (Optional)
+    for base, new in ami_pairs:
+        compare_option = ['--compare']
+        for artifact in (base, new):
+            output_path = '{}/{}.{}'.format(constants.ARTIFACT_PATH, artifact.pipeline, artifact.file_name)
+            compare_option.append(output_path)
+            job.add_task(artifact.as_fetch_task(output_path))
+        arguments.extend(compare_option)
 
-    Returns:
-        gomatic.task.Task
-    """
-    _generate_message_pull_requests_in_commit_range(
-        job, org, repo, token, head_sha, 'release_rollback',
-        runif, base_ami_artifact=base_ami_artifact, ami_tag_app=ami_tag_app
-    )
+    return job.add_task(tubular_task(
+        'update_release_page.py',
+        arguments,
+    ))
