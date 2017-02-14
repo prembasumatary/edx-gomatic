@@ -68,7 +68,7 @@ def install_pipelines(configurator, config, env_configs):
         env_configs['stage'],
     )
 
-    stage_b = edxapp.build_migrate_deploy_subset_pipeline(
+    stage_b = edxapp.launch_and_terminate_subset_pipeline(
         edxapp_group,
         [
             edxapp.generate_build_stages(
@@ -85,7 +85,7 @@ def install_pipelines(configurator, config, env_configs):
         auto_run=True,
     )
 
-    prod_edx_b = edxapp.build_migrate_deploy_subset_pipeline(
+    prod_edx_b = edxapp.launch_and_terminate_subset_pipeline(
         edxapp_deploy_group,
         [
             edxapp.generate_build_stages(
@@ -102,7 +102,7 @@ def install_pipelines(configurator, config, env_configs):
         auto_run=True,
     )
 
-    prod_edge_b = edxapp.build_migrate_deploy_subset_pipeline(
+    prod_edge_b = edxapp.launch_and_terminate_subset_pipeline(
         edxapp_deploy_group,
         [
             edxapp.generate_build_stages(
@@ -128,7 +128,7 @@ def install_pipelines(configurator, config, env_configs):
             )
         )
 
-    stage_md = edxapp.build_migrate_deploy_subset_pipeline(
+    stage_md = edxapp.launch_and_terminate_subset_pipeline(
         edxapp_group,
         [
             edxapp.generate_migrate_stages,
@@ -195,7 +195,7 @@ def install_pipelines(configurator, config, env_configs):
     # When manually triggered in the pipeline above, the following two pipelines migrate/deploy
     # to the production EDX and EDGE environments.
 
-    prod_edx_md = edxapp.build_migrate_deploy_subset_pipeline(
+    prod_edx_md = edxapp.launch_and_terminate_subset_pipeline(
         edxapp_deploy_group,
         [
             edxapp.generate_migrate_stages,
@@ -217,7 +217,7 @@ def install_pipelines(configurator, config, env_configs):
         auto_run=True,
     )
 
-    prod_edge_md = edxapp.build_migrate_deploy_subset_pipeline(
+    prod_edge_md = edxapp.launch_and_terminate_subset_pipeline(
         edxapp_deploy_group,
         [
             edxapp.generate_migrate_stages,
@@ -308,20 +308,38 @@ def install_pipelines(configurator, config, env_configs):
         PipelineMaterial(prod_edge_md.name, constants.DEPLOY_AMI_STAGE_NAME, "deploy_ami")
     )
 
-    migration_rollback_edx = edxapp.rollback_database(
+    rollback_migrations_edx = edxapp.launch_and_terminate_subset_pipeline(
         edxapp_deploy_group,
-        'PROD_edx_edxapp_Rollback_Migrations_latest',
-        env_configs['prod-edx'],
-        prod_edx_b,
-        prod_edx_md
+        [
+            edxapp.rollback_database(prod_edx_b, prod_edx_md),
+        ],
+        config=env_configs['prod-edx'],
+        pipeline_name="PROD_edx_edxapp_Rollback_Migrations_latest",
+        ami_artifact=utils.ArtifactLocation(
+            prod_edx_b.name,
+            constants.BASE_AMI_SELECTION_STAGE_NAME,
+            constants.BASE_AMI_SELECTION_JOB_NAME,
+            constants.BASE_AMI_OVERRIDE_FILENAME
+        ),
+        auto_run=False,
+        include_armed_stage=True,
     )
 
-    migration_rollback_edge = edxapp.rollback_database(
+    rollback_migrations_edge = edxapp.launch_and_terminate_subset_pipeline(
         edxapp_deploy_group,
-        'PROD_edx_edxapp_Rollback_Migrations_latest',
-        env_configs['prod-edge'],
-        prod_edge_b,
-        prod_edge_md
+        [
+            edxapp.rollback_database(prod_edge_b, prod_edge_md),
+        ],
+        config=env_configs['prod-edge'],
+        pipeline_name="PROD_edge_edxapp_Rollback_Migrations_latest",
+        ami_artifact=utils.ArtifactLocation(
+            prod_edge_b.name,
+            constants.BASE_AMI_SELECTION_STAGE_NAME,
+            constants.BASE_AMI_SELECTION_JOB_NAME,
+            constants.BASE_AMI_OVERRIDE_FILENAME
+        ),
+        auto_run=False,
+        include_armed_stage=True,
     )
 
     deploy_artifact = utils.ArtifactLocation(
