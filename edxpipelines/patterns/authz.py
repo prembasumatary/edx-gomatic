@@ -1,10 +1,16 @@
-from enum import Enum
+"""
+GoCD Authorization primitives.
+"""
+
 from xml.etree import ElementTree as ET
+
+from enum import Enum
 
 from gomatic.xml_operations import Ensurance
 
 
 class Permission(Enum):
+    """An enumeration of valid GoCD authorizations"""
     ADMINS = "admins"
     OPERATE = "operate"
     VIEW = "view"

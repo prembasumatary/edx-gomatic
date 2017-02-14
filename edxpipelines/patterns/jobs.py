@@ -1,15 +1,20 @@
-from gomatic import *
+"""
+Common gomatic Jobs patterns.
+"""
+
+from gomatic import ExecTask
 
 import edxpipelines.constants as constants
 import edxpipelines.patterns.tasks as tasks
 
 
-def generate_rollback_migration(stage,
-                                inventory_location,
-                                instance_key_location,
-                                migration_info_location,
-                                sub_application_name=None
-                                ):
+def generate_rollback_migration(
+        stage,
+        inventory_location,
+        instance_key_location,
+        migration_info_location,
+        sub_application_name=None
+):
     """
 
     Args:

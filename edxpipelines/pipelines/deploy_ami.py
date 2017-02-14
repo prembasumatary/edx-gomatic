@@ -1,18 +1,19 @@
 #!/usr/bin/env python
+"""
+Script to install pipelines that can deploy an AMI.
+"""
 import sys
 from os import path
-import click
-from gomatic import *
 
 # Used to import edxpipelines files - since the module is not installed.
 sys.path.append(path.dirname(path.dirname(path.dirname(path.abspath(__file__)))))
 
-from edxpipelines import utils
+# pylint: disable=wrong-import-position
 from edxpipelines.patterns import pipelines
 from edxpipelines.pipelines.script import pipeline_script
 
 
-def install_pipelines(configurator, config, env_configs):
+def install_pipelines(configurator, config, env_configs):  # pylint: disable=unused-argument
     """
     Variables needed for this pipeline:
     - gocd_username
@@ -26,9 +27,15 @@ def install_pipelines(configurator, config, env_configs):
     - aws_secret_access_key
 
     To run this script:
-    python edxpipelines/pipelines/deploy_ami.py --variable_file ../gocd-pipelines/gocd/vars/tools/deploy_edge_ami.yml --variable_file ../gocd-pipelines/gocd/vars/tools/tools.yml
-    python edxpipelines/pipelines/deploy_ami.py --variable_file ../gocd-pipelines/gocd/vars/tools/deploy_edx_ami.yml --variable_file ../gocd-pipelines/gocd/vars/tools/tools.yml
-    python edxpipelines/pipelines/deploy_ami.py --variable_file ../gocd-pipelines/gocd/vars/tools/deploy-mckinsey-ami.yml --variable_file ../gocd-pipelines/gocd/vars/tools/tools.yml
+    python edxpipelines/pipelines/deploy_ami.py \
+        --variable_file ../gocd-pipelines/gocd/vars/tools/deploy_edge_ami.yml \
+        --variable_file ../gocd-pipelines/gocd/vars/tools/tools.yml
+    python edxpipelines/pipelines/deploy_ami.py \
+        --variable_file ../gocd-pipelines/gocd/vars/tools/deploy_edx_ami.yml \
+        --variable_file ../gocd-pipelines/gocd/vars/tools/tools.yml
+    python edxpipelines/pipelines/deploy_ami.py \
+        --variable_file ../gocd-pipelines/gocd/vars/tools/deploy-mckinsey-ami.yml \
+        --variable_file ../gocd-pipelines/gocd/vars/tools/tools.yml
     """
     pipeline_params = {
         "pipeline_name": config['pipeline_name'],

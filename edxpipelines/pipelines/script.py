@@ -1,8 +1,11 @@
-import functools
+"""
+A standard interface for pipeline update scripts.
+"""
+
 from itertools import groupby
 
 import click
-from gomatic import *
+from gomatic import GoCdConfigurator, HostRestClient
 
 import edxpipelines.utils as utils
 
@@ -11,7 +14,7 @@ def pipeline_script(install_pipelines, environments=()):
     """
     Convert a function into a pipeline system creation script.
     """
-    @click.command()
+    @click.command(help=install_pipelines.__doc__)
     @click.option(
         '--save-config', 'save_config_locally',
         envvar='SAVE_CONFIG',
@@ -52,7 +55,10 @@ def pipeline_script(install_pipelines, environments=()):
         nargs=2,
         default={}
     )
-    def cli(save_config_locally, dry_run, variable_files, env_variable_files, cmd_line_vars):
+    def cli(  # pylint: disable=missing-docstring
+            save_config_locally, dry_run, variable_files,
+            env_variable_files, cmd_line_vars
+    ):
         # Merge the configuration files/variables together
         config = utils.merge_files_and_dicts(variable_files, list(cmd_line_vars,))
         env_vars = {
@@ -79,4 +85,4 @@ def pipeline_script(install_pipelines, environments=()):
         configurator.save_updated_config(save_config_locally=save_config_locally, dry_run=dry_run)
         return return_val
 
-    cli()
+    cli()  # pylint: disable=no-value-for-parameter

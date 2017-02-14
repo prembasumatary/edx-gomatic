@@ -1,11 +1,13 @@
-from collections import defaultdict
-import io
-import imp
+"""
+Pytest fixtures for tests running against GoCD XML output.
+"""
 
-import os.path
+from collections import defaultdict
+import imp
+from xml.etree import ElementTree
+
 import pytest
 import yaml
-from xml.etree import ElementTree
 
 from gomatic import GoCdConfigurator, empty_config
 from edxpipelines.deploy import ensure_pipeline
@@ -48,9 +50,9 @@ class MirrorDict(dict):
         return "dummy_{}".format(key)
 
 
-def dummy_ensure_pipeline(script_name):
+def dummy_ensure_pipeline(script):
     """
-    Run ``script_name`` against a dummy GoCdConfigurator set to
+    Run ``script`` against a dummy GoCdConfigurator set to
     export the config-after.xml.
     """
     configurator = GoCdConfigurator(empty_config())
@@ -67,7 +69,7 @@ def dummy_ensure_pipeline(script_name):
     for env, values in test_config.items():
         env_configs[env].update(values)
 
-    script = imp.load_source('pipeline_script', script_name)
+    script = imp.load_source('pipeline_script', script)
     script.install_pipelines(configurator, config, env_configs)
     configurator.save_updated_config(save_config_locally=True, dry_run=True)
 
@@ -78,7 +80,7 @@ def script_result(script, pytestconfig):
     A pytest fixture that loads executes a script (either against a live server
     or a dummy server), and returns the parsed results in canonical format.
     """
-    script_name = script.get('script')
+    script_path = script.get('script')
 
     if pytestconfig.getoption('live'):
         ensure_pipeline(
@@ -87,7 +89,7 @@ def script_result(script, pytestconfig):
             **script
         )
     else:
-        dummy_ensure_pipeline(script_name)
+        dummy_ensure_pipeline(script_path)
 
     input_tree = ElementTree.parse('config-after.xml', parser=PARSER)
     return canonicalize_gocd(input_tree)

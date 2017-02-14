@@ -1,19 +1,20 @@
 #!/usr/bin/env python
+"""
+Script to install pipelines that can deploy edX insights.
+"""
 import sys
 from os import path
-import click
-from gomatic import *
+
 
 # Used to import edxpipelines files - since the module is not installed.
 sys.path.append(path.dirname(path.dirname(path.dirname(path.abspath(__file__)))))
 
-from edxpipelines import utils
+# pylint: disable=wrong-import-position
 from edxpipelines.patterns import pipelines
-from edxpipelines import constants
 from edxpipelines.pipelines.script import pipeline_script
 
 
-def install_pipelines(configurator, config, env_configs):
+def install_pipelines(configurator, config, env_configs):  # pylint: disable=unused-argument
     """
     Variables needed for this pipeline:
     - gocd_username

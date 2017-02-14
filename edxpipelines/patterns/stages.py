@@ -1,8 +1,10 @@
-from gomatic import *
+"""
+Common gomatic stages.
+"""
+
+from gomatic import ExecTask, BuildArtifact, FetchArtifactTask, FetchArtifactFile
 
 from edxpipelines import constants
-from edxpipelines.constants import ReleaseStatus
-from edxpipelines.utils import ArtifactLocation
 from edxpipelines.patterns import (
     tasks,
     jobs
@@ -49,21 +51,22 @@ def generate_asg_cleanup(pipeline,
             '/usr/bin/python',
             'scripts/cleanup-asgs.py'
         ],
-        working_dir="tubular")
-    )
+        working_dir="tubular"
+    ))
 
     return stage
 
 
-def generate_base_ami_selection(pipeline,
-                                aws_access_key_id,
-                                aws_secret_access_key,
-                                play=None,
-                                deployment=None,
-                                edx_environment=None,
-                                base_ami_id=None,
-                                manual_approval=False
-                                ):
+def generate_base_ami_selection(
+        pipeline,
+        aws_access_key_id,
+        aws_secret_access_key,
+        play=None,
+        deployment=None,
+        edx_environment=None,
+        base_ami_id=None,
+        manual_approval=False
+):
     """
     Pattern to find a base AMI for a particular EDP. Generates 1 artifact:
         ami_override.yml    - YAML file that contains information about which base AMI to use in building AMI
@@ -96,20 +99,21 @@ def generate_base_ami_selection(pipeline,
     return stage
 
 
-def generate_launch_instance(pipeline,
-                             aws_access_key_id,
-                             aws_secret_access_key,
-                             ec2_vpc_subnet_id,
-                             ec2_security_group_id,
-                             ec2_instance_profile_name,
-                             base_ami_id,
-                             manual_approval=False,
-                             ec2_region=constants.EC2_REGION,
-                             ec2_instance_type=constants.EC2_INSTANCE_TYPE,
-                             ec2_timeout=constants.EC2_LAUNCH_INSTANCE_TIMEOUT,
-                             ec2_ebs_volume_size=constants.EC2_EBS_VOLUME_SIZE,
-                             upstream_build_artifact=None
-                             ):
+def generate_launch_instance(
+        pipeline,
+        aws_access_key_id,
+        aws_secret_access_key,
+        ec2_vpc_subnet_id,
+        ec2_security_group_id,
+        ec2_instance_profile_name,
+        base_ami_id,
+        manual_approval=False,
+        ec2_region=constants.EC2_REGION,
+        ec2_instance_type=constants.EC2_INSTANCE_TYPE,
+        ec2_timeout=constants.EC2_LAUNCH_INSTANCE_TIMEOUT,
+        ec2_ebs_volume_size=constants.EC2_EBS_VOLUME_SIZE,
+        upstream_build_artifact=None
+):
     """
     Pattern to launch an AMI. Generates 3 artifacts:
         key.pem             - Private key material generated for this instance launch
@@ -318,14 +322,15 @@ def generate_create_ami_from_instance(pipeline,
     return stage
 
 
-def generate_deploy_ami(pipeline,
-                        asgard_api_endpoints,
-                        asgard_token,
-                        aws_access_key_id,
-                        aws_secret_access_key,
-                        upstream_ami_artifact=None,
-                        manual_approval=True
-                        ):
+def generate_deploy_ami(
+        pipeline,
+        asgard_api_endpoints,
+        asgard_token,
+        aws_access_key_id,
+        aws_secret_access_key,
+        upstream_ami_artifact=None,
+        manual_approval=True
+):
     """
     Generates a stage which deploys an AMI via Asgard.
 
@@ -371,8 +376,8 @@ def generate_deploy_ami(pipeline,
             '-c',
             'mkdir -p ../{}'.format(constants.ARTIFACT_PATH),
         ],
-        working_dir="tubular")
-    )
+        working_dir="tubular"
+    ))
 
     # Setup the deployment output file
     artifact_path = '{}/{}'.format(
@@ -485,8 +490,10 @@ def generate_run_migrations(pipeline,
     Args:
         pipeline (gomatic.Pipeline): Pipeline to which to add the run migrations stage.
         db_migration_pass (str): Password for the DB user used to run migrations.
-        inventory_location (ArtifactLocation): Location of inventory containing the IP address of the EC2 instance, for fetching.
-        instance_key_location (ArtifactLocation): Location of SSH key used to access the EC2 instance, for fetching.
+        inventory_location (ArtifactLocation): Location of inventory containing the IP
+            address of the EC2 instance, for fetching.
+        instance_key_location (ArtifactLocation): Location of SSH key used to access the
+            EC2 instance, for fetching.
         launch_info_location (ArtifactLocation): Location of the launch_info.yml file for fetching
         application_user (str): Username to use while running the migrations
         application_name (str): Name of the application (e.g. edxapp, programs, etc...)
@@ -588,7 +595,8 @@ def generate_rollback_migrations(pipeline,
     Args:
         pipeline (gomatic.Pipeline): Pipeline to which to add the run migrations stage.
         db_migration_pass (str): Password for the DB user used to run migrations.
-        inventory_location (ArtifactLocation): Location of inventory containing the IP address of the EC2 instance, for fetching.
+        inventory_location (ArtifactLocation): Location of inventory containing the IP
+            address of the EC2 instance, for fetching.
         instance_key_location (ArtifactLocation): Location of SSH key used to access the EC2 instance, for fetching.
         migration_info_location (ArtifactLocation): Location of the migration files
         application_user (str): Username to use while running the migrations
@@ -624,7 +632,7 @@ def generate_rollback_migrations(pipeline,
     if manual_approval:
         stage.set_has_manual_approval()
 
-    job = jobs.generate_rollback_migration(
+    jobs.generate_rollback_migration(
         stage,
         inventory_location,
         instance_key_location,
@@ -649,8 +657,10 @@ def generate_terminate_instance(pipeline,
 
     Args:
         pipeline (gomatic.Pipeline): Pipeline to which to add the run migrations stage.
-        instance_info_location (ArtifactLocation): Location of YAML file containing instance info from the AMI-building stage, for fetching.
-        runif (str): one of ['passed', 'failed', 'any'] Default: any - controls when the stage's terminate task is triggered in the pipeline
+        instance_info_location (ArtifactLocation): Location of YAML file containing
+            instance info from the AMI-building stage, for fetching.
+        runif (str): one of ['passed', 'failed', 'any'] Default: any - controls when the
+            stage's terminate task is triggered in the pipeline
         manual_approval (bool): Should this stage require manual approval?
 
     Returns:
@@ -688,14 +698,14 @@ def generate_terminate_instance(pipeline,
 
 
 def generate_rollback_asg_stage(
-    pipeline,
-    asgard_api_endpoints,
-    asgard_token,
-    aws_access_key_id,
-    aws_secret_access_key,
-    hipchat_token,
-    hipchat_room,
-    deploy_file_location
+        pipeline,
+        asgard_api_endpoints,
+        asgard_token,
+        aws_access_key_id,
+        aws_secret_access_key,
+        hipchat_token,
+        hipchat_room,
+        deploy_file_location
 ):
     """
     Generates a stage which performs rollback to a previous ASG (or ASGs) via Asgard.
@@ -743,8 +753,8 @@ def generate_rollback_asg_stage(
             '-c',
             'mkdir -p ../target',
         ],
-        working_dir="tubular")
-    )
+        working_dir="tubular"
+    ))
 
     artifact_path = '{}/{}'.format(
         constants.ARTIFACT_PATH,
@@ -759,45 +769,46 @@ def generate_rollback_asg_stage(
             '--config_file', deploy_file_location.file_name,
             '--out_file', '../{}'.format(artifact_path),
         ],
-        working_dir="tubular")
-    )
+        working_dir="tubular"
+    ))
     return stage
 
 
 def generate_ansible_stage(
-    stage_name,
-    task,
-    pipeline,
-    inventory_location,
-    instance_key_location,
-    launch_info_location,
-    application_user,
-    application_name,
-    application_path,
-    hipchat_token,
-    hipchat_room=constants.HIPCHAT_ROOM,
-    manual_approval=False
+        stage_name,
+        task,
+        pipeline,
+        inventory_location,
+        instance_key_location,
+        launch_info_location,
+        application_user,
+        application_name,
+        application_path,
+        hipchat_token,
+        hipchat_room=constants.HIPCHAT_ROOM,
+        manual_approval=False
 ):
     """
-        Generate the stage with the given name, that runs the specified task.
+    Generate the stage with the given name, that runs the specified task.
 
-        Args:
-            stage_name (str): Name of the generated stage.
-            task (function): Task to be executed by the stage.
-            pipeline (gomatic.Pipeline): Pipeline to which to add the run migrations stage.
-            inventory_location (ArtifactLocation): Location of inventory containing the IP address of the EC2 instance, for fetching.
-            instance_key_location (ArtifactLocation): Location of SSH key used to access the EC2 instance, for fetching.
-            launch_info_location (ArtifactLocation): Location of the launch_info.yml file for fetching
-            application_user (str): Username to use while running the migrations
-            application_name (str): Name of the application (e.g. edxapp, programs, etc...)
-            application_path (str): path of the application installed on the target machine
-            hipchat_token (str): HipChat authentication token
-            hipchat_room (str): HipChat room where announcements should be made
-            manual_approval (bool): Should this stage require manual approval?
+    Args:
+        stage_name (str): Name of the generated stage.
+        task (function): Task to be executed by the stage.
+        pipeline (gomatic.Pipeline): Pipeline to which to add the run migrations stage.
+        inventory_location (ArtifactLocation): Location of inventory containing the
+            IP address of the EC2 instance, for fetching.
+        instance_key_location (ArtifactLocation): Location of SSH key used to access the EC2 instance, for fetching.
+        launch_info_location (ArtifactLocation): Location of the launch_info.yml file for fetching
+        application_user (str): Username to use while running the migrations
+        application_name (str): Name of the application (e.g. edxapp, programs, etc...)
+        application_path (str): path of the application installed on the target machine
+        hipchat_token (str): HipChat authentication token
+        hipchat_room (str): HipChat room where announcements should be made
+        manual_approval (bool): Should this stage require manual approval?
 
-        Returns:
-            gomatic.Stage
-        """
+    Returns:
+        gomatic.Stage
+    """
 
     pipeline.ensure_environment_variables(
         {
@@ -847,24 +858,26 @@ def generate_ansible_stage(
 
 
 def generate_refresh_metadata(
-    pipeline,
-    inventory_location,
-    instance_key_location,
-    launch_info_location,
-    application_user,
-    application_name,
-    application_path,
-    hipchat_token='',
-    hipchat_room=constants.HIPCHAT_ROOM,
-    manual_approval=False
+        pipeline,
+        inventory_location,
+        instance_key_location,
+        launch_info_location,
+        application_user,
+        application_name,
+        application_path,
+        hipchat_token='',
+        hipchat_room=constants.HIPCHAT_ROOM,
+        manual_approval=False
 ):
     """
     Generate the stage that refreshes metadata for the discovery service.
 
     Args:
         pipeline (gomatic.Pipeline): Pipeline to which to add the run migrations stage.
-        inventory_location (ArtifactLocation): Location of inventory containing the IP address of the EC2 instance, for fetching.
-        instance_key_location (ArtifactLocation): Location of SSH key used to access the EC2 instance, for fetching.
+        inventory_location (ArtifactLocation): Location of inventory containing the
+            IP address of the EC2 instance, for fetching.
+        instance_key_location (ArtifactLocation): Location of SSH key used to access the
+            EC2 instance, for fetching.
         launch_info_location (ArtifactLocation): Location of the launch_info.yml file for fetching
         application_user (str): Username to use while running the migrations
         application_name (str): Name of the application (e.g. edxapp, programs, etc...)
@@ -893,23 +906,24 @@ def generate_refresh_metadata(
 
 
 def generate_update_index(
-    pipeline,
-    inventory_location,
-    instance_key_location,
-    launch_info_location,
-    application_user,
-    application_name,
-    application_path,
-    hipchat_token='',
-    hipchat_room=constants.HIPCHAT_ROOM,
-    manual_approval=False
+        pipeline,
+        inventory_location,
+        instance_key_location,
+        launch_info_location,
+        application_user,
+        application_name,
+        application_path,
+        hipchat_token='',
+        hipchat_room=constants.HIPCHAT_ROOM,
+        manual_approval=False
 ):
     """
     Generate the stage that refreshes metadata for the discovery service.
 
     Args:
         pipeline (gomatic.Pipeline): Pipeline to which to add the run migrations stage.
-        inventory_location (ArtifactLocation): Location of inventory containing the IP address of the EC2 instance, for fetching.
+        inventory_location (ArtifactLocation): Location of inventory containing the
+            IP address of the EC2 instance, for fetching.
         instance_key_location (ArtifactLocation): Location of SSH key used to access the EC2 instance, for fetching.
         launch_info_location (ArtifactLocation): Location of the launch_info.yml file for fetching
         application_user (str): Username to use while running the migrations

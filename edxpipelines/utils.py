@@ -1,28 +1,39 @@
-import yaml
+"""
+Utility functions needed by edX gomatic code.
+"""
 from collections import namedtuple
-from constants import VALID_PIPELINE_STEP_PERMUTATIONS
 from copy import copy
+
+import yaml
 
 from gomatic import FetchArtifactFile, FetchArtifactDir, FetchArtifactTask
 
 
 class MergeConflict(Exception):
+    """Raised when a merge conflict is found when trying to deep-merge dictionaries."""
     pass
 
 
 class ArtifactLocation(namedtuple(
-    "ArtifactLocationBase",
-    [
-        'pipeline', 'stage', 'job', 'file_name', 'is_dir'
-    ]
+        "ArtifactLocationBase",
+        [
+            'pipeline', 'stage', 'job', 'file_name', 'is_dir'
+        ]
 )):
+    """
+    The identifying information for an artifact.
+    """
     __slots__ = ()
 
     def as_fetch_task(self, dest):
+        """
+        Return a :class:`~gomatic.FetchArtifactTask` that will retrieve
+        this artifact.
+        """
         if self.is_dir:
             src = FetchArtifactDir(self.file_name)
         else:
-            src = FetchArtifactFile(self.file_name)
+            src = FetchArtifactFile(self.file_name)  # pylint: disable=redefined-variable-type
 
         return FetchArtifactTask(
             pipeline=self.pipeline,
@@ -57,7 +68,7 @@ def dict_merge(*args):
         return reduce(_deep_dict_merge, args)
 
 
-def _deep_dict_merge(a, b):
+def _deep_dict_merge(a, b):  # pylint: disable=invalid-name
     """
     Deep merges 2 dictionaries together.
 
@@ -84,7 +95,11 @@ def _deep_dict_merge(a, b):
             elif ret_dict[key] == b[key]:
                 pass  # same leaf value
             else:
-                raise MergeConflict('Conflict at key: {} . A value: {} -- B value: {}'.format(key, ret_dict[key], b[key]))
+                raise MergeConflict(
+                    'Conflict at key: {} . A value: {} -- B value: {}'.format(
+                        key, ret_dict[key], b[key]
+                    )
+                )
         else:
             ret_dict[key] = b[key]
     return ret_dict
@@ -122,70 +137,14 @@ def merge_files_and_dicts(file_paths, dicts):
     """
     file_variables = [load_yaml_from_file(f) for f in file_paths]
     dict_vars = []
-    for d in dicts:
-        if isinstance(d, list):
+    for dict_ in dicts:
+        if isinstance(dict_, list):
             # try to convert to a dict as it could be a list of tuples from click
-            dict_vars.append({k: v for k, v in d})
-        elif isinstance(d, dict):
-            dict_vars.append(d)
+            dict_vars.append({k: v for k, v in dict_})
+        elif isinstance(dict_, dict):
+            dict_vars.append(dict_)
         else:
-            raise ValueError("dicts contains an instance that is not a dictionary {}".format(d.__class__))
+            raise ValueError("dicts contains an instance that is not a dictionary {}".format(dict_.__class__))
 
     file_variables.extend(dict_vars)
     return dict_merge(*file_variables)
-
-
-def sort_bmd(bmd_steps):
-    """
-
-    Args:
-        bmd_steps (str): The string of letters to be sorted
-
-    Returns:
-        str: a sorted string according the the custom alphabet
-
-    Raises:
-        Exception: if any character is not part of the custom alphabet
-
-    """
-    alphabet = 'bmd'
-    try:
-        return ''.join(sorted(bmd_steps, key=lambda pipeline_stage: alphabet.index(pipeline_stage)))
-    except ValueError:
-        raise Exception(
-            'only valid stages are b, m, d and must be one of {}'.format(VALID_PIPELINE_STEP_PERMUTATIONS.keys())
-        )
-
-
-def validate_pipeline_permutations(bmd_steps):
-    """
-    Validates the bmd_steps matches one of the keys in constants.VALID_PIPELINE_STEP_PERMUTATIONS
-
-    Args:
-        bmd_steps (str): a valid bmd combination
-
-    Returns:
-        True if the permutation is valid
-
-    Raises:
-        Exception: if the bmd_steps is not a valid permutation
-
-    """
-    if bmd_steps in VALID_PIPELINE_STEP_PERMUTATIONS:
-        return True
-    else:
-        raise Exception('Only supports total Build/Migrate/Deploy, Build-only, and Migrate/Deploy-only pipelines.')
-
-
-def determine_pipeline_names(pipeline_name, bmd_steps):
-    """
-    Depending on whether the BMD steps of the pipeline, read/return the correct pipeline_name config vars.
-    """
-    def _generate_pipeline_name(bmd_steps):
-        return '{pipeline_name}_{suffix}'\
-            .format(pipeline_name=pipeline_name, suffix=VALID_PIPELINE_STEP_PERMUTATIONS[bmd_steps])
-
-    return (
-        _generate_pipeline_name(bmd_steps),
-        _generate_pipeline_name(bmd_steps if bmd_steps == 'bmd' else 'b')
-    )

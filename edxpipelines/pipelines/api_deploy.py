@@ -1,22 +1,29 @@
 #!/usr/bin/env python
-
-from gomatic import *
-
-import click
+"""
+Script to build pipelines deploy the edX api gateway.
+"""
 
 import sys
 from os import path
 
+from gomatic import (
+    PipelineMaterial, Tab, BuildArtifact, FetchArtifactFile, FetchArtifactTask,
+    FetchArtifactDir, ExecTask
+)
+
 # Used to import edxpipelines files - since the module is not installed.
 sys.path.append(path.dirname(path.dirname(path.dirname(path.abspath(__file__)))))
 
-from edxpipelines import utils
+# pylint: disable=wrong-import-position
 from edxpipelines.pipelines import api_build
 from edxpipelines import constants
 from edxpipelines.pipelines.script import pipeline_script
 
 
-def install_pipelines(configurator, config, env_configs):
+def install_pipelines(configurator, config, env_configs):  # pylint: disable=unused-argument
+    """
+    Install the pipelines that can deploy the edX api-gateway.
+    """
     pipeline = configurator \
         .ensure_pipeline_group(config['pipeline']['group']) \
         .ensure_replacement_of_pipeline(config['pipeline']['name']) \
@@ -105,7 +112,11 @@ def install_pipelines(configurator, config, env_configs):
         ExecTask(
             [
                 '/bin/bash', '-c',
-                'PYTHONPATH=python-libs python scripts/aws/deploy.py --api-base-domain ${API_BASE} --swagger-filename ../swagger.json --tag ${GO_PIPELINE_LABEL} --rotation-order ${ROTATION_ORDER} --log-level ${LOG_LEVEL} --metrics ${METRICS} --rate-limit ${RATE_LIMIT} --burst-limit ${BURST_LIMIT} --edxapp-host ${EDXAPP_HOST} --catalog-host ${CATALOG_HOST} --landing-page ${ROOT_REDIRECT} > ../next_stage.txt'
+                'PYTHONPATH=python-libs python scripts/aws/deploy.py --api-base-domain ${API_BASE} '
+                '--swagger-filename ../swagger.json --tag ${GO_PIPELINE_LABEL} --rotation-order '
+                '${ROTATION_ORDER} --log-level ${LOG_LEVEL} --metrics ${METRICS} --rate-limit ${RATE_LIMIT} '
+                '--burst-limit ${BURST_LIMIT} --edxapp-host ${EDXAPP_HOST} --catalog-host ${CATALOG_HOST} '
+                '--landing-page ${ROOT_REDIRECT} > ../next_stage.txt'
             ],
             working_dir='api-manager'
         )
@@ -133,14 +144,17 @@ def install_pipelines(configurator, config, env_configs):
     deploy_gateway_job = deploy_stage.ensure_job('deploy_gateway')
     deploy_gateway_job.ensure_tab(Tab('output.txt', 'output.txt'))
 
-    deploy_gateway_job.add_task(FetchArtifactTask(pipeline.name, 'upload', 'upload_gateway', FetchArtifactFile('next_stage.txt')))
+    deploy_gateway_job.add_task(FetchArtifactTask(
+        pipeline.name, 'upload', 'upload_gateway', FetchArtifactFile('next_stage.txt')
+    ))
     deploy_gateway_job.add_task(FetchArtifactTask(**api_manager_artifact_params))
     deploy_gateway_job.add_task(
         ExecTask(
             [
                 '/bin/bash',
                 '-c',
-                'PYTHONPATH=python-libs python scripts/aws/flip.py --api-base-domain ${API_BASE} --next-stage `cat ../next_stage.txt`'
+                'PYTHONPATH=python-libs python scripts/aws/flip.py --api-base-domain ${API_BASE} '
+                '--next-stage `cat ../next_stage.txt`'
             ],
             working_dir='api-manager'
         )
@@ -173,7 +187,10 @@ def install_pipelines(configurator, config, env_configs):
         ExecTask(
             [
                 '/bin/bash', '-c',
-                'PYTHONPATH=python-libs python scripts/aws/monitor.py --api-base-domain ${API_BASE} --splunk-host ${splunk_host} --splunk-token ${splunk_token} --acct-id ${acct_id} --kms-key ${kms_key} --subnet-list ${subnet_list} --sg-list ${sg_list} --environment ${environment} --deployment ${deployment}'
+                'PYTHONPATH=python-libs python scripts/aws/monitor.py --api-base-domain ${API_BASE} '
+                '--splunk-host ${splunk_host} --splunk-token ${splunk_token} --acct-id ${acct_id} '
+                '--kms-key ${kms_key} --subnet-list ${subnet_list} --sg-list ${sg_list} --environment '
+                '${environment} --deployment ${deployment}'
             ],
             working_dir='api-manager'
         )

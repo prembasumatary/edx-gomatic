@@ -1,3 +1,7 @@
+"""
+Constants used for building GoCD pipelines.
+"""
+
 from enum import Enum
 
 # Names for the standard stages/jobs
@@ -125,6 +129,9 @@ VALID_PIPELINE_STEP_PERMUTATIONS = {
 
 
 class ReleaseStatus(Enum):
+    """
+    An enumeration of all valid release statuses.
+    """
     STAGED = 'STAGED'
     DEPLOYED = 'DEPLOYED'
     ROLLED_BACK = 'ROLLED_BACK'

@@ -1,20 +1,23 @@
 #!/usr/bin/env python
+"""
+Script to install pipelines that can deploy edxapp.
+"""
 import sys
 from os import path
-import click
-from gomatic import *
+
+from gomatic import GitMaterial, PipelineMaterial
 
 # Used to import edxpipelines files - since the module is not installed.
 sys.path.append(path.dirname(path.dirname(path.dirname(path.abspath(__file__)))))
 
+# pylint: disable=wrong-import-position
 from edxpipelines import utils
 from edxpipelines.patterns import stages
-from edxpipelines.patterns import pipelines
 from edxpipelines import constants
 from edxpipelines.pipelines.script import pipeline_script
 
 
-def install_pipelines(configurator, config, env_configs):
+def install_pipelines(configurator, config, env_configs):  # pylint: disable=unused-argument
     """
     Variables needed for this pipeline:
     - gocd_username
@@ -73,7 +76,7 @@ def install_pipelines(configurator, config, env_configs):
     #
     # Create the AMI-building stage.
     #
-    launch_stage = stages.generate_launch_instance(
+    stages.generate_launch_instance(
         pipeline,
         config['aws_access_key_id'],
         config['aws_secret_access_key'],

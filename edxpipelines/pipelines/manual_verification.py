@@ -1,20 +1,23 @@
 #!/usr/bin/env python
+"""
+Script to install pipelines that provide manual verification.
+"""
 import sys
 from os import path
-import click
-from gomatic import *
+
+from gomatic import GitMaterial, PipelineMaterial, ExecTask
 
 # Used to import edxpipelines files - since the module is not installed.
 sys.path.append(path.dirname(path.dirname(path.dirname(path.abspath(__file__)))))
 
-from edxpipelines import utils
+# pylint: disable=wrong-import-position
 from edxpipelines import constants
 from edxpipelines.patterns import stages
 from edxpipelines.patterns import tasks
 from edxpipelines.pipelines.script import pipeline_script
 
 
-def install_pipelines(configurator, config, env_configs):
+def install_pipelines(configurator, config, env_configs):  # pylint: disable=unused-argument
     """
     Variables needed for this pipeline:
     materials: A list of dictionaries of the materials used in this pipeline

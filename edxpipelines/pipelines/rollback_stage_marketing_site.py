@@ -1,31 +1,35 @@
 #!/usr/bin/env python
+"""
+Script to install pipelines that can rollback the stage edx-mktg site.
+"""
 import sys
 from os import path
-import click
-from gomatic import *
+
+from gomatic import GitMaterial, PipelineMaterial, FetchArtifactFile, FetchArtifactTask
 
 # Used to import edxpipelines files - since the module is not installed.
 sys.path.append(path.dirname(path.dirname(path.dirname(path.abspath(__file__)))))
 
-from edxpipelines import utils
+# pylint: disable=wrong-import-position
 from edxpipelines import constants
 from edxpipelines.patterns import tasks
-from edxpipelines.constants import *
 from edxpipelines.pipelines.script import pipeline_script
 
 
-def install_pipelines(configurator, config, env_configs):
-
+def install_pipelines(configurator, config, env_configs):  # pylint: disable=unused-argument
+    """
+    Install pipelines that can rollback the stage edx-mktg site.
+    """
     pipeline = configurator \
-        .ensure_pipeline_group(DRUPAL_PIPELINE_GROUP_NAME) \
+        .ensure_pipeline_group(constants.DRUPAL_PIPELINE_GROUP_NAME) \
         .ensure_replacement_of_pipeline('rollback-stage-marketing-site') \
-        .set_git_material(GitMaterial('https://github.com/edx/tubular',
-                                      polling=True,
-                                      destination_directory='tubular',
-                                      ignore_patterns=constants.MATERIAL_IGNORE_ALL_REGEX
-                                      )
-                          ) \
-        .ensure_material(PipelineMaterial(DEPLOY_MARKETING_PIPELINE_NAME, FETCH_TAG_STAGE_NAME))
+        .set_git_material(GitMaterial(
+            'https://github.com/edx/tubular',
+            polling=True,
+            destination_directory='tubular',
+            ignore_patterns=constants.MATERIAL_IGNORE_ALL_REGEX
+        )) \
+        .ensure_material(PipelineMaterial(constants.DEPLOY_MARKETING_PIPELINE_NAME, constants.FETCH_TAG_STAGE_NAME))
 
     pipeline.ensure_environment_variables(
         {
@@ -44,32 +48,40 @@ def install_pipelines(configurator, config, env_configs):
     )
 
     stage_tag_name_artifact_params = {
-        'pipeline': DEPLOY_MARKETING_PIPELINE_NAME,
-        'stage': FETCH_TAG_STAGE_NAME,
-        'job': FETCH_TAG_JOB_NAME,
-        'src': FetchArtifactFile('{stage_tag}.txt'.format(stage_tag=STAGE_TAG_NAME)),
+        'pipeline': constants.DEPLOY_MARKETING_PIPELINE_NAME,
+        'stage': constants.FETCH_TAG_STAGE_NAME,
+        'job': constants.FETCH_TAG_JOB_NAME,
+        'src': FetchArtifactFile('{stage_tag}.txt'.format(stage_tag=constants.STAGE_TAG_NAME)),
         'dest': 'target'
     }
 
     # Stage to rollback stage to its last stable tag
-    rollback_stage = pipeline.ensure_stage(ROLLBACK_STAGE_NAME)
+    rollback_stage = pipeline.ensure_stage(constants.ROLLBACK_STAGE_NAME)
     rollback_stage.set_has_manual_approval()
-    rollback_job = rollback_stage.ensure_job(ROLLBACK_JOB_NAME)
+    rollback_job = rollback_stage.ensure_job(constants.ROLLBACK_JOB_NAME)
 
     tasks.generate_package_install(rollback_job, 'tubular')
     tasks.generate_target_directory(rollback_job)
     rollback_job.add_task(FetchArtifactTask(**stage_tag_name_artifact_params))
-    tasks.generate_drupal_deploy(rollback_job, STAGE_ENV, '{stage_tag}.txt'.format(stage_tag=STAGE_TAG_NAME))
+    tasks.generate_drupal_deploy(
+        rollback_job,
+        constants.STAGE_ENV,
+        '{stage_tag}.txt'.format(stage_tag=constants.STAGE_TAG_NAME)
+    )
 
     # Stage to clear the caches
-    clear_stage_caches_stage = pipeline.ensure_stage(CLEAR_STAGE_CACHES_STAGE_NAME)
-    clear_stage_caches_job = clear_stage_caches_stage.ensure_job(CLEAR_STAGE_CACHES_JOB_NAME)
+    clear_stage_caches_stage = pipeline.ensure_stage(constants.CLEAR_STAGE_CACHES_STAGE_NAME)
+    clear_stage_caches_job = clear_stage_caches_stage.ensure_job(constants.CLEAR_STAGE_CACHES_JOB_NAME)
 
     tasks.fetch_edx_mktg(clear_stage_caches_job, 'edx-mktg')
     tasks.generate_package_install(clear_stage_caches_job, 'tubular')
-    tasks.format_RSA_key(clear_stage_caches_job, '../edx-mktg/docroot/acquia_github_key.pem', '$PRIVATE_ACQUIA_GITHUB_KEY')
-    tasks.generate_flush_drupal_caches(clear_stage_caches_job, STAGE_ENV)
-    tasks.generate_clear_varnish_cache(clear_stage_caches_job, STAGE_ENV)
+    tasks.format_RSA_key(
+        clear_stage_caches_job,
+        '../edx-mktg/docroot/acquia_github_key.pem',
+        '$PRIVATE_ACQUIA_GITHUB_KEY'
+    )
+    tasks.generate_flush_drupal_caches(clear_stage_caches_job, constants.STAGE_ENV)
+    tasks.generate_clear_varnish_cache(clear_stage_caches_job, constants.STAGE_ENV)
 
 
 if __name__ == '__main__':

@@ -1,19 +1,22 @@
 #!/usr/bin/env python
+"""
+Script to install pipelines to clean up old ASGs.
+"""
 import sys
-import click
 from os import path
-from gomatic import *
+
+from gomatic import GitMaterial
 
 # Used to import edxpipelines files - since the module is not installed.
 sys.path.append(path.dirname(path.dirname(path.dirname(path.abspath(__file__)))))
 
-from edxpipelines import utils
+# pylint: disable=wrong-import-position
 from edxpipelines import constants
 from edxpipelines.patterns import stages
 from edxpipelines.pipelines.script import pipeline_script
 
 
-def install_pipelines(configurator, config, env_configs):
+def install_pipelines(configurator, config, env_configs):  # pylint: disable=unused-argument
     """
     Variables needed for this pipeline:
     - gocd_username
@@ -31,14 +34,20 @@ def install_pipelines(configurator, config, env_configs):
     pipeline = configurator.ensure_pipeline_group(config['pipeline_group'])\
                            .ensure_replacement_of_pipeline(config['pipeline_name'])\
                            .set_timer(config['cron_timer'])\
-                           .set_git_material(GitMaterial("https://github.com/edx/tubular.git",
-                                                         polling=True,
-                                                         destination_directory="tubular",
-                                                         ignore_patterns=constants.MATERIAL_IGNORE_ALL_REGEX
-                                                         )
-                                             )
+                           .set_git_material(GitMaterial(
+                               "https://github.com/edx/tubular.git",
+                               polling=True,
+                               destination_directory="tubular",
+                               ignore_patterns=constants.MATERIAL_IGNORE_ALL_REGEX
+                           ))
 
-    stages.generate_asg_cleanup(pipeline, config['asgard_api_endpoints'], config['asgard_token'], config['aws_access_key_id'], config['aws_secret_access_key'])
+    stages.generate_asg_cleanup(
+        pipeline,
+        config['asgard_api_endpoints'],
+        config['asgard_token'],
+        config['aws_access_key_id'],
+        config['aws_secret_access_key']
+    )
 
 if __name__ == "__main__":
     pipeline_script(install_pipelines)
