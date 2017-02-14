@@ -434,16 +434,6 @@ def rollback_asgs(
     ):
         pipeline.ensure_material(material())
 
-    # Specify the upstream deploy pipeline material for this rollback pipeline.
-    # Assumes there's only a single upstream pipeline material for this pipeline.
-    pipeline.ensure_material(
-        PipelineMaterial(
-            pipeline_name=deploy_pipeline.name,
-            stage_name=constants.DEPLOY_AMI_STAGE_NAME,
-            material_name='deploy_pipeline',
-        )
-    )
-
     # Specify the artifact that will be fetched containing the previous deployment information.
     deploy_file_location = utils.ArtifactLocation(
         deploy_pipeline.name,
@@ -474,15 +464,6 @@ def rollback_asgs(
         constants.BASE_AMI_SELECTION_STAGE_NAME,
         constants.BASE_AMI_SELECTION_JOB_NAME,
         constants.BASE_AMI_OVERRIDE_FILENAME
-    )
-
-    # We need the build_pipeline upstream so that we can fetch the artifact from it
-    pipeline.ensure_material(
-        PipelineMaterial(
-            pipeline_name=build_pipeline.name,
-            stage_name=constants.BASE_AMI_SELECTION_STAGE_NAME,
-            material_name='select_base_ami',
-        )
     )
 
     # Message PRs being rolled back
