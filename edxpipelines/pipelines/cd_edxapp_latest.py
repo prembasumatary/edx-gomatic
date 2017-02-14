@@ -300,6 +300,14 @@ def install_pipelines(configurator, config, env_configs):
                 )
             )
 
+    rollback_edx.ensure_material(
+        PipelineMaterial(prod_edx_md.name, constants.DEPLOY_AMI_STAGE_NAME, "deploy_ami")
+    )
+
+    rollback_edge.ensure_material(
+        PipelineMaterial(prod_edge_md.name, constants.DEPLOY_AMI_STAGE_NAME, "deploy_ami")
+    )
+
     deploy_artifact = utils.ArtifactLocation(
         prod_edx_md.name,
         constants.DEPLOY_AMI_STAGE_NAME,

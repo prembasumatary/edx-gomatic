@@ -1,4 +1,4 @@
-from collections import Counter
+from collections import Counter, namedtuple
 import os.path
 import os
 
@@ -121,8 +121,9 @@ def test_upstream_stages_for_artifacts(script_result, script_name):
 
 
 def test_duplicate_materials(script_result):
+    Material = namedtuple('Material', ['pipeline', 'material'])
     material_counts = Counter(
-        (pipeline.get('name'), material.get('materialName'))
+        Material(pipeline.get('name'), material.get('materialName'))
         for pipeline in script_result.iter('pipeline')
         for materials in pipeline.iter('materials')
         for material in materials
@@ -135,4 +136,23 @@ def test_duplicate_materials(script_result):
         if count > 1
     )
 
-    assert not duplicates
+    assert duplicates == set()
+
+
+def test_duplicate_upstream_pipelines(script_result):
+    Dependency = namedtuple('PipelineDependency', ['downstream', 'upstream'])
+    material_counts = Counter(
+        Dependency(pipeline.get('name'), pipeline_material.get('pipelineName'))
+        for pipeline in script_result.iter('pipeline')
+        for materials in pipeline.iter('materials')
+        for pipeline_material in materials.findall('pipeline')
+    )
+
+    duplicates = set(
+        material_id
+        for material_id, count
+        in material_counts.items()
+        if count > 1
+    )
+
+    assert duplicates == set()
