@@ -457,7 +457,7 @@ def generate_migration_rollback(
         migration_artifact_path=migration_artifact_path
     )
     if sub_application_name is not None:
-        command += '-e SUB_APPLICATION_NAME={sub_application_name} '.format(sub_application_name=sub_application_name)
+        command += ' -e SUB_APPLICATION_NAME={sub_application_name} '.format(sub_application_name=sub_application_name)
 
     command += ' playbooks/continuous_delivery/rollback_migrations.yml done || exit'
 
