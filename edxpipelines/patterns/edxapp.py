@@ -87,7 +87,7 @@ def launch_and_terminate_subset_pipeline(
         ami_artifact=None,
         auto_run=False,
         post_cleanup_builders=None,
-        include_armed_stage=False,
+        pre_launch_builders=None,
 ):
     """
     Arguments:
@@ -102,8 +102,8 @@ def launch_and_terminate_subset_pipeline(
         auto_run (bool): Should this pipeline auto execute?
         post_cleanup_builders (list): a list of methods that will create pipeline stages used
             after the cleanup has run
-        include_armed_stage (bool): if True an armed stage will be created at the start of this pipeline. The calling
-            method is responsible for ensuring the correct upstream materials are specified.
+        pre_launch_builders (list): a list of methods that will create pipeline stages used
+            before instance launch
 
     Variables needed for this pipeline:
     - aws_access_key_id
@@ -141,9 +141,9 @@ def launch_and_terminate_subset_pipeline(
             constants.BASE_AMI_OVERRIDE_FILENAME,
         )
 
-    if include_armed_stage:
-        # Create the armed stage as this pipeline needs to auto-execute
-        stages.generate_armed_stage(pipeline, constants.ARMED_JOB_NAME)
+    if pre_launch_builders:
+        for builder in pre_launch_builders:
+            builder(pipeline, config)
 
     launch_stage = stages.generate_launch_instance(
         pipeline,
@@ -505,6 +505,14 @@ def rollback_asgs(
     )
 
     return pipeline
+
+
+def armed_stage_builder():
+    def builder(pipeline, config):
+        stages.generate_armed_stage(pipeline, constants.ARM_PRERELEASE_STAGE)
+        return pipeline
+
+    return builder
 
 
 def rollback_database(build_pipeline, deploy_pipeline):

@@ -322,7 +322,9 @@ def install_pipelines(configurator, config, env_configs):
             constants.BASE_AMI_OVERRIDE_FILENAME
         ),
         auto_run=False,
-        include_armed_stage=True,
+        pre_launch_builders=[
+            edxapp.armed_stage_builder(),
+        ],
     )
 
     rollback_migrations_edge = edxapp.launch_and_terminate_subset_pipeline(
@@ -339,7 +341,9 @@ def install_pipelines(configurator, config, env_configs):
             constants.BASE_AMI_OVERRIDE_FILENAME
         ),
         auto_run=False,
-        include_armed_stage=True,
+        pre_launch_builders=[
+            edxapp.armed_stage_builder(),
+        ],
     )
 
     deploy_artifact = utils.ArtifactLocation(
