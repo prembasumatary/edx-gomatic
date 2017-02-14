@@ -93,10 +93,7 @@ def tubular_task(script, arguments, prefix=None, runif='passed'):
     if prefix is None:
         prefix = []
 
-    command = prefix + [
-        'python',
-        'scripts/{}'.format(script),
-    ] + arguments
+    command = prefix + [script] + arguments
 
     return ExecTask(
         [
@@ -168,6 +165,27 @@ def generate_requirements_install(job, working_dir, runif="passed"):
         'sudo pip install -r requirements.txt',
         working_dir=working_dir,
         runif=runif
+    ))
+
+
+def generate_package_install(job, working_dir, runif="passed", pip="pip3"):
+    """
+    Generates a command that runs:
+    'sudo pip install -r requirements.txt'
+
+    Args:
+        job (gomatic.job.Job): the gomatic job which to add install requirements
+        working_dir (str): the directory gocd should run the install command from
+        runif (str): one of ['passed', 'failed', 'any'] Default: passed
+
+    Returns:
+        The newly created task (gomatic.gocd.tasks.ExecTask)
+
+    """
+    return job.add_task(bash_task(
+        'sudo {} install --upgrade .'.format(pip),
+        working_dir=working_dir,
+        runif=runif,
     ))
 
 

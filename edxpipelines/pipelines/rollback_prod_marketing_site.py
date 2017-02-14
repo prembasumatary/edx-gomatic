@@ -55,7 +55,7 @@ def install_pipelines(configurator, config, env_configs):
     rollback_stage.set_has_manual_approval()
     rollback_job = rollback_stage.ensure_job(ROLLBACK_JOB_NAME)
 
-    tasks.generate_requirements_install(rollback_job, 'tubular')
+    tasks.generate_package_install(rollback_job, 'tubular')
     tasks.generate_target_directory(rollback_job)
     rollback_job.add_task(FetchArtifactTask(**prod_tag_name_artifact_params))
     tasks.generate_drupal_deploy(rollback_job, PROD_ENV, '{prod_tag}.txt'.format(prod_tag=PROD_TAG_NAME))
@@ -65,7 +65,7 @@ def install_pipelines(configurator, config, env_configs):
     clear_prod_caches_job = clear_prod_caches_stage.ensure_job(CLEAR_PROD_CACHES_JOB_NAME)
 
     tasks.fetch_edx_mktg(clear_prod_caches_job, 'edx-mktg')
-    tasks.generate_requirements_install(clear_prod_caches_job, 'tubular')
+    tasks.generate_package_install(clear_prod_caches_job, 'tubular')
     tasks.format_RSA_key(clear_prod_caches_job, '../edx-mktg/docroot/acquia_github_key.pem', '$PRIVATE_ACQUIA_GITHUB_KEY')
     tasks.generate_flush_drupal_caches(clear_prod_caches_job, PROD_ENV)
     tasks.generate_clear_varnish_cache(clear_prod_caches_job, PROD_ENV)

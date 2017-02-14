@@ -375,7 +375,7 @@ def generate_e2e_test_stage(pipeline, config):
     jenkins_url = "https://build.testeng.edx.org"
 
     e2e_tests = jenkins_stage.ensure_job('edx-e2e-test')
-    tasks.generate_requirements_install(e2e_tests, 'tubular')
+    tasks.generate_package_install(e2e_tests, 'tubular')
     tasks.trigger_jenkins_build(
         e2e_tests,
         jenkins_url,
@@ -386,7 +386,7 @@ def generate_e2e_test_stage(pipeline, config):
     )
 
     microsites_tests = jenkins_stage.ensure_job('microsites-staging-tests')
-    tasks.generate_requirements_install(microsites_tests, 'tubular')
+    tasks.generate_package_install(microsites_tests, 'tubular')
     tasks.trigger_jenkins_build(
         microsites_tests,
         jenkins_url,
