@@ -635,6 +635,7 @@ def generate_run_migrations(pipeline,
     if manual_approval:
         stage.set_has_manual_approval()
     job = stage.ensure_job(constants.APPLY_MIGRATIONS_JOB)
+    tasks.generate_package_install(job, 'tubular')
 
     # Fetch the Ansible inventory to use in reaching the EC2 instance.
     job.add_task(inventory_location.as_fetch_task(constants.ARTIFACT_PATH))
@@ -718,6 +719,7 @@ def generate_terminate_instance(pipeline,
 
     # Fetch the instance info to use in reaching the EC2 instance.
     job = stage.ensure_job(constants.TERMINATE_INSTANCE_JOB_NAME)
+    tasks.generate_package_install(job, 'tubular')
     tasks.generate_requirements_install(job, 'configuration')
     job.add_task(instance_info_location.as_fetch_task(constants.ARTIFACT_PATH))
 
@@ -857,6 +859,7 @@ def generate_ansible_stage(
     if manual_approval:
         stage.set_has_manual_approval()
     job = stage.ensure_job(stage_name + '_job')
+    tasks.generate_package_install(job, 'tubular')
 
     # Fetch the Ansible inventory to use in reaching the EC2 instance.
     job.add_task(inventory_location.as_fetch_task('configuration'))
@@ -1042,6 +1045,7 @@ def generate_create_pr_stage(pipeline,
     )
     git_stage = pipeline.ensure_stage(stage_name)
     git_job = git_stage.ensure_job(constants.GIT_SETUP_JOB_NAME)
+    tasks.generate_package_install(git_job, 'tubular')
     tasks.generate_target_directory(git_job)
     tasks.generate_create_release_candidate_branch_and_pr(
         git_job,
@@ -1093,6 +1097,7 @@ def generate_create_branch(pipeline,
     if manual_approval:
         git_stage.set_has_manual_approval()
     git_job = git_stage.ensure_job(constants.GIT_CREATE_BRANCH_JOB_NAME)
+    tasks.generate_package_install(git_job, 'tubular')
     tasks.generate_target_directory(git_job)
     tasks.generate_create_branch(
         git_job,
@@ -1147,11 +1152,14 @@ def generate_deployment_messages(
     if manual_approval:
         message_stage.set_has_manual_approval()
     message_job = message_stage.ensure_job(constants.MESSAGE_PR_JOB_NAME)
+    tasks.generate_package_install(message_job, 'tubular')
+
     tasks.generate_message_pull_requests_in_commit_range(
         message_job, org, repo, token, head_sha, release_status,
         base_sha=base_sha, base_ami_artifact=base_ami_artifact, ami_tag_app=ami_tag_app
     )
     wiki_job = message_stage.ensure_job(constants.PUBLISH_WIKI_JOB_NAME)
+    tasks.generate_package_install(wiki_job, 'tubular')
 
     if release_status == ReleaseStatus.STAGED:
         parent_title = wiki_parent_title
@@ -1243,6 +1251,7 @@ def generate_merge_branch_and_tag(pipeline,
         git_stage.set_has_manual_approval()
 
     merge_branch_job = git_stage.ensure_job(constants.GIT_MERGE_RC_BRANCH_JOB_NAME)
+    tasks.generate_package_install(merge_branch_job, 'tubular')
     tasks.generate_target_directory(merge_branch_job)
     tasks.generate_merge_branch(
         merge_branch_job,
@@ -1256,6 +1265,7 @@ def generate_merge_branch_and_tag(pipeline,
     # Generate a job/task which tags the head commit of the source branch.
     # Instruct the task to auto-generate tag name/message by not sending them in.
     tag_job = git_stage.ensure_job(constants.GIT_TAG_SHA_JOB_NAME)
+    tasks.generate_package_install(tag_job, 'tubular')
 
     if deploy_artifact:
         # Fetch the AMI-deployment artifact to extract deployment time.
@@ -1311,6 +1321,7 @@ def generate_create_branch_and_pr(pipeline,
     if manual_approval:
         git_stage.set_has_manual_approval()
     git_job = git_stage.ensure_job(constants.CREATE_MASTER_MERGE_PR_JOB_NAME)
+    tasks.generate_package_install(git_job, 'tubular')
     tasks.generate_target_directory(git_job)
 
     # Generate a task that creates a new branch off the HEAD of a source branch.
@@ -1377,6 +1388,7 @@ def generate_poll_tests_and_merge_pr(pipeline,
     if manual_approval:
         git_stage.set_has_manual_approval()
     git_job = git_stage.ensure_job(constants.CHECK_PR_TESTS_AND_MERGE_JOB_NAME)
+    tasks.generate_package_install(git_job, 'tubular')
 
     # Fetch the PR-creation material.
     git_job.add_task(
