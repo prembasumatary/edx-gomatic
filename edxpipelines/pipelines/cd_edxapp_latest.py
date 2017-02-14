@@ -296,7 +296,7 @@ def install_pipelines(configurator, config, env_configs):
                 PipelineMaterial(
                     pipeline_name=build.name,
                     stage_name=constants.BUILD_AMI_STAGE_NAME,
-                    material_name='build_ami',
+                    material_name='{}_build_ami'.format(build.name),
                 )
             )
 
