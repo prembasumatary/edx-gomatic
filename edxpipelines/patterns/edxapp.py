@@ -578,7 +578,8 @@ def rollback_database(build_pipeline, deploy_pipeline):
                 deploy_pipeline.name,
                 constants.APPLY_MIGRATIONS_STAGE + "_" + sub_app,
                 constants.APPLY_MIGRATIONS_JOB,
-                "migrations"
+                "migrations",
+                is_dir=True
             )
 
             stages.generate_rollback_migrations(
@@ -592,7 +593,7 @@ def rollback_database(build_pipeline, deploy_pipeline):
                 application_path=config['application_path'],
                 sub_application_name=sub_app
             )
-
+        return pipeline
     return builder
 
 

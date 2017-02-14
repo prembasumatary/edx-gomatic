@@ -29,34 +29,13 @@ def generate_rollback_migration(stage,
     job = stage.ensure_job(job_name)
 
     # Fetch the Ansible inventory to use in reaching the EC2 instance.
-    artifact_params = {
-        "pipeline": inventory_location.pipeline,
-        "stage": inventory_location.stage,
-        "job": inventory_location.job,
-        "src": FetchArtifactFile(inventory_location.file_name),
-        "dest": constants.ARTIFACT_PATH
-    }
-    job.add_task(FetchArtifactTask(**artifact_params))
+    job.add_task(inventory_location.as_fetch_task(constants.ARTIFACT_PATH))
 
     # Fetch the SSH key to use in reaching the EC2 instance.
-    artifact_params = {
-        "pipeline": instance_key_location.pipeline,
-        "stage": instance_key_location.stage,
-        "job": instance_key_location.job,
-        "src": FetchArtifactFile(instance_key_location.file_name),
-        "dest": constants.ARTIFACT_PATH
-    }
-    job.add_task(FetchArtifactTask(**artifact_params))
+    job.add_task(instance_key_location.as_fetch_task(constants.ARTIFACT_PATH))
 
     # fetch the migration outputs
-    artifact_params = {
-        "pipeline": migration_info_location.pipeline,
-        "stage": migration_info_location.stage,
-        "job": migration_info_location.job,
-        "src": FetchArtifactDir(migration_info_location.file_name),
-        "dest": constants.ARTIFACT_PATH
-    }
-    job.add_task(FetchArtifactTask(**artifact_params))
+    job.add_task(migration_info_location.as_fetch_task(constants.ARTIFACT_PATH))
 
     # ensure the target directoy exists
     tasks.generate_target_directory(job)
