@@ -1,9 +1,12 @@
 from gomatic import *
 
 from edxpipelines import constants
-from edxpipelines.patterns import tasks
 from edxpipelines.constants import ReleaseStatus
 from edxpipelines.utils import ArtifactLocation
+from edxpipelines.patterns import (
+    tasks,
+    jobs
+)
 
 
 def generate_asg_cleanup(pipeline,
@@ -671,6 +674,69 @@ def generate_run_migrations(pipeline,
     # Cleanup EC2 instance if running the migrations failed.
     # I think this should be left for the terminate instance stage
     # tasks.generate_ami_cleanup(job, runif='failed')
+
+    return stage
+
+
+def generate_rollback_migrations(pipeline,
+                                 db_migration_pass,
+                                 inventory_location,
+                                 instance_key_location,
+                                 migration_info_location,
+                                 application_user,
+                                 application_name,
+                                 application_path,
+                                 sub_application_name=None,
+                                 manual_approval=False):
+    """
+    Generate the stage that applies/runs migrations.
+
+    Args:
+        pipeline (gomatic.Pipeline): Pipeline to which to add the run migrations stage.
+        db_migration_pass (str): Password for the DB user used to run migrations.
+        inventory_location (ArtifactLocation): Location of inventory containing the IP address of the EC2 instance, for fetching.
+        instance_key_location (ArtifactLocation): Location of SSH key used to access the EC2 instance, for fetching.
+        migration_info_location (ArtifactLocation): Location of the migration files
+        application_user (str): Username to use while running the migrations
+        application_name (str): Name of the application (e.g. edxapp, programs, etc...)
+        application_path (str): path of the application installed on the target machine
+        sub_application_name (str): any sub application to insert in to the migrations commands {cms|lms}
+        manual_approval (bool): Should this stage require manual approval?
+
+    Returns:
+        gomatic.Stage
+    """
+    pipeline.ensure_environment_variables(
+        {
+            'APPLICATION_USER': application_user,
+            'APPLICATION_NAME': application_name,
+            'APPLICATION_PATH': application_path,
+            'DB_MIGRATION_USER': 'migrate',
+            'ARTIFACT_PATH': constants.ARTIFACT_PATH,
+            'ANSIBLE_CONFIG': constants.ANSIBLE_CONTINUOUS_DELIVERY_CONFIG,
+        }
+    )
+    pipeline.ensure_encrypted_environment_variables(
+        {
+            'DB_MIGRATION_PASS': db_migration_pass,
+        }
+    )
+
+    stage_name = constants.ROLLBACK_MIGRATIONS_STAGE_NAME
+    if sub_application_name is not None:
+        stage_name += "_{}".format(sub_application_name)
+    stage = pipeline.ensure_stage(stage_name)
+
+    if manual_approval:
+        stage.set_has_manual_approval()
+
+    job = jobs.generate_rollback_migration(
+        stage,
+        inventory_location,
+        instance_key_location,
+        migration_info_location,
+        sub_application_name
+    )
 
     return stage
 

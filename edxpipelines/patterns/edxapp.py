@@ -79,15 +79,31 @@ def prerelease_materials(edxapp_group, config):
     return pipeline
 
 
-def build_migrate_deploy_subset_pipeline(
-        pipeline_group, stage_builders, config,
-        pipeline_name, ami_artifact=None, auto_run=False,
-        post_cleanup_builders=None):
+def launch_and_terminate_subset_pipeline(
+        pipeline_group,
+        stage_builders,
+        config,
+        pipeline_name,
+        ami_artifact=None,
+        auto_run=False,
+        post_cleanup_builders=None,
+        pre_launch_builders=None,
+):
     """
     Arguments:
+        pipeline_group (gomatic.PipelineGroup): The group in which to create this pipeline
+        stage_builders (list): a list of methods that will create pipeline stages used
+            between instance launch and cleanup
         ami_artifact (ArtifactLocation): The ami to use to launch the
             instances on. If None, select that ami based on the
             edx_deployment and edx_environment.
+        config (dict): the configuration dictionary
+        pipeline_name (str): name of the pipeline
+        auto_run (bool): Should this pipeline auto execute?
+        post_cleanup_builders (list): a list of methods that will create pipeline stages used
+            after the cleanup has run
+        pre_launch_builders (list): a list of methods that will create pipeline stages used
+            before instance launch
 
     Variables needed for this pipeline:
     - aws_access_key_id
@@ -124,6 +140,10 @@ def build_migrate_deploy_subset_pipeline(
             constants.BASE_AMI_SELECTION_JOB_NAME,
             constants.BASE_AMI_OVERRIDE_FILENAME,
         )
+
+    if pre_launch_builders:
+        for builder in pre_launch_builders:
+            builder(pipeline, config)
 
     launch_stage = stages.generate_launch_instance(
         pipeline,
@@ -485,6 +505,96 @@ def rollback_asgs(
     )
 
     return pipeline
+
+
+def armed_stage_builder():
+    def builder(pipeline, config):
+        stages.generate_armed_stage(pipeline, constants.ARM_PRERELEASE_STAGE)
+        return pipeline
+
+    return builder
+
+
+def rollback_database(build_pipeline, deploy_pipeline):
+    """
+    Arguments:
+        build_pipeline (gomatic.Pipeline): Pipeline source of the launch info (ami-id)
+        deploy_pipeline (gomatic.Pipeline): Pipeline source of the migration information
+
+    Configuration Required:
+        aws_access_key_id
+        aws_secret_access_key
+        hipchat_token
+        ec2_vpc_subnet_id
+        ec2_security_group_id
+        ec2_instance_profile_name
+        db_migration_user
+        db_migration_pass
+        play_name
+        application_name
+        edxapp_subapps
+    """
+    def builder(pipeline, config):
+        for material in (
+                TUBULAR, CONFIGURATION, EDX_PLATFORM, EDX_SECURE, EDGE_SECURE,
+                EDX_MICROSITE, EDX_INTERNAL, EDGE_INTERNAL,
+        ):
+            pipeline.ensure_material(material())
+
+        ansible_inventory_location = utils.ArtifactLocation(
+            pipeline.name,
+            constants.LAUNCH_INSTANCE_STAGE_NAME,
+            constants.LAUNCH_INSTANCE_JOB_NAME,
+            'ansible_inventory'
+        )
+        instance_ssh_key_location = utils.ArtifactLocation(
+            pipeline.name,
+            constants.LAUNCH_INSTANCE_STAGE_NAME,
+            constants.LAUNCH_INSTANCE_JOB_NAME,
+            'key.pem'
+        )
+
+        # Specify the upstream deploy pipeline material for this rollback pipeline.
+        # Assumes there's only a single upstream pipeline material for this pipeline.
+        pipeline.ensure_material(
+            PipelineMaterial(
+                pipeline_name=deploy_pipeline.name,
+                stage_name=constants.DEPLOY_AMI_STAGE_NAME,
+                material_name='deploy_pipeline',
+            )
+        )
+
+        # We need the build_pipeline upstream so that we can fetch the AMI selection artifact from it
+        pipeline.ensure_material(
+            PipelineMaterial(
+                pipeline_name=build_pipeline.name,
+                stage_name=constants.BASE_AMI_SELECTION_STAGE_NAME,
+                material_name='select_base_ami',
+            )
+        )
+        # Create a a stage for migration rollback.
+        for sub_app in config['edxapp_subapps']:
+            migration_artifact = utils.ArtifactLocation(
+                deploy_pipeline.name,
+                constants.APPLY_MIGRATIONS_STAGE + "_" + sub_app,
+                constants.APPLY_MIGRATIONS_JOB,
+                "migrations",
+                is_dir=True
+            )
+
+            stages.generate_rollback_migrations(
+                pipeline,
+                db_migration_pass=config['db_migration_pass'],
+                inventory_location=ansible_inventory_location,
+                instance_key_location=instance_ssh_key_location,
+                migration_info_location=migration_artifact,
+                application_user=config['db_migration_user'],
+                application_name=config['play_name'],
+                application_path=config['application_path'],
+                sub_application_name=sub_app
+            )
+        return pipeline
+    return builder
 
 
 def merge_back_branches(edxapp_deploy_group, pipeline_name, deploy_artifact, config):
