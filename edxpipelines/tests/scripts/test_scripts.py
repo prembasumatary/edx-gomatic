@@ -1,3 +1,4 @@
+from collections import Counter
 import os.path
 import os
 
@@ -117,3 +118,21 @@ def test_upstream_stages_for_artifacts(script_result, script_name):
     )
 
     assert required_artifacts - available_stages == set([])
+
+
+def test_duplicate_materials(script_result):
+    material_counts = Counter(
+        (pipeline.get('name'), material.get('materialName'))
+        for pipeline in script_result.iter('pipeline')
+        for materials in pipeline.iter('materials')
+        for material in materials
+    )
+
+    duplicates = set(
+        material_id
+        for material_id, count
+        in material_counts.items()
+        if count > 1
+    )
+
+    assert not duplicates
