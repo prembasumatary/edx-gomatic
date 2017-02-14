@@ -5,8 +5,17 @@ edxapp_subapps:
 play_name: "edxapp"
 db_migration_user: "www-data"
 
-# Migration duration alerting on stage.
-migration_duration_threshold: 10
+# Migration table/duration alerting on stage.
+databases:
+  default:
+    migration_duration_threshold: 10
+    tables_to_alert:
+      - courseware_studentmodule
+      - student_courseenrollment
+  student_module_history:
+    migration_duration_threshold: 10
+    tables_to_alert:
+      - coursewarehistoryextended_studentmodulehistoryextended
 alert_from_address: migration.alert@tools.edx.org
 alert_to_addresses:
   - bbeggs@edx.org

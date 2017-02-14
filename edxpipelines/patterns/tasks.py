@@ -250,6 +250,7 @@ def generate_run_migrations(job, sub_application_name=None, runif="passed"):
 def generate_check_migration_duration(job,
                                       input_file,
                                       duration_threshold,
+                                      tables_to_alert,
                                       from_address,
                                       to_addresses,
                                       ses_region=None,
@@ -257,11 +258,14 @@ def generate_check_migration_duration(job,
     """
     Generates a task that checks a migration's duration against a threshold.
     If the threshold is exceeded, alert via email.
+    Also, checks to see if the specified tables were migrated.
+    If so, alert via email.
 
     Args:
         job (gomatic.Job): the Job to attach this stage to.
         input_file (str): Name of file containing migration duration.
         duration_threshold (int): Migration threshold in seconds.
+        tables_to_alert (list(str)): List of table names - alert when migrated.
         from_address (str): Single "From:" email address for alert email.
         to_addresses (list(str)): List of "To:" email addresses for alert email.
         ses_region (str): AWS region whose SES to use.
@@ -272,9 +276,9 @@ def generate_check_migration_duration(job,
     """
     cmd_args = [
         'python',
-        'scripts/check_migrate_duration.py',
+        'scripts/check_migration_alerts.py',
         '--migration_file',
-        '../{artifact_path}/migrations/{input_file}'.format(
+        '../{artifact_path}/{input_file}'.format(
             artifact_path=constants.ARTIFACT_PATH,
             input_file=input_file
         ),
@@ -287,6 +291,9 @@ def generate_check_migration_duration(job,
         cmd_args.extend(('--aws_ses_region', ses_region))
     for email in to_addresses:
         cmd_args.extend(('--alert_email', email))
+    for table in tables_to_alert:
+        cmd_args.extend(('--table_to_check', table))
+
 
     return job.add_task(
         ExecTask(

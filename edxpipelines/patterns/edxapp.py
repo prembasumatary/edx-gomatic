@@ -229,9 +229,9 @@ def generate_migrate_stages(pipeline, config):
     )
     # Check the migration duration on the stage environment only.
     if pipeline.name.startswith('STAGE'):
-        duration_threshold = config['migration_duration_threshold']
+        databases_config = config['databases']
     else:
-        duration_threshold = None
+        databases_config = None
 
     for sub_app in config['edxapp_subapps']:
         stages.generate_run_migrations(
@@ -244,9 +244,7 @@ def generate_migrate_stages(pipeline, config):
             application_name=config['play_name'],
             application_path=config['application_path'],
             sub_application_name=sub_app,
-            duration_threshold=duration_threshold,
-            from_address=config['alert_from_address'],
-            to_addresses=config['alert_to_addresses']
+            databases_config=databases_config
         )
 
     return pipeline
