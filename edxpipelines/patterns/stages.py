@@ -81,23 +81,6 @@ def generate_base_ami_selection(pipeline,
     Returns:
         gomatic.Stage
     """
-    pipeline.ensure_encrypted_environment_variables(
-        {
-            'AWS_ACCESS_KEY_ID': aws_access_key_id,
-            'AWS_SECRET_ACCESS_KEY': aws_secret_access_key
-        }
-    )
-
-    pipeline.ensure_environment_variables(
-        {
-            'PLAY': play,
-            'DEPLOYMENT': deployment,
-            'EDX_ENVIRONMENT': edx_environment,
-            'BASE_AMI_ID': base_ami_id,
-            'BASE_AMI_ID_OVERRIDE': 'yes' if base_ami_id is not None else 'no',
-        }
-    )
-
     stage = pipeline.ensure_stage(constants.BASE_AMI_SELECTION_STAGE_NAME)
 
     if manual_approval:
@@ -106,36 +89,9 @@ def generate_base_ami_selection(pipeline,
     # Install the requirements.
     job = stage.ensure_job(constants.BASE_AMI_SELECTION_JOB_NAME)
     tasks.generate_package_install(job, 'tubular')
-
-    # Generate an base-AMI-ID-overriding artifact.
-    base_ami_override_artifact = '{artifact_path}/{file_name}'.format(
-        artifact_path=constants.ARTIFACT_PATH,
-        file_name=constants.BASE_AMI_OVERRIDE_FILENAME
-    )
-    job.ensure_artifacts(set([BuildArtifact(base_ami_override_artifact)]))
-    job.add_task(
-        ExecTask(
-            [
-                '/bin/bash',
-                '-c',
-                'mkdir -p {artifact_path};'
-                'if [[ $BASE_AMI_ID_OVERRIDE != \'yes\' ]];'
-                '  then echo "Finding base AMI ID from active ELB/ASG in EDP.";'
-                '  /usr/bin/python {ami_script} --environment $EDX_ENVIRONMENT --deployment $DEPLOYMENT --play $PLAY --out_file {override_artifact};'
-                'elif [[ -n $BASE_AMI_ID ]];'
-                '  then echo "Using specified base AMI ID of \'$BASE_AMI_ID\'";'
-                '  /usr/bin/python {ami_script} --override $BASE_AMI_ID --out_file {override_artifact};'
-                'else echo "Using environment base AMI ID";'
-                '  echo "{empty_dict}" > {override_artifact}; fi;'.format(
-                    artifact_path='../' + constants.ARTIFACT_PATH,
-                    ami_script='scripts/retrieve_base_ami.py',
-                    empty_dict='{}',
-                    override_artifact='../' + base_ami_override_artifact
-                )
-            ],
-            working_dir="tubular",
-            runif="passed"
-        )
+    tasks.generate_base_ami_selection(
+        pipeline, job, aws_access_key_id, aws_secret_access_key,
+        play, deployment, edx_environment, base_ami_id,
     )
     return stage
 
@@ -182,29 +138,6 @@ def generate_launch_instance(pipeline,
     Returns:
 
     """
-    pipeline.ensure_encrypted_environment_variables(
-        {
-            'AWS_ACCESS_KEY_ID': aws_access_key_id,
-            'AWS_SECRET_ACCESS_KEY': aws_secret_access_key
-        }
-    )
-
-    pipeline.ensure_environment_variables(
-        {
-            'EC2_VPC_SUBNET_ID': ec2_vpc_subnet_id,
-            'EC2_SECURITY_GROUP_ID': ec2_security_group_id,
-            'EC2_ASSIGN_PUBLIC_IP': 'no',
-            'EC2_TIMEOUT': ec2_timeout,
-            'EC2_REGION': ec2_region,
-            'EBS_VOLUME_SIZE': ec2_ebs_volume_size,
-            'EC2_INSTANCE_TYPE': ec2_instance_type,
-            'EC2_INSTANCE_PROFILE_NAME': ec2_instance_profile_name,
-            'NO_REBOOT': 'no',
-            'BASE_AMI_ID': base_ami_id,
-            'ANSIBLE_CONFIG': constants.ANSIBLE_CONTINUOUS_DELIVERY_CONFIG,
-        }
-    )
-
     stage = pipeline.ensure_stage(constants.LAUNCH_INSTANCE_STAGE_NAME)
 
     if manual_approval:
@@ -215,20 +148,22 @@ def generate_launch_instance(pipeline,
     tasks.generate_package_install(job, 'tubular')
     tasks.generate_requirements_install(job, 'configuration')
 
-    # fetch the artifacts if there are any
-    artifacts = []
-    if upstream_build_artifact:
-        job.add_task(upstream_build_artifact.as_fetch_task(constants.ARTIFACT_PATH))
-        artifacts.append(
-            '{artifact_path}/{file_name}'
-            .format(
-                artifact_path=constants.ARTIFACT_PATH,
-                file_name=upstream_build_artifact.file_name
-            )
-        )
-
     # Create the instance-launching task.
-    tasks.generate_launch_instance(job, artifacts)
+    tasks.generate_launch_instance(
+        pipeline,
+        job,
+        aws_access_key_id=aws_access_key_id,
+        aws_secret_access_key=aws_secret_access_key,
+        ec2_vpc_subnet_id=ec2_vpc_subnet_id,
+        ec2_security_group_id=ec2_security_group_id,
+        ec2_instance_profile_name=ec2_instance_profile_name,
+        base_ami_id=base_ami_id,
+        ec2_region=ec2_region,
+        ec2_instance_type=ec2_instance_type,
+        ec2_timeout=ec2_timeout,
+        ec2_ebs_volume_size=ec2_ebs_volume_size,
+        upstream_build_artifact=upstream_build_artifact,
+    )
 
     return stage
 
@@ -276,25 +211,6 @@ def generate_run_play(pipeline,
     Returns:
         gomatic.Stage
     """
-    # setup the necessary environment variables
-    pipeline.ensure_encrypted_environment_variables(
-        {
-            'HIPCHAT_TOKEN': hipchat_token,
-            'PRIVATE_GITHUB_KEY': private_github_key
-        }
-    )
-    pipeline.ensure_environment_variables(
-        {
-            'PLAY': play,
-            'DEPLOYMENT': deployment,
-            'EDX_ENVIRONMENT': edx_environment,
-            'APP_REPO': app_repo,
-            'ARTIFACT_PATH': '{}/'.format(constants.ARTIFACT_PATH),
-            'HIPCHAT_ROOM': hipchat_room,
-            'ANSIBLE_CONFIG': constants.ANSIBLE_CONTINUOUS_DELIVERY_CONFIG,
-        }
-    )
-
     stage = pipeline.ensure_stage(constants.RUN_PLAY_STAGE_NAME)
     if manual_approval:
         stage.set_has_manual_approval()
@@ -305,25 +221,20 @@ def generate_run_play(pipeline,
     tasks.generate_requirements_install(job, 'configuration')
     tasks.generate_target_directory(job)
 
-    # fetch the key material
-    artifact_params = {
-        'pipeline': pipeline.name,
-        'stage': constants.LAUNCH_INSTANCE_STAGE_NAME,
-        'job': constants.LAUNCH_INSTANCE_JOB_NAME,
-        'src': FetchArtifactFile("key.pem"),
-        'dest': constants.ARTIFACT_PATH
-    }
-    job.add_task(FetchArtifactTask(**artifact_params))
-
-    # fetch the launch_info.yml
-    artifact_params['src'] = FetchArtifactFile('launch_info.yml')
-    job.add_task(FetchArtifactTask(**artifact_params))
-
-    # fetch the inventory file
-    artifact_params['src'] = FetchArtifactFile('ansible_inventory')
-    job.add_task(FetchArtifactTask(**artifact_params))
-
-    tasks.generate_run_app_playbook(job, configuration_internal_dir, configuration_secure_dir, playbook_with_path, **kwargs)
+    tasks.generate_run_app_playbook(
+        pipeline,
+        job=job,
+        playbook_with_path=playbook_with_path,
+        play=play,
+        deployment=deployment,
+        edx_environment=edx_environment,
+        app_repo=app_repo,
+        private_github_key=private_github_key,
+        hipchat_token=hipchat_token,
+        hipchat_room=hipchat_room,
+        configuration_secure_dir=configuration_secure_dir,
+        configuration_internal_dir=configuration_internal_dir,
+        **kwargs)
     return stage
 
 
@@ -377,50 +288,32 @@ def generate_create_ami_from_instance(pipeline,
     stage = pipeline.ensure_stage(constants.BUILD_AMI_STAGE_NAME)
     if manual_approval:
         stage.set_has_manual_approval()
-    pipeline.ensure_encrypted_environment_variables(
-        {
-            'AWS_ACCESS_KEY_ID': aws_access_key_id,
-            'AWS_SECRET_ACCESS_KEY': aws_secret_access_key,
-            'HIPCHAT_TOKEN': hipchat_token,
-        }
-    )
-
-    pipeline.ensure_environment_variables(
-        {
-            'PLAY': play,
-            'DEPLOYMENT': deployment,
-            'EDX_ENVIRONMENT': edx_environment,
-            'APP_REPO': app_repo,
-            'CONFIGURATION_REPO': configuration_repo,
-            'CONFIGURATION_SECURE_REPO': configuration_secure_repo,
-            'AMI_CREATION_TIMEOUT': ami_creation_timeout,
-            'AMI_WAIT': ami_wait,
-            'CACHE_ID': cache_id,  # gocd build number
-            'ARTIFACT_PATH': artifact_path,
-            'HIPCHAT_ROOM': hipchat_room,
-            'ANSIBLE_CONFIG': constants.ANSIBLE_CONTINUOUS_DELIVERY_CONFIG,
-        }
-    )
 
     # Install the requirements.
     job = stage.ensure_job(constants.BUILD_AMI_JOB_NAME)
     tasks.generate_package_install(job, 'tubular')
     tasks.generate_requirements_install(job, 'configuration')
-
     tasks.generate_target_directory(job)
 
-    # fetch the key material
-    artifact_params = {
-        'pipeline': pipeline.name,
-        'stage': constants.LAUNCH_INSTANCE_STAGE_NAME,
-        'job': constants.LAUNCH_INSTANCE_JOB_NAME,
-        'src': FetchArtifactFile("launch_info.yml"),
-        'dest': constants.ARTIFACT_PATH
-    }
-    job.add_task(FetchArtifactTask(**artifact_params))
-
     # Create an AMI from the instance
-    tasks.generate_create_ami(job, **kwargs)
+    tasks.generate_create_ami(
+        pipeline=pipeline,
+        job=job,
+        play=play,
+        deployment=deployment,
+        edx_environment=edx_environment,
+        app_repo=app_repo,
+        configuration_secure_repo=configuration_secure_repo,
+        aws_access_key_id=aws_access_key_id,
+        aws_secret_access_key=aws_secret_access_key,
+        configuration_repo=configuration_repo,
+        ami_creation_timeout=ami_creation_timeout,
+        ami_wait=ami_wait,
+        cache_id=cache_id,
+        artifact_path=artifact_path,
+        hipchat_token=hipchat_token,
+        hipchat_room=hipchat_room,
+        **kwargs)
 
     return stage
 

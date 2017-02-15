@@ -189,7 +189,14 @@ def generate_package_install(job, working_dir, runif="passed", pip="pip3"):
     ))
 
 
-def generate_launch_instance(job, optional_override_files=[], runif="passed"):
+def generate_launch_instance(
+        pipeline, job, aws_access_key_id, aws_secret_access_key,
+        ec2_vpc_subnet_id, ec2_security_group_id, ec2_instance_profile_name,
+        base_ami_id, ec2_region=constants.EC2_REGION, ec2_instance_type=constants.EC2_INSTANCE_TYPE,
+        ec2_timeout=constants.EC2_LAUNCH_INSTANCE_TIMEOUT,
+        ec2_ebs_volume_size=constants.EC2_EBS_VOLUME_SIZE,
+        upstream_build_artifact=None, runif="passed"
+):
     """
     Generate the launch AMI job. This ansible script generates 3 artifacts:
         key.pem             - Private key material generated for this instance launch
@@ -209,9 +216,46 @@ def generate_launch_instance(job, optional_override_files=[], runif="passed"):
         The newly created task (gomatic.gocd.tasks.ExecTask)
 
     """
-    job.ensure_artifacts(set([BuildArtifact('{}/key.pem'.format(constants.ARTIFACT_PATH)),
-                             BuildArtifact('{}/ansible_inventory'.format(constants.ARTIFACT_PATH)),
-                             BuildArtifact('{}/launch_info.yml'.format(constants.ARTIFACT_PATH))]))
+    pipeline.ensure_encrypted_environment_variables(
+        {
+            'AWS_ACCESS_KEY_ID': aws_access_key_id,
+            'AWS_SECRET_ACCESS_KEY': aws_secret_access_key
+        }
+    )
+
+    pipeline.ensure_environment_variables(
+        {
+            'EC2_VPC_SUBNET_ID': ec2_vpc_subnet_id,
+            'EC2_SECURITY_GROUP_ID': ec2_security_group_id,
+            'EC2_ASSIGN_PUBLIC_IP': 'no',
+            'EC2_TIMEOUT': ec2_timeout,
+            'EC2_REGION': ec2_region,
+            'EBS_VOLUME_SIZE': ec2_ebs_volume_size,
+            'EC2_INSTANCE_TYPE': ec2_instance_type,
+            'EC2_INSTANCE_PROFILE_NAME': ec2_instance_profile_name,
+            'NO_REBOOT': 'no',
+            'BASE_AMI_ID': base_ami_id,
+            'ANSIBLE_CONFIG': constants.ANSIBLE_CONTINUOUS_DELIVERY_CONFIG,
+        }
+    )
+
+    # fetch the artifacts if there are any
+    optional_override_files = []
+    if upstream_build_artifact:
+        job.add_task(upstream_build_artifact.as_fetch_task(constants.ARTIFACT_PATH))
+        optional_override_files.append(
+            '{artifact_path}/{file_name}'
+            .format(
+                artifact_path=constants.ARTIFACT_PATH,
+                file_name=upstream_build_artifact.file_name
+            )
+        )
+
+    job.ensure_artifacts({
+        BuildArtifact('{}/key.pem'.format(constants.ARTIFACT_PATH)),
+        BuildArtifact('{}/ansible_inventory'.format(constants.ARTIFACT_PATH)),
+        BuildArtifact('{}/launch_info.yml'.format(constants.ARTIFACT_PATH))
+    })
 
     return job.add_task(ansible_task(
         variables=[
@@ -232,7 +276,15 @@ def generate_launch_instance(job, optional_override_files=[], runif="passed"):
     ))
 
 
-def generate_create_ami(job, runif="passed", **kwargs):
+def generate_create_ami(
+        pipeline, job, play, deployment, edx_environment,
+        app_repo, configuration_secure_repo, aws_access_key_id,
+        aws_secret_access_key, configuration_repo=constants.PUBLIC_CONFIGURATION_REPO_URL,
+        ami_creation_timeout="3600", ami_wait='yes', cache_id='',
+        artifact_path=constants.ARTIFACT_PATH, hipchat_token='',
+        hipchat_room=constants.HIPCHAT_ROOM, manual_approval=False,
+        runif="passed", **kwargs
+):
     """
     TODO: Decouple AMI building and AMI tagging in to 2 different jobs/ansible scripts
 
@@ -248,6 +300,41 @@ def generate_create_ami(job, runif="passed", **kwargs):
         The newly created task (gomatic.gocd.tasks.ExecTask)
 
     """
+    pipeline.ensure_encrypted_environment_variables(
+        {
+            'AWS_ACCESS_KEY_ID': aws_access_key_id,
+            'AWS_SECRET_ACCESS_KEY': aws_secret_access_key,
+            'HIPCHAT_TOKEN': hipchat_token,
+        }
+    )
+
+    pipeline.ensure_environment_variables(
+        {
+            'PLAY': play,
+            'DEPLOYMENT': deployment,
+            'EDX_ENVIRONMENT': edx_environment,
+            'APP_REPO': app_repo,
+            'CONFIGURATION_REPO': configuration_repo,
+            'CONFIGURATION_SECURE_REPO': configuration_secure_repo,
+            'AMI_CREATION_TIMEOUT': ami_creation_timeout,
+            'AMI_WAIT': ami_wait,
+            'CACHE_ID': cache_id,  # gocd build number
+            'ARTIFACT_PATH': artifact_path,
+            'HIPCHAT_ROOM': hipchat_room,
+            'ANSIBLE_CONFIG': constants.ANSIBLE_CONTINUOUS_DELIVERY_CONFIG,
+        }
+    )
+
+    # fetch the key material
+    artifact_params = {
+        'pipeline': pipeline.name,
+        'stage': constants.LAUNCH_INSTANCE_STAGE_NAME,
+        'job': constants.LAUNCH_INSTANCE_JOB_NAME,
+        'src': FetchArtifactFile("launch_info.yml"),
+        'dest': constants.ARTIFACT_PATH
+    }
+    job.add_task(FetchArtifactTask(**artifact_params))
+
     job.ensure_artifacts(set([BuildArtifact('{}/ami.yml'.format(constants.ARTIFACT_PATH))]))
     variables = [
         '{}/launch_info.yml'.format(constants.ARTIFACT_PATH),
@@ -565,7 +652,15 @@ def fetch_edx_mktg(job, secure_dir, runif="passed"):
     )
 
 
-def generate_run_app_playbook(job, internal_dir, secure_dir, playbook_path, runif="passed", **kwargs):
+def generate_run_app_playbook(
+        pipeline, job, playbook_with_path, play, deployment,
+        edx_environment, app_repo,
+        private_github_key='', hipchat_token='',
+        hipchat_room=constants.HIPCHAT_ROOM,
+        configuration_secure_dir=constants.PRIVATE_CONFIGURATION_LOCAL_DIR,
+        configuration_internal_dir=constants.INTERNAL_CONFIGURATION_LOCAL_DIR,
+        runif="passed",
+        **kwargs):
     """
     Generates:
         a GoCD task that runs an Ansible playbook against a server inventory.
@@ -584,9 +679,19 @@ def generate_run_app_playbook(job, internal_dir, secure_dir, playbook_path, runi
         These are generated by edxpipelines.patterns.stages.generate_launch_instance
 
     Args:
+        pipeline (gomatic.Pipeline): the gomatic pipeline to add environment variables to
         job (gomatic.job.Job): the gomatic job to which the playbook run task will be added
-        secure_dir (str): name of dir containing the edx-ops/configuration-secure repo
-        playbook_path (str): path to playbook relative to the top-level 'configuration' directory
+        playbook_with_path (str): path to playbook relative to the top-level 'configuration' directory
+        play (str):
+        deployment (str):
+        edx_environment (str):
+        app_repo (str) :
+        private_github_key (str):
+        hipchat_token (str):
+        hipchat_room (str):
+        manual_approval (bool):
+        configuration_internal_dir (str): The internal config directory to use for this play.
+        configuration_secure_dir (str): The secure config directory to use for this play.
         runif (str): one of ['passed', 'failed', 'any'] Default: passed
         **kwargs (dict):
             k,v pairs:
@@ -597,6 +702,43 @@ def generate_run_app_playbook(job, internal_dir, secure_dir, playbook_path, runi
         The newly created task (gomatic.gocd.tasks.ExecTask)
 
     """
+    # setup the necessary environment variables
+    pipeline.ensure_encrypted_environment_variables(
+        {
+            'HIPCHAT_TOKEN': hipchat_token,
+            'PRIVATE_GITHUB_KEY': private_github_key
+        }
+    )
+    pipeline.ensure_environment_variables(
+        {
+            'PLAY': play,
+            'DEPLOYMENT': deployment,
+            'EDX_ENVIRONMENT': edx_environment,
+            'APP_REPO': app_repo,
+            'ARTIFACT_PATH': '{}/'.format(constants.ARTIFACT_PATH),
+            'HIPCHAT_ROOM': hipchat_room,
+            'ANSIBLE_CONFIG': constants.ANSIBLE_CONTINUOUS_DELIVERY_CONFIG,
+        }
+    )
+
+    # fetch the key material
+    artifact_params = {
+        'pipeline': pipeline.name,
+        'stage': constants.LAUNCH_INSTANCE_STAGE_NAME,
+        'job': constants.LAUNCH_INSTANCE_JOB_NAME,
+        'src': FetchArtifactFile("key.pem"),
+        'dest': constants.ARTIFACT_PATH
+    }
+    job.add_task(FetchArtifactTask(**artifact_params))
+
+    # fetch the launch_info.yml
+    artifact_params['src'] = FetchArtifactFile('launch_info.yml')
+    job.add_task(FetchArtifactTask(**artifact_params))
+
+    # fetch the inventory file
+    artifact_params['src'] = FetchArtifactFile('ansible_inventory')
+    job.add_task(FetchArtifactTask(**artifact_params))
+
     return job.add_task(ansible_task(
         prefix=[
             'chmod 600 ../{}/key.pem;'.format(constants.ARTIFACT_PATH),
@@ -612,12 +754,12 @@ def generate_run_app_playbook(job, internal_dir, secure_dir, playbook_path, runi
         inventory='../{}/ansible_inventory '.format(constants.ARTIFACT_PATH),
         variables=[
             '{}/launch_info.yml'.format(constants.ARTIFACT_PATH),
-            '{}/ansible/vars/${{DEPLOYMENT}}.yml'.format(internal_dir),
-            '{}/ansible/vars/${{EDX_ENVIRONMENT}}-${{DEPLOYMENT}}.yml'.format(internal_dir),
-            '{}/ansible/vars/${{DEPLOYMENT}}.yml'.format(secure_dir),
-            '{}/ansible/vars/${{EDX_ENVIRONMENT}}-${{DEPLOYMENT}}.yml'.format(secure_dir),
+            '{}/ansible/vars/${{DEPLOYMENT}}.yml'.format(configuration_internal_dir),
+            '{}/ansible/vars/${{EDX_ENVIRONMENT}}-${{DEPLOYMENT}}.yml'.format(configuration_internal_dir),
+            '{}/ansible/vars/${{DEPLOYMENT}}.yml'.format(configuration_secure_dir),
+            '{}/ansible/vars/${{EDX_ENVIRONMENT}}-${{DEPLOYMENT}}.yml'.format(configuration_secure_dir),
         ] + sorted(kwargs.items()),
-        playbook=playbook_path,
+        playbook=playbook_with_path,
         runif=runif
     ))
 
@@ -1352,4 +1494,66 @@ def generate_release_wiki_page(
         'update_release_page.py',
         arguments,
         working_dir=None,
+    ))
+
+
+def generate_base_ami_selection(
+        pipeline, job, aws_access_key_id, aws_secret_access_key,
+        play=None, deployment=None, edx_environment=None,
+        base_ami_id=None
+):
+    """
+    Pattern to find a base AMI for a particular EDP. Generates 1 artifact:
+        ami_override.yml    - YAML file that contains information about which base AMI to use in building AMI
+
+    Args:
+        pipeline (gomatic.Pipeline):
+        aws_access_key_id (str): AWS key ID for auth
+        aws_secret_access_key (str): AWS secret key for auth
+        play (str): Pipeline's play.
+        deployment (str): Pipeline's deployment.
+        edx_environment (str): Pipeline's environment.
+        base_ami_id (str): the ami-id used to launch the instance, or None to use the provided EDP
+    """
+    pipeline.ensure_encrypted_environment_variables(
+        {
+            'AWS_ACCESS_KEY_ID': aws_access_key_id,
+            'AWS_SECRET_ACCESS_KEY': aws_secret_access_key
+        }
+    )
+
+    pipeline.ensure_environment_variables(
+        {
+            'PLAY': play,
+            'DEPLOYMENT': deployment,
+            'EDX_ENVIRONMENT': edx_environment,
+            'BASE_AMI_ID': base_ami_id,
+            'BASE_AMI_ID_OVERRIDE': 'yes' if base_ami_id is not None else 'no',
+        }
+    )
+
+    # Generate an base-AMI-ID-overriding artifact.
+    base_ami_override_artifact = '{artifact_path}/{file_name}'.format(
+        artifact_path=constants.ARTIFACT_PATH,
+        file_name=constants.BASE_AMI_OVERRIDE_FILENAME
+    )
+    job.ensure_artifacts(set([BuildArtifact(base_ami_override_artifact)]))
+    job.add_task(bash_task(
+        """\
+            mkdir -p {artifact_path};
+            if [[ $BASE_AMI_ID_OVERRIDE != 'yes' ]];
+                then echo "Finding base AMI ID from active ELB/ASG in EDP.";
+                /usr/bin/python {ami_script} --environment $EDX_ENVIRONMENT --deployment $DEPLOYMENT --play $PLAY --out_file {override_artifact};
+            elif [[ -n $BASE_AMI_ID ]];
+                then echo "Using specified base AMI ID of '$BASE_AMI_ID'";
+                /usr/bin/python {ami_script} --override $BASE_AMI_ID --out_file {override_artifact};
+            else echo "Using environment base AMI ID";
+                echo "{empty_dict}" > {override_artifact}; fi;
+        """,
+        artifact_path='../' + constants.ARTIFACT_PATH,
+        ami_script='scripts/retrieve_base_ami.py',
+        empty_dict='{}',
+        override_artifact='../' + base_ami_override_artifact,
+        working_dir="tubular",
+        runif="passed"
     ))
