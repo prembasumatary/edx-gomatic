@@ -136,6 +136,8 @@ def install_pipelines(configurator, config, env_configs):
             edxapp.generate_migrate_stages,
             edxapp.generate_deploy_stages(
                 pipeline_name_build=stage_b.name,
+                prod_build_pipelines=[prod_edx_b, prod_edge_b],
+                stage_deploy_pipeline=None,
                 auto_deploy_ami=True,
             ),
         ],
@@ -200,6 +202,8 @@ def install_pipelines(configurator, config, env_configs):
             edxapp.generate_migrate_stages,
             edxapp.generate_deploy_stages(
                 pipeline_name_build=prod_edx_b.name,
+                prod_build_pipelines=[prod_edx_b, prod_edge_b],
+                stage_deploy_pipeline=stage_md,
                 auto_deploy_ami=True,
             )
         ],
@@ -220,6 +224,8 @@ def install_pipelines(configurator, config, env_configs):
             edxapp.generate_migrate_stages,
             edxapp.generate_deploy_stages(
                 pipeline_name_build=prod_edge_b.name,
+                prod_build_pipelines=[prod_edx_b, prod_edge_b],
+                stage_deploy_pipeline=stage_md,
                 auto_deploy_ami=True,
             )
         ],
@@ -234,14 +240,6 @@ def install_pipelines(configurator, config, env_configs):
         auto_run=True,
     )
 
-    prod_edx_md.ensure_material(
-        PipelineMaterial(prod_edx_b.name, constants.BUILD_AMI_STAGE_NAME, material_name="prod_edx_b_build_ami")
-    )
-
-    prod_edge_md.ensure_material(
-        PipelineMaterial(prod_edge_b.name, constants.BUILD_AMI_STAGE_NAME, material_name="prod_edge_b_build_ami")
-    )
-
     for deploy in (prod_edx_md, prod_edge_md):
         deploy.ensure_material(
             PipelineMaterial(
@@ -249,6 +247,13 @@ def install_pipelines(configurator, config, env_configs):
                 stage_name=constants.MANUAL_VERIFICATION_STAGE_NAME,
                 material_name="prod_release_gate",
             )
+        )
+        for build in (prod_edx_b, prod_edge_b):
+            deploy.ensure_material(
+                PipelineMaterial(build.name, constants.BUILD_AMI_STAGE_NAME, "{}_build".format(build.name))
+            )
+        deploy.ensure_material(
+            PipelineMaterial(stage_md.name, constants.MESSAGE_PR_STAGE_NAME, "stage_message_prs")
         )
 
     for pipeline in (stage_b, stage_md, prod_edx_b, prod_edx_md, prod_edge_b, prod_edge_md):
@@ -264,6 +269,8 @@ def install_pipelines(configurator, config, env_configs):
         prod_edx_b,
         prod_edx_md,
         env_configs['prod-edx'],
+        [prod_edx_b, prod_edge_b],
+        stage_md,
     )
     rollback_edge = edxapp.rollback_asgs(
         edxapp_deploy_group,
@@ -271,22 +278,35 @@ def install_pipelines(configurator, config, env_configs):
         prod_edge_b,
         prod_edge_md,
         env_configs['prod-edge'],
+        [prod_edx_b, prod_edge_b],
+        stage_md,
     )
+
+    for rollback_stage in (rollback_edx, rollback_edge):
+        rollback_stage.ensure_material(
+            PipelineMaterial(
+                pipeline_name=stage_md.name,
+                stage_name=constants.MESSAGE_PR_STAGE_NAME,
+                material_name='stage_message_pr',
+            )
+        )
+
+    for rollback in (rollback_edx, rollback_edge):
+        for build in (prod_edx_b, prod_edge_b):
+            rollback.ensure_material(
+                PipelineMaterial(
+                    pipeline_name=build.name,
+                    stage_name=constants.BUILD_AMI_STAGE_NAME,
+                    material_name='{}_build_ami'.format(build.name),
+                )
+            )
 
     rollback_edx.ensure_material(
         PipelineMaterial(prod_edx_md.name, constants.DEPLOY_AMI_STAGE_NAME, "deploy_ami")
     )
 
-    rollback_edx.ensure_material(
-        PipelineMaterial(prod_edx_b.name, constants.BASE_AMI_SELECTION_STAGE_NAME, "select_base_ami")
-    )
-
     rollback_edge.ensure_material(
         PipelineMaterial(prod_edge_md.name, constants.DEPLOY_AMI_STAGE_NAME, "deploy_ami")
-    )
-
-    rollback_edge.ensure_material(
-        PipelineMaterial(prod_edge_b.name, constants.BASE_AMI_SELECTION_STAGE_NAME, "select_base_ami")
     )
 
     edxapp.launch_and_terminate_subset_pipeline(
