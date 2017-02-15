@@ -1498,9 +1498,9 @@ def generate_release_wiki_page(
     for base, new in ami_pairs:
         compare_option = ['--compare']
         for artifact in (base, new):
-            output_path = '{}/{}.{}'.format(constants.ARTIFACT_PATH, artifact.pipeline, artifact.file_name)
-            compare_option.append(output_path)
-            job.add_task(artifact.as_fetch_task(output_path))
+            output_dir = '{}/{}'.format(constants.ARTIFACT_PATH, artifact.pipeline)
+            compare_option.append("{}/{}".format(output_dir, artifact.file_name))
+            job.add_task(artifact.as_fetch_task(output_dir))
         arguments.extend(compare_option)
 
     return job.add_task(tubular_task(
