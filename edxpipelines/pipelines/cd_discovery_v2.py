@@ -9,7 +9,12 @@ from os import path
 sys.path.append(path.dirname(path.dirname(path.dirname(path.abspath(__file__)))))
 
 # pylint: disable=wrong-import-position
+from gomatic import GitMaterial
+
+from edxpipelines import constants, materials
+from edxpipelines.patterns import jobs
 from edxpipelines.pipelines.script import pipeline_script
+from edxpipelines.utils import EDP
 
 
 def install_pipelines(configurator, config, env_configs):  # pylint: disable=unused-argument
@@ -46,6 +51,7 @@ def install_pipelines(configurator, config, env_configs):  # pylint: disable=unu
     The second pipeline contains 4 stages, run serially:
 
         1. Armed stage. Triggered by success of the last stage in the preceding pipeline.
+           Can be armed by the earlier prod AMI build to provide a fast track to prod.
 
         2. Migrate and deploy to prod. Requires manual execution. Contains 1 job.
 
@@ -60,7 +66,60 @@ def install_pipelines(configurator, config, env_configs):  # pylint: disable=unu
 
         4. Roll back prod migrations.
     """
-    pass
+    edp = EDP(None, 'edx', 'discovery')
+    app_repo_url = 'https://github.com/edx/course-discovery.git'
+    app_version_var = '$GO_REVISION_DISCOVERY'
+    playbook_path = 'playbooks/edx-east/discovery.yml'
+
+    configurator.ensure_removal_of_pipeline_group(edp.play)
+    pipeline_group = configurator.ensure_pipeline_group(edp.play)
+
+    build_pipeline = pipeline_group.ensure_replacement_of_pipeline('-'.join(['build', edp.play]))
+
+    configuration_secure_material = GitMaterial(
+        url='git@github.com:edx-ops/{deployment}-secure.git'.format(deployment=edp.deployment),
+        branch='master',
+        polling=True,
+        # Downstream tasks expect a material named configuration-secure.
+        destination_directory='configuration-secure',
+        ignore_patterns=['**/*'],
+    )
+
+    ensured_materials = [
+        materials.TUBULAR(),
+        materials.CONFIGURATION(),
+        configuration_secure_material,
+        GitMaterial(
+            app_repo_url,
+            branch='master',
+            polling=True,
+            destination_directory=edp.play
+        ),
+    ]
+
+    for material in ensured_materials:
+        build_pipeline.ensure_material(material)
+
+    build_pipeline.ensure_environment_variables({
+        'APPLICATION_USER': edp.play,
+        'APPLICATION_NAME': edp.play,
+        'APPLICATION_PATH': '/edx/app/' + edp.play,
+    })
+
+    build_stage = build_pipeline.ensure_stage(constants.BUILD_AMIS_STAGE_NAME)
+
+    for environment in ('stage', 'prod'):
+        jobs.generate_build_ami(
+            build_pipeline,
+            build_stage,
+            edp._replace(environment=environment),
+            app_repo_url,
+            configuration_secure_material.url,
+            playbook_path,
+            env_configs[environment],
+            app_version=app_version_var,
+            DISCOVERY_VERSION=app_version_var,
+        )
 
 
 if __name__ == '__main__':

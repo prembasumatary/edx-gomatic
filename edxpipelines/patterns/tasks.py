@@ -4,9 +4,10 @@ Common gomatic task patterns.
 import re
 import textwrap
 
-from gomatic import ExecTask, BuildArtifact, FetchArtifactFile, FetchArtifactTask
+from gomatic import ExecTask, BuildArtifact
 
 from edxpipelines import constants
+from edxpipelines.utils import ArtifactLocation
 
 
 def ansible_task(
@@ -245,7 +246,7 @@ def generate_launch_instance(
     # fetch the artifacts if there are any
     optional_override_files = []
     if upstream_build_artifact:
-        job.add_task(upstream_build_artifact.as_fetch_task(constants.ARTIFACT_PATH))
+        job.ensure_task(upstream_build_artifact.as_fetch_task(constants.ARTIFACT_PATH))
         optional_override_files.append(
             '{artifact_path}/{file_name}'
             .format(
@@ -282,11 +283,12 @@ def generate_launch_instance(
 def generate_create_ami(
         pipeline, job, play, deployment, edx_environment,
         app_repo, configuration_secure_repo, aws_access_key_id,
-        aws_secret_access_key, configuration_repo=constants.PUBLIC_CONFIGURATION_REPO_URL,
-        ami_creation_timeout="3600", ami_wait='yes', cache_id='',
+        aws_secret_access_key, upstream_artifact_base=None,
+        configuration_repo=constants.PUBLIC_CONFIGURATION_REPO_URL,
+        ami_creation_timeout='3600', ami_wait='yes', cache_id='',
         artifact_path=constants.ARTIFACT_PATH, hipchat_token='',
         hipchat_room=constants.HIPCHAT_ROOM,
-        runif="passed", **kwargs
+        runif='passed', **kwargs
 ):
     """
     TODO: Decouple AMI building and AMI tagging in to 2 different jobs/ansible scripts
@@ -303,6 +305,14 @@ def generate_create_ami(
         The newly created task (gomatic.gocd.tasks.ExecTask)
 
     """
+    if not upstream_artifact_base:
+        upstream_artifact_base = ArtifactLocation(
+            pipeline.name,
+            constants.LAUNCH_INSTANCE_STAGE_NAME,
+            constants.LAUNCH_INSTANCE_JOB_NAME,
+            None
+        )
+
     pipeline.ensure_encrypted_environment_variables(
         {
             'AWS_ACCESS_KEY_ID': aws_access_key_id,
@@ -328,15 +338,8 @@ def generate_create_ami(
         }
     )
 
-    # fetch the key material
-    artifact_params = {
-        'pipeline': pipeline.name,
-        'stage': constants.LAUNCH_INSTANCE_STAGE_NAME,
-        'job': constants.LAUNCH_INSTANCE_JOB_NAME,
-        'src': FetchArtifactFile("launch_info.yml"),
-        'dest': constants.ARTIFACT_PATH
-    }
-    job.add_task(FetchArtifactTask(**artifact_params))
+    launch_info_location = upstream_artifact_base._replace(file_name='launch_info.yml')
+    job.ensure_task(launch_info_location.as_fetch_task(constants.ARTIFACT_PATH))
 
     job.ensure_artifacts(set([BuildArtifact('{}/ami.yml'.format(constants.ARTIFACT_PATH))]))
     variables = [
@@ -666,6 +669,7 @@ def fetch_edx_mktg(job, secure_dir, runif="passed"):
 
 def generate_run_app_playbook(
         pipeline, job, playbook_with_path, edp, app_repo,
+        upstream_artifact_base=None,
         private_github_key='', hipchat_token='',
         hipchat_room=constants.HIPCHAT_ROOM,
         configuration_secure_dir=constants.PRIVATE_CONFIGURATION_LOCAL_DIR,
@@ -711,7 +715,15 @@ def generate_run_app_playbook(
         The newly created task (gomatic.gocd.tasks.ExecTask)
 
     """
-    # setup the necessary environment variables
+    if not upstream_artifact_base:
+        upstream_artifact_base = ArtifactLocation(
+            pipeline.name,
+            constants.LAUNCH_INSTANCE_STAGE_NAME,
+            constants.LAUNCH_INSTANCE_JOB_NAME,
+            None
+        )
+
+    # Set up the necessary environment variables.
     pipeline.ensure_encrypted_environment_variables(
         {
             'HIPCHAT_TOKEN': hipchat_token,
@@ -730,23 +742,17 @@ def generate_run_app_playbook(
         }
     )
 
-    # fetch the key material
-    artifact_params = {
-        'pipeline': pipeline.name,
-        'stage': constants.LAUNCH_INSTANCE_STAGE_NAME,
-        'job': constants.LAUNCH_INSTANCE_JOB_NAME,
-        'src': FetchArtifactFile("key.pem"),
-        'dest': constants.ARTIFACT_PATH
-    }
-    job.add_task(FetchArtifactTask(**artifact_params))
+    # Fetch the key material.
+    key_material_location = upstream_artifact_base._replace(file_name='key.pem')
+    job.ensure_task(key_material_location.as_fetch_task(constants.ARTIFACT_PATH))
 
-    # fetch the launch_info.yml
-    artifact_params['src'] = FetchArtifactFile('launch_info.yml')
-    job.add_task(FetchArtifactTask(**artifact_params))
+    # Fetch the launch_info.yml.
+    launch_info_location = upstream_artifact_base._replace(file_name='launch_info.yml')
+    job.ensure_task(launch_info_location.as_fetch_task(constants.ARTIFACT_PATH))
 
-    # fetch the inventory file
-    artifact_params['src'] = FetchArtifactFile('ansible_inventory')
-    job.add_task(FetchArtifactTask(**artifact_params))
+    # Fetch the inventory file.
+    ansible_inventory_location = upstream_artifact_base._replace(file_name='ansible_inventory')
+    job.ensure_task(ansible_inventory_location.as_fetch_task(constants.ARTIFACT_PATH))
 
     return job.add_task(ansible_task(
         prefix=[
@@ -1417,7 +1423,7 @@ def generate_message_pull_requests_in_commit_range(  # pylint: disable=invalid-n
         arguments.extend(['--base_sha', base_sha])
 
     if base_ami_artifact and ami_tag_app:
-        job.add_task(base_ami_artifact.as_fetch_task(constants.ARTIFACT_PATH))
+        job.ensure_task(base_ami_artifact.as_fetch_task(constants.ARTIFACT_PATH))
 
         arguments.extend([
             '--base_ami_tags', "../{}/{}".format(constants.ARTIFACT_PATH, base_ami_artifact.file_name),
@@ -1495,7 +1501,7 @@ def generate_release_wiki_page(
             '--in-file',
             '{}/{}'.format(input_wiki_id_folder, input_artifact.file_name),
         ])
-        job.add_task(input_artifact.as_fetch_task(input_wiki_id_folder))
+        job.ensure_task(input_artifact.as_fetch_task(input_wiki_id_folder))
     else:
         if parent_title:
             arguments.extend(['--parent-title', parent_title])
@@ -1509,7 +1515,7 @@ def generate_release_wiki_page(
         for artifact in (base, new):
             output_dir = '{}/{}'.format(constants.ARTIFACT_PATH, artifact.pipeline)
             compare_option.append("{}/{}".format(output_dir, artifact.file_name))
-            job.add_task(artifact.as_fetch_task(output_dir))
+            job.ensure_task(artifact.as_fetch_task(output_dir))
         arguments.extend(compare_option)
 
     return job.add_task(tubular_task(

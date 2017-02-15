@@ -325,6 +325,19 @@ tools:
     enabled: True
 
   # Catalog/Discovery Service
+  - script: edxpipelines/pipelines/cd_discovery_v2.py
+    variable_file:
+      - *tools-admin
+      - *play-discovery
+    env-variable-file:
+      - ["stage", *deployment-edx]
+      - ["stage", *loadtest-edx]
+      - ["stage", "../gomatic-secure/gocd/vars/tools/environment-deployment-play/loadtest-edx-discovery.yml"]
+      - ["prod", *deployment-edx]
+      - ["prod", *loadtest-edx]
+      - ["prod", "../gomatic-secure/gocd/vars/tools/environment-deployment-play/loadtest-edx-discovery.yml"]
+    enabled: True
+
   - script: edxpipelines/pipelines/cd_discovery.py
     variable_file:
       - *tools-admin
