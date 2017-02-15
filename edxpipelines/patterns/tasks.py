@@ -76,7 +76,7 @@ def ansible_task(
     )
 
 
-def tubular_task(script, arguments, prefix=None, runif='passed'):
+def tubular_task(script, arguments, prefix=None, runif='passed', working_dir='tubular'):
     """
     Execute a tubular script in a standard way.
 
@@ -101,7 +101,7 @@ def tubular_task(script, arguments, prefix=None, runif='passed'):
             '-c',
             ' '.join(command)
         ],
-        working_dir='tubular',
+        working_dir=working_dir,
         runif=runif
     )
 
@@ -1351,4 +1351,5 @@ def generate_release_wiki_page(
     return job.add_task(tubular_task(
         'update_release_page.py',
         arguments,
+        working_dir=None,
     ))
