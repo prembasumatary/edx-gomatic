@@ -297,9 +297,9 @@ def install_pipelines(configurator, config, env_configs):
         pipeline_name="PROD_edx_edxapp_Rollback_Migrations_latest",
         ami_artifact=utils.ArtifactLocation(
             prod_edx_b.name,
-            constants.BASE_AMI_SELECTION_STAGE_NAME,
-            constants.BASE_AMI_SELECTION_JOB_NAME,
-            constants.BASE_AMI_OVERRIDE_FILENAME
+            constants.BUILD_AMI_STAGE_NAME,
+            constants.BUILD_AMI_JOB_NAME,
+            constants.BUILD_AMI_FILENAME
         ),
         auto_run=False,
         pre_launch_builders=[
@@ -316,9 +316,9 @@ def install_pipelines(configurator, config, env_configs):
         pipeline_name="PROD_edge_edxapp_Rollback_Migrations_latest",
         ami_artifact=utils.ArtifactLocation(
             prod_edge_b.name,
-            constants.BASE_AMI_SELECTION_STAGE_NAME,
-            constants.BASE_AMI_SELECTION_JOB_NAME,
-            constants.BASE_AMI_OVERRIDE_FILENAME
+            constants.BUILD_AMI_STAGE_NAME,
+            constants.BUILD_AMI_JOB_NAME,
+            constants.BUILD_AMI_FILENAME
         ),
         auto_run=False,
         pre_launch_builders=[

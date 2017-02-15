@@ -557,7 +557,7 @@ def rollback_database(build_pipeline, deploy_pipeline):
         pipeline.ensure_material(
             PipelineMaterial(
                 pipeline_name=build_pipeline.name,
-                stage_name=constants.BASE_AMI_SELECTION_STAGE_NAME,
+                stage_name=constants.BUILD_AMI_STAGE_NAME,
                 material_name='select_base_ami',
             )
         )
