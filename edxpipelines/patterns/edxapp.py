@@ -22,6 +22,9 @@ from edxpipelines.materials import (
 )
 
 
+EDXAPP_SUBAPPS = ['cms', 'lms']
+
+
 def cut_branch(edxapp_group, config):
     """
     Variables needed for this pipeline:
@@ -273,7 +276,7 @@ def generate_migrate_stages(pipeline, config):
     else:
         duration_threshold = None
 
-    for sub_app in config['edxapp_subapps']:
+    for sub_app in EDXAPP_SUBAPPS:
         stages.generate_run_migrations(
             pipeline,
             db_migration_pass=config['db_migration_pass'],
@@ -624,7 +627,7 @@ def rollback_database(build_pipeline, deploy_pipeline):
             )
         )
         # Create a a stage for migration rollback.
-        for sub_app in config['edxapp_subapps']:
+        for sub_app in EDXAPP_SUBAPPS:
             migration_artifact = utils.ArtifactLocation(
                 deploy_pipeline.name,
                 constants.APPLY_MIGRATIONS_STAGE + "_" + sub_app,
