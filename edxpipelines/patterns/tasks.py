@@ -267,7 +267,7 @@ def generate_create_ami(job, runif="passed", **kwargs):
         ('no_reboot', '$NO_REBOOT'),
         ('extra_name_identifier', '$GO_PIPELINE_COUNTER'),
     ]
-    variables.extend(kwargs.items())
+    variables.extend(sorted(kwargs.items()))
 
     return job.add_task(ansible_task(
         variables=variables,
