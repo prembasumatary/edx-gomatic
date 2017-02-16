@@ -1474,7 +1474,7 @@ def generate_release_wiki_page(
 
     arguments = [
         '--user', confluence_user,
-        '--password', '$CONFLUENCE_USER',
+        '--password', '$CONFLUENCE_PASSWORD',
         '--github-token', '$GITHUB_TOKEN',
         '--status', release_status.value,
         '--out-file', wiki_id,
