@@ -1,4 +1,8 @@
 #!/usr/bin/env python
+"""
+Functions for putting GoCD XML configuration into a canonical format
+without changing the semantics.
+"""
 
 from collections import defaultdict
 from copy import copy
@@ -13,19 +17,26 @@ PARSER = ElementTree.XMLParser(
 )
 
 
-def canonicalize(child_sort_key=None, post_process=None):
+def canonicalize(child_sort_key=None):
     """
     Build a canonicalizer function using the specified key to sort
     element children. (Will not sort children if child_sort_key is None).
+
+    Arguments:
+        child_sort_key: The key-function to sort element children by
     """
     def canonicalizer(element):
+        """
+        Canonicalize the supplied GoCD XML Element.
+
+        Arguments:
+            element: The etree element to canonicalize.
+        """
         canon = copy(element)
         canon.tail = None
         canon[:] = [canonicalize_element(child) for child in canon]
         if child_sort_key is not None:
             canon[:] = sorted(canon, key=child_sort_key)
-        if post_process:
-            post_process(canon)
         return canon
     return canonicalizer
 
@@ -73,13 +84,19 @@ def canonicalize_gocd(config_xml):
 
 
 def canonicalize_element(element):
+    """
+    Canonicalize an element using the standard rule for that elements tag.
+    """
     return RULES[element.tag](element)
 
 
 @click.command()
 @click.argument('input_file', nargs=1, type=click.File('rb'))
 def cli(input_file):
+    """
+    Canonicalize a GoCD XML configuration file, and print it to stdout.
+    """
     canonicalize_file(input_file, sys.stdout)
 
 if __name__ == '__main__':
-    cli()
+    cli()  # pylint: disable=no-value-for-parameter

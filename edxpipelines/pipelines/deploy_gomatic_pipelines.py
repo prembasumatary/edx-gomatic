@@ -1,20 +1,22 @@
 #!/usr/bin/env python
+"""
+Script to install pipelines that can deploy the gomatic configuration.
+"""
 import sys
 from os import path
-import click
-from gomatic import *
+
+from gomatic import GitMaterial, ExecTask
 
 # Used to import edxpipelines files - since the module is not installed.
 sys.path.append(path.dirname(path.dirname(path.dirname(path.abspath(__file__)))))
 
-from edxpipelines import utils
-from edxpipelines.patterns import stages
+# pylint: disable=wrong-import-position
 from edxpipelines.patterns import tasks
 from edxpipelines import constants
 from edxpipelines.pipelines.script import pipeline_script
 
 
-def install_pipelines(configurator, config, env_configs):
+def install_pipelines(configurator, config, env_configs):  # pylint: disable=unused-argument
     """
     Variables needed for this pipeline:
     - gocd_username
@@ -30,8 +32,6 @@ def install_pipelines(configurator, config, env_configs):
     - ec2_instance_profile_name
     - base_ami_id
     """
-    artifact_path = 'target/'
-
     pipeline = configurator.ensure_pipeline_group(
         config['pipeline_group']
     ).ensure_replacement_of_pipeline(

@@ -1,5 +1,9 @@
-from gomatic import GitMaterial
+"""
+A set of standard overridable material definitions.
+"""
 from functools import partial
+
+from gomatic import GitMaterial
 
 
 TUBULAR = partial(

@@ -1,14 +1,18 @@
 #!/usr/bin/env python
+"""
+Script to install pipelines to deploy the course-discovery IDA.
+"""
 import sys
 from os import path
 
 # Used to import edxpipelines files - since the module is not installed.
 sys.path.append(path.dirname(path.dirname(path.dirname(path.abspath(__file__)))))
 
+# pylint: disable=wrong-import-position
 from edxpipelines.pipelines.script import pipeline_script
 
 
-def install_pipelines(configurator, config, env_configs):
+def install_pipelines(configurator, config, env_configs):  # pylint: disable=unused-argument
     """
     Generates 2 pipelines used to deploy the discovery service to stage and prod.
 

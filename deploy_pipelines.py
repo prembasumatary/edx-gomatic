@@ -1,4 +1,8 @@
 #!/usr/bin/env python
+"""
+Run all pipeline deployment scripts in a specified config file.
+"""
+
 import logging
 import pprint
 import subprocess
@@ -25,8 +29,8 @@ def parse_config(environment, config_file_path, script_filter=None):
     Returns:
         list of dict
     """
-    with open(config_file_path, 'r') as file:
-        config = yaml.safe_load(file)
+    with open(config_file_path, 'r') as config_file:
+        config = yaml.safe_load(config_file)
     result = []
     for script in config[environment]:
         if script.pop('enabled'):
@@ -36,12 +40,18 @@ def parse_config(environment, config_file_path, script_filter=None):
 
 
 def print_success_report(success):
+    """
+    Print out successful script runs.
+    """
     print "Succesfully run scripts:"
     for item in success:
         logging.info(pprint.pformat(item))
 
 
 def print_failure_report(failures):
+    """
+    Print out failed script runs.
+    """
     print "Scripts failed:"
     for failure in failures:
         logging.info("script:\n{}".format(pprint.pformat(failure)))
@@ -52,10 +62,11 @@ def print_failure_report(failures):
 @click.option('--config_file', '-f', help='Path to the configuration file', required=True)
 @click.option('--verbose', '-v', is_flag=True)
 @click.option('--script', help='optional, specify the script to run.', default=None)
-@click.option('--dry-run',
-        help='run all pipelines in dry-run mode.',
-        default=False,
-        is_flag=True,
+@click.option(
+    '--dry-run',
+    help='run all pipelines in dry-run mode.',
+    default=False,
+    is_flag=True,
 )
 @click.option(
     '--save-config', 'save_config_locally',
@@ -116,6 +127,5 @@ def run_pipelines(environment, config_file, script, verbose, dry_run, save_confi
     exit(0)
 
 
-
 if __name__ == '__main__':
-    run_pipelines()
+    run_pipelines()  # pylint: disable=no-value-for-parameter

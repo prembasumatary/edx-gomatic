@@ -1,16 +1,20 @@
 #!/usr/bin/env python
-from functools import partial
+
+"""
+Gomatic patterns for building the edxapp pipeline.
+"""
+
 import sys
 from os import path
-from gomatic import *
+from gomatic import ExecTask, PipelineMaterial
 
 # Used to import edxpipelines files - since the module is not installed.
 sys.path.append(path.dirname(path.dirname(path.dirname(path.abspath(__file__)))))
 
+# pylint: disable=wrong-import-position
 from edxpipelines import utils
 from edxpipelines.patterns import stages
 from edxpipelines.patterns import tasks
-from edxpipelines.patterns import pipelines
 from edxpipelines import constants
 from edxpipelines.materials import (
     TUBULAR, CONFIGURATION, EDX_PLATFORM, EDX_SECURE, EDGE_SECURE,
@@ -44,7 +48,7 @@ def cut_branch(edxapp_group, config):
     return pipeline
 
 
-def prerelease_materials(edxapp_group, config):
+def prerelease_materials(edxapp_group):
     """
     Variables needed for this pipeline:
     - gocd_username
@@ -173,7 +177,13 @@ def launch_and_terminate_subset_pipeline(
 
 def generate_build_stages(app_repo, theme_url, configuration_secure_repo,
                           configuration_internal_repo, configuration_url):
+    """
+    Generate the stages needed to build an edxapp AMI.
+    """
     def builder(pipeline, config):
+        """
+        A builder for the stages needed to build an edxapp AMI.
+        """
         stages.generate_run_play(
             pipeline,
             'playbooks/edx-east/edxapp.yml',
@@ -223,6 +233,19 @@ def generate_build_stages(app_repo, theme_url, configuration_secure_repo,
 
 
 def generate_migrate_stages(pipeline, config):
+    """
+    Generate stages to manage the migration of an environment,
+    and add them to ``pipeline``.
+
+    Required Config Values:
+        db_migration_pass
+        migration_duration_threshold
+        db_migration_user
+        play_name
+        application_path
+        alert_from_address
+        alert_to_addresses
+    """
     #
     # Create the DB migration running stage.
     #
@@ -273,10 +296,22 @@ def generate_deploy_stages(
         pipeline_name_build,
         auto_deploy_ami=False
 ):
-    #
-    # Create the stage to deploy the AMI.
-    #
+    """
+    Create a builder function that adds deployment stages to a pipeline.
+    """
     def builder(pipeline, config):
+        """
+        Add stages required to deploy edxapp to an environment to the
+        supplied pipeline.
+
+        Required Config Parameters:
+            asgard_api_endpoints
+            asgard_token
+            aws_access_key_id
+            aws_secret_access_key
+            github_token
+            edx_environment
+        """
         built_ami_file_location = utils.ArtifactLocation(
             pipeline_name_build,
             constants.BUILD_AMI_STAGE_NAME,
@@ -316,9 +351,14 @@ def generate_deploy_stages(
 
 
 def generate_cleanup_stages(pipeline, config, launch_stage):
-    #
-    # Create the stage to terminate the EC2 instance used to both build the AMI and run DB migrations.
-    #
+    """
+    Create the stage to terminate the EC2 instance used to both build the AMI and run DB migrations.
+
+    Required Config Parameters:
+        aws_access_key_id
+        aws_secret_access_key
+        hipchat_token
+    """
     instance_info_location = utils.ArtifactLocation(
         pipeline.name,
         launch_stage.name,
@@ -336,7 +376,7 @@ def generate_cleanup_stages(pipeline, config, launch_stage):
     return pipeline
 
 
-def manual_verification(edxapp_deploy_group, config):
+def manual_verification(edxapp_deploy_group):
     """
     Variables needed for this pipeline:
     materials: A list of dictionaries of the materials used in this pipeline
@@ -345,8 +385,8 @@ def manual_verification(edxapp_deploy_group, config):
     pipeline = edxapp_deploy_group.ensure_replacement_of_pipeline("manual_verification_edxapp_prod_early_ami_build")
 
     for material in (
-        TUBULAR, CONFIGURATION, EDX_PLATFORM, EDX_SECURE, EDGE_SECURE,
-        EDX_MICROSITE, EDX_INTERNAL, EDGE_INTERNAL
+            TUBULAR, CONFIGURATION, EDX_PLATFORM, EDX_SECURE, EDGE_SECURE,
+            EDX_MICROSITE, EDX_INTERNAL, EDGE_INTERNAL
     ):
         pipeline.ensure_material(material())
 
@@ -380,6 +420,14 @@ def manual_verification(edxapp_deploy_group, config):
 
 
 def generate_e2e_test_stage(pipeline, config):
+    """
+    Add stages to run end-to-end tests against edxapp to the specified ``pipeline``.
+
+    Required Config Parameters:
+        jenkins_user_token
+        jenkins_job_token
+        jenkins_user_name
+    """
     # For now, you can only trigger builds on a single jenkins server, because you can only
     # define a single username/token.
     # And all the jobs that you want to trigger need the same job token defined.
@@ -443,8 +491,8 @@ def rollback_asgs(
                                   .ensure_environment_variables({'WAIT_SLEEP_TIME': config['tubular_sleep_wait_time']})
 
     for material in (
-        TUBULAR, CONFIGURATION, EDX_PLATFORM, EDX_SECURE, EDGE_SECURE,
-        EDX_MICROSITE, EDX_INTERNAL, EDGE_INTERNAL,
+            TUBULAR, CONFIGURATION, EDX_PLATFORM, EDX_SECURE, EDGE_SECURE,
+            EDX_MICROSITE, EDX_INTERNAL, EDGE_INTERNAL,
     ):
         pipeline.ensure_material(material())
 
@@ -496,12 +544,12 @@ def rollback_asgs(
     return pipeline
 
 
-def armed_stage_builder():
-    def builder(pipeline, config):
-        stages.generate_armed_stage(pipeline, constants.ARM_PRERELEASE_STAGE)
-        return pipeline
-
-    return builder
+def armed_stage_builder(pipeline, config):  # pylint: disable=unused-argument
+    """
+    Add an armed stage to pipeline.
+    """
+    stages.generate_armed_stage(pipeline, constants.ARM_PRERELEASE_STAGE)
+    return pipeline
 
 
 def rollback_database(build_pipeline, deploy_pipeline):
@@ -519,11 +567,14 @@ def rollback_database(build_pipeline, deploy_pipeline):
         ec2_instance_profile_name
         db_migration_user
         db_migration_pass
-        play_name
+        play_name`
         application_name
         edxapp_subapps
     """
     def builder(pipeline, config):
+        """
+        Add database rollback stages to ``pipeline``.
+        """
         for material in (
                 TUBULAR, CONFIGURATION, EDX_PLATFORM, EDX_SECURE, EDGE_SECURE,
                 EDX_MICROSITE, EDX_INTERNAL, EDGE_INTERNAL,
@@ -605,8 +656,8 @@ def merge_back_branches(edxapp_deploy_group, pipeline_name, deploy_artifact, con
     pipeline = edxapp_deploy_group.ensure_replacement_of_pipeline(pipeline_name)
 
     for material in (
-        TUBULAR, CONFIGURATION, EDX_PLATFORM, EDX_SECURE, EDGE_SECURE,
-        EDX_MICROSITE, EDX_INTERNAL, EDGE_INTERNAL
+            TUBULAR, CONFIGURATION, EDX_PLATFORM, EDX_SECURE, EDGE_SECURE,
+            EDX_MICROSITE, EDX_INTERNAL, EDGE_INTERNAL
     ):
         pipeline.ensure_material(material())
 

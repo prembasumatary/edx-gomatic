@@ -3,7 +3,6 @@ Tools for deploying gomatic-built pipelines.
 """
 
 import logging
-import os.path
 import subprocess
 import tempfile
 
@@ -11,6 +10,24 @@ from .canonicalize import canonicalize_file
 
 
 def ensure_pipeline(script, dry_run=False, save_config_locally=False, **kwargs):
+    """
+    Execute a pipeline install script, optionally saving the config for later inspection.
+
+    Arguments:
+        script: The pipeline script to execute.
+        dry_run: If True, don't actually modify the GoCD server.
+        save_config_locally: If True, store the config before and after the script executes
+            as config-before.xml and config-after.xml.
+        kwargs: Any additional parameters to be passed to the script. These parameters
+            will be sorted, and any values that are lists will have each value in the
+            list passed as a separate copy of the option flag. For instance, the kwargs
+
+                {"foo": 1, "bar": [2, 3]}
+
+            would result in the options
+
+                --foo 1 --bar 2 --bar 3
+    """
     script_args = []
 
     if dry_run:

@@ -1,8 +1,9 @@
-import re
+"""
+Common gomatic pipeline patterns.
+"""
 
-from gomatic import *
+from gomatic import GitMaterial
 
-from gomatic.gocd.materials import PipelineMaterial
 from edxpipelines import utils
 from edxpipelines import constants
 from edxpipelines.patterns import stages
@@ -144,34 +145,36 @@ def generate_basic_multistage_pipeline(
     )
 
     # Launch a new instance on which to build the AMI
-    stages.generate_launch_instance(pipeline,
-                                    config['aws_access_key_id'],
-                                    config['aws_secret_access_key'],
-                                    config['ec2_vpc_subnet_id'],
-                                    config['ec2_security_group_id'],
-                                    config['ec2_instance_profile_name'],
-                                    config['base_ami_id'],
-                                    upstream_build_artifact=ami_artifact
-                                    )
+    stages.generate_launch_instance(
+        pipeline,
+        config['aws_access_key_id'],
+        config['aws_secret_access_key'],
+        config['ec2_vpc_subnet_id'],
+        config['ec2_security_group_id'],
+        config['ec2_instance_profile_name'],
+        config['base_ami_id'],
+        upstream_build_artifact=ami_artifact
+    )
 
     # Run the Ansible play for the service
-    stages.generate_run_play(pipeline,
-                             playbook_with_path=playbook_path,
-                             play=play,
-                             deployment=deployment,
-                             edx_environment=environment,
-                             app_repo=app_repo,
-                             configuration_secure_repo=config['configuration_secure_repo'],
-                             configuration_secure_dir=constants.PRIVATE_CONFIGURATION_LOCAL_DIR,
-                             # remove above line and uncomment the below once materials are changed over to list.
-                             # configuration_secure_dir='{}-secure'.format(config['edx_deployment']),
-                             private_github_key=config['github_private_key'],
-                             hipchat_token=hipchat_token,
-                             hipchat_room=hipchat_room,
-                             disable_edx_services='true',
-                             COMMON_TAG_EC2_INSTANCE='true',
-                             **kwargs
-                             )
+    stages.generate_run_play(
+        pipeline,
+        playbook_with_path=playbook_path,
+        play=play,
+        deployment=deployment,
+        edx_environment=environment,
+        app_repo=app_repo,
+        configuration_secure_repo=config['configuration_secure_repo'],
+        configuration_secure_dir=constants.PRIVATE_CONFIGURATION_LOCAL_DIR,
+        # remove above line and uncomment the below once materials are changed over to list.
+        # configuration_secure_dir='{}-secure'.format(config['edx_deployment']),
+        private_github_key=config['github_private_key'],
+        hipchat_token=hipchat_token,
+        hipchat_room=hipchat_room,
+        disable_edx_services='true',
+        COMMON_TAG_EC2_INSTANCE='true',
+        **kwargs
+    )
 
     # Create an AMI
     stages.generate_create_ami_from_instance(
@@ -212,15 +215,16 @@ def generate_basic_multistage_pipeline(
     )
 
     if not skip_migrations:
-        stages.generate_run_migrations(pipeline,
-                                       config['db_migration_pass'],
-                                       ansible_inventory_location,
-                                       instance_ssh_key_location,
-                                       launch_info_location,
-                                       application_user=application_user,
-                                       application_name=application_name,
-                                       application_path=application_path
-                                       )
+        stages.generate_run_migrations(
+            pipeline,
+            config['db_migration_pass'],
+            ansible_inventory_location,
+            instance_ssh_key_location,
+            launch_info_location,
+            application_user=application_user,
+            application_name=application_name,
+            application_path=application_path
+        )
 
     # Run post-migration stages/tasks
     for stage in post_migration_stages:

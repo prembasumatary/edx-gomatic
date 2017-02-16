@@ -1,15 +1,18 @@
 #!/usr/bin/env python
+"""
+Build the pipeline system needed to deploy edxapp.
+"""
+
 import sys
 from os import path
-import click
-from gomatic import *
+
+from gomatic import PipelineMaterial
 
 # Used to import edxpipelines files - since the module is not installed.
 sys.path.append(path.dirname(path.dirname(path.dirname(path.abspath(__file__)))))
 
+# pylint: disable=wrong-import-position
 from edxpipelines import utils
-from edxpipelines.patterns import stages
-from edxpipelines.patterns import pipelines
 from edxpipelines import constants
 from edxpipelines.patterns.authz import Permission, ensure_permissions
 from edxpipelines.patterns import edxapp
@@ -59,13 +62,12 @@ def install_pipelines(configurator, config, env_configs):
     ensure_permissions(edxapp_deploy_group, Permission.OPERATE, ['prod-deploy-operators'])
     ensure_permissions(edxapp_deploy_group, Permission.VIEW, ['prod-deploy-operators'])
 
-    cut_branch = edxapp.cut_branch(
+    edxapp.cut_branch(
         edxapp_group,
         config,
     )
     prerelease_materials = edxapp.prerelease_materials(
         edxapp_group,
-        env_configs['stage'],
     )
 
     stage_b = edxapp.launch_and_terminate_subset_pipeline(
@@ -163,7 +165,6 @@ def install_pipelines(configurator, config, env_configs):
 
     manual_verification = edxapp.manual_verification(
         edxapp_deploy_group,
-        config,
     )
 
     manual_verification.ensure_material(
@@ -252,8 +253,8 @@ def install_pipelines(configurator, config, env_configs):
 
     for pipeline in (stage_b, stage_md, prod_edx_b, prod_edx_md, prod_edge_b, prod_edge_md):
         for material in (
-            TUBULAR, CONFIGURATION, EDX_PLATFORM, EDX_SECURE, EDGE_SECURE,
-            EDX_MICROSITE, EDX_INTERNAL, EDGE_INTERNAL
+                TUBULAR, CONFIGURATION, EDX_PLATFORM, EDX_SECURE, EDGE_SECURE,
+                EDX_MICROSITE, EDX_INTERNAL, EDGE_INTERNAL
         ):
             pipeline.ensure_material(material())
 
@@ -288,7 +289,7 @@ def install_pipelines(configurator, config, env_configs):
         PipelineMaterial(prod_edge_b.name, constants.BASE_AMI_SELECTION_STAGE_NAME, "select_base_ami")
     )
 
-    rollback_migrations_edx = edxapp.launch_and_terminate_subset_pipeline(
+    edxapp.launch_and_terminate_subset_pipeline(
         edxapp_deploy_group,
         [
             edxapp.rollback_database(prod_edx_b, prod_edx_md),
@@ -303,11 +304,11 @@ def install_pipelines(configurator, config, env_configs):
         ),
         auto_run=False,
         pre_launch_builders=[
-            edxapp.armed_stage_builder(),
+            edxapp.armed_stage_builder,
         ],
     )
 
-    rollback_migrations_edge = edxapp.launch_and_terminate_subset_pipeline(
+    edxapp.launch_and_terminate_subset_pipeline(
         edxapp_deploy_group,
         [
             edxapp.rollback_database(prod_edge_b, prod_edge_md),
@@ -322,7 +323,7 @@ def install_pipelines(configurator, config, env_configs):
         ),
         auto_run=False,
         pre_launch_builders=[
-            edxapp.armed_stage_builder(),
+            edxapp.armed_stage_builder,
         ],
     )
 

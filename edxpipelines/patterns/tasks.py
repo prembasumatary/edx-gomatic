@@ -1,7 +1,10 @@
+"""
+Common gomatic task patterns.
+"""
 import re
 import textwrap
 
-from gomatic import *
+from gomatic import ExecTask, BuildArtifact, FetchArtifactFile, FetchArtifactTask
 
 from edxpipelines import constants
 
@@ -282,7 +285,7 @@ def generate_create_ami(
         aws_secret_access_key, configuration_repo=constants.PUBLIC_CONFIGURATION_REPO_URL,
         ami_creation_timeout="3600", ami_wait='yes', cache_id='',
         artifact_path=constants.ARTIFACT_PATH, hipchat_token='',
-        hipchat_room=constants.HIPCHAT_ROOM, manual_approval=False,
+        hipchat_room=constants.HIPCHAT_ROOM,
         runif="passed", **kwargs
 ):
     """
@@ -473,7 +476,8 @@ def generate_check_migration_duration(job,
         ),
         '--duration_threshold', str(duration_threshold),
         '--instance_data',
-        '${GO_SERVER_URL/:8154/}pipelines/${GO_PIPELINE_NAME}/${GO_PIPELINE_COUNTER}/${GO_STAGE_NAME}/${GO_STAGE_COUNTER}',
+        '${GO_SERVER_URL/:8154/}pipelines/${GO_PIPELINE_NAME}/${GO_PIPELINE_COUNTER}'
+        '/${GO_STAGE_NAME}/${GO_STAGE_COUNTER}',
         '--from_address', from_address
     ]
     if ses_region:
@@ -561,7 +565,7 @@ def generate_migration_rollback(
     )
 
 
-def format_RSA_key(job, output_path, key):
+def format_RSA_key(job, output_path, key):  # pylint: disable=invalid-name
     """
     Formats an RSA key for use in future jobs. Does not last between stages.
     Args:
@@ -620,6 +624,14 @@ def _fetch_secure_repo(job, secure_dir, secure_repo_envvar, secure_version_envva
 
 
 def generate_target_directory(job, directory_name=constants.ARTIFACT_PATH, runif="passed"):
+    """
+    Add a task to ``job`` that creates the specified directory ``directory_name``.
+
+    Arguments:
+        job (gomatic.Job): The job to add this task to.
+        directory_name (str): The name of the directory to create. (Optional)
+        runif (str): What state the job must be in to run this task.
+    """
     return job.add_task(bash_task(
         '[ -d {dir_name} ] && echo "Directory Exists" || mkdir {dir_name}',
         dir_name=directory_name,
@@ -966,7 +978,7 @@ def generate_update_index(job, runif='passed'):
     ))
 
 
-def generate_create_release_candidate_branch_and_pr(job,
+def generate_create_release_candidate_branch_and_pr(job,  # pylint: disable=invalid-name
                                                     org,
                                                     repo,
                                                     source_branch,
@@ -1351,7 +1363,7 @@ def trigger_jenkins_build(
     ))
 
 
-def generate_message_pull_requests_in_commit_range(
+def generate_message_pull_requests_in_commit_range(  # pylint: disable=invalid-name
         job, org, repo, token, head_sha, release_status,
         runif='passed', base_sha=None, base_ami_artifact=None, ami_tag_app=None
 ):
@@ -1366,7 +1378,8 @@ def generate_message_pull_requests_in_commit_range(
         repo (str): The github repository
         token (str): The authentication token
         head_sha (str): The ending SHA
-        release_status (ReleaseStatus): type of message to send one of ['release_stage', 'release_prod', 'release_rollback']
+        release_status (ReleaseStatus): type of message to send one of
+            ['release_stage', 'release_prod', 'release_rollback']
         runif (str): one of ['passed', 'failed', 'any'] Default: passed
         base_sha (str): The sha to use as the base point for sending messages
             (any commits prior to this sha won't be messaged). (Optional)
@@ -1543,7 +1556,11 @@ def generate_base_ami_selection(
             mkdir -p {artifact_path};
             if [[ $BASE_AMI_ID_OVERRIDE != 'yes' ]];
                 then echo "Finding base AMI ID from active ELB/ASG in EDP.";
-                /usr/bin/python {ami_script} --environment $EDX_ENVIRONMENT --deployment $DEPLOYMENT --play $PLAY --out_file {override_artifact};
+                /usr/bin/python {ami_script}
+                    --environment $EDX_ENVIRONMENT
+                    --deployment $DEPLOYMENT
+                    --play $PLAY
+                    --out_file {override_artifact};
             elif [[ -n $BASE_AMI_ID ]];
                 then echo "Using specified base AMI ID of '$BASE_AMI_ID'";
                 /usr/bin/python {ami_script} --override $BASE_AMI_ID --out_file {override_artifact};

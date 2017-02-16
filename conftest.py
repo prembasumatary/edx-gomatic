@@ -2,6 +2,7 @@
 Module to add configuration used by various tests.
 """
 
+
 def pytest_addoption(parser):
     """
     Add options to py.test
