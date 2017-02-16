@@ -9,6 +9,7 @@ from edxpipelines.patterns import (
     tasks,
     jobs
 )
+from edxpipelines.utils import ArtifactLocation
 
 
 def generate_asg_cleanup(pipeline,
@@ -1085,9 +1086,11 @@ def generate_create_branch(pipeline,
 
 
 def generate_deployment_messages(
-        pipeline, org,
-        repo, token, head_sha, release_status, manual_approval=False,
-        base_sha=None, base_ami_artifact=None, ami_tag_app=None
+        pipeline, prod_build_pipelines, stage_deploy_pipeline, org,
+        repo, token, head_sha, release_status, confluence_user, confluence_password,
+        github_token, manual_approval=False,
+        base_sha=None, base_ami_artifact=None, ami_tag_app=None,
+        wiki_parent_title=None, wiki_space=None, wiki_title=None
 ):
     """
     Creates a stage that will message the pull requests for a range of commits that the respective pull requests have
@@ -1095,17 +1098,26 @@ def generate_deployment_messages(
 
     Args:
         pipeline (gomatic.Pipeline): Pipeline to attach this stage
+        prod_build_pipelines (list of gomatic.Pipeline): The build pipelines that produced the AMIs being deployed
+        stage_deploy_pipeline: The pipeline that deployed to staging
         org (str): Name of the github organization that holds the repository (e.g. edx)
         repo (str): Name of repository (e.g edx-platform)
         token (str): the github token used to create all these things. Will be an env_var 'GIT_TOKEN'
         head_sha(str): ending SHA or environment variable holding the SHA to start the commit range
         release_status (ReleaseStatus): the current status of the release
+        confluence_user (str): The confluence user to create the release page with
+        confluence_password (str): The confluence password to create the release page with
+        github_token (str): The github token to fetch PR data with
         manual_approval (bool): Should this stage require manual approval?
         base_sha (str): The sha to use as the base point for sending messages
             (any commits prior to this sha won't be messaged). (Optional)
         base_ami_artifact (ArtifactLocation): The location of the artifact that specifies
             the base_ami and tags (Optional)
         ami_tag_app (str): The name of the version tag on the AMI to extract the version from (Optional)
+        wiki_parent_title (str): The title of the parent page to publish the release page
+            under (defaults to 'LMS/Studio Release Pages')
+        wiki_space (str): The space to publish the release page in (defaults to 'ENG')
+        wiki_title (str): The title of the release wiki page (defaults to '<Next Release Date> Release')
 
     Returns:
         gomatic.stage.Stage
@@ -1120,6 +1132,55 @@ def generate_deployment_messages(
     tasks.generate_message_pull_requests_in_commit_range(
         message_job, org, repo, token, head_sha, release_status,
         base_sha=base_sha, base_ami_artifact=base_ami_artifact, ami_tag_app=ami_tag_app
+    )
+    wiki_job = message_stage.ensure_job(constants.PUBLISH_WIKI_JOB_NAME)
+    tasks.generate_package_install(wiki_job, 'tubular')
+
+    if release_status == constants.ReleaseStatus.STAGED:
+        parent_title = wiki_parent_title
+        title = wiki_title
+        space = wiki_space
+        input_artifact = None
+    else:
+        parent_title = None
+        title = None
+        space = None
+        input_artifact = ArtifactLocation(
+            stage_deploy_pipeline.name,
+            message_stage.name,
+            constants.PUBLISH_WIKI_JOB_NAME,
+            constants.RELEASE_WIKI_PAGE_ID_FILENAME,
+        )
+
+    ami_pairs = [
+        (
+            ArtifactLocation(
+                build_pipeline.name,
+                constants.BASE_AMI_SELECTION_STAGE_NAME,
+                constants.BASE_AMI_SELECTION_JOB_NAME,
+                constants.BASE_AMI_OVERRIDE_FILENAME,
+            ),
+            ArtifactLocation(
+                build_pipeline.name,
+                constants.BUILD_AMI_STAGE_NAME,
+                constants.BUILD_AMI_JOB_NAME,
+                constants.BUILD_AMI_FILENAME,
+            )
+        ) for build_pipeline in prod_build_pipelines
+    ]
+
+    tasks.generate_release_wiki_page(
+        pipeline,
+        wiki_job,
+        confluence_user=confluence_user,
+        confluence_password=confluence_password,
+        github_token=github_token,
+        release_status=release_status,
+        ami_pairs=ami_pairs,
+        parent_title=parent_title,
+        space=space,
+        title=title,
+        input_artifact=input_artifact,
     )
 
     return message_stage

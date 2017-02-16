@@ -160,3 +160,29 @@ def test_duplicate_upstream_pipelines(script_result):
     )
 
     assert duplicates == set()
+
+
+def test_duplicate_artifacts(script_result):
+    Artifact = namedtuple('Artifact', ['pipeline', 'stage', 'job', 'artifact_dir', 'artifact_name'])  # pylint: disable=invalid-name
+    artifact_counts = Counter(
+        Artifact(
+            pipeline.get('name'),
+            stage.get('name'),
+            job.get('name'),
+            fetch.get('dest'),
+            fetch.get('srcfile', fetch.get('srcdir'))
+        )
+        for pipeline in script_result.iter('pipeline')
+        for stage in pipeline.findall('stage')
+        for job in stage.iter('job')
+        for fetch in job.iter('fetchartifact')
+    )
+
+    duplicates = set(
+        artifact_id
+        for artifact_id, count
+        in artifact_counts.items()
+        if count > 1
+    )
+
+    assert duplicates == set()

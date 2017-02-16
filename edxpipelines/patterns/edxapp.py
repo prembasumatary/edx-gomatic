@@ -22,6 +22,9 @@ from edxpipelines.materials import (
 )
 
 
+EDXAPP_SUBAPPS = ['cms', 'lms']
+
+
 def cut_branch(edxapp_group, config):
     """
     Variables needed for this pipeline:
@@ -273,7 +276,7 @@ def generate_migrate_stages(pipeline, config):
     else:
         duration_threshold = None
 
-    for sub_app in config['edxapp_subapps']:
+    for sub_app in EDXAPP_SUBAPPS:
         stages.generate_run_migrations(
             pipeline,
             db_migration_pass=config['db_migration_pass'],
@@ -293,7 +296,7 @@ def generate_migrate_stages(pipeline, config):
 
 
 def generate_deploy_stages(
-        pipeline_name_build,
+        pipeline_name_build, prod_build_pipelines, stage_deploy_pipeline,
         auto_deploy_ami=False
 ):
     """
@@ -338,11 +341,16 @@ def generate_deploy_stages(
         pipeline.ensure_unencrypted_secure_environment_variables({'GITHUB_TOKEN': config['github_token']})
         stages.generate_deployment_messages(
             pipeline,
+            prod_build_pipelines,
+            stage_deploy_pipeline,
             'edx',
             'edx-platform',
             '$GITHUB_TOKEN',
             '$GO_REVISION_EDX_PLATFORM',
             constants.ReleaseStatus[config['edx_environment']],
+            config['jira_user'],
+            config['jira_password'],
+            config['github_token'],
             base_ami_artifact=base_ami_file_location,
             ami_tag_app='edx_platform',
         )
@@ -472,6 +480,7 @@ def generate_e2e_test_stage(pipeline, config):
 def rollback_asgs(
         edxapp_deploy_group, pipeline_name, build_pipeline,
         deploy_pipeline, config,
+        prod_build_pipelines, stage_deploy_pipeline,
 ):
     """
     Arguments:
@@ -532,11 +541,16 @@ def rollback_asgs(
     pipeline.ensure_unencrypted_secure_environment_variables({'GITHUB_TOKEN': config['github_token']})
     stages.generate_deployment_messages(
         pipeline,
+        prod_build_pipelines,
+        stage_deploy_pipeline,
         'edx',
         'edx-platform',
         '$GITHUB_TOKEN',
         '$GO_REVISION_EDX_PLATFORM',
         constants.ReleaseStatus.ROLLED_BACK,
+        config['jira_user'],
+        config['jira_password'],
+        config['github_token'],
         base_ami_artifact=base_ami_file_location,
         ami_tag_app='edx_platform',
     )
@@ -613,7 +627,7 @@ def rollback_database(build_pipeline, deploy_pipeline):
             )
         )
         # Create a a stage for migration rollback.
-        for sub_app in config['edxapp_subapps']:
+        for sub_app in EDXAPP_SUBAPPS:
             migration_artifact = utils.ArtifactLocation(
                 deploy_pipeline.name,
                 constants.APPLY_MIGRATIONS_STAGE + "_" + sub_app,

@@ -152,7 +152,7 @@ def install_pipelines(configurator, config, env_configs):  # pylint: disable=unu
         constants.LAUNCH_INSTANCE_JOB_NAME,
         'launch_info.yml'
     )
-    for sub_app in config['edxapp_subapps']:
+    for sub_app in ['cms', 'lms']:
         stages.generate_run_migrations(
             pipeline,
             db_migration_pass=config['db_migration_pass'],
