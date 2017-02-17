@@ -606,7 +606,7 @@ def _fetch_secure_repo(job, secure_dir, secure_repo_envvar, secure_version_envva
         """\
             touch github_key.pem &&
             chmod 600 github_key.pem &&
-            python tubular/scripts/format_rsa_key.py --key "$PRIVATE_GITHUB_KEY" --output-file github_key.pem &&
+            format_rsa_key.py --key "$PRIVATE_GITHUB_KEY" --output-file github_key.pem &&
             GIT_SSH_COMMAND='/usr/bin/ssh -o StrictHostKeyChecking=no -i github_key.pem'
             /usr/bin/git clone ${secure_repo_envvar} {secure_dir} &&
             cd {secure_dir} &&
@@ -1556,19 +1556,19 @@ def generate_base_ami_selection(
             mkdir -p {artifact_path};
             if [[ $BASE_AMI_ID_OVERRIDE != 'yes' ]];
                 then echo "Finding base AMI ID from active ELB/ASG in EDP.";
-                /usr/bin/python {ami_script}
+                {ami_script}
                     --environment $EDX_ENVIRONMENT
                     --deployment $DEPLOYMENT
                     --play $PLAY
                     --out_file {override_artifact};
             elif [[ -n $BASE_AMI_ID ]];
                 then echo "Using specified base AMI ID of '$BASE_AMI_ID'";
-                /usr/bin/python {ami_script} --override $BASE_AMI_ID --out_file {override_artifact};
+                {ami_script} --override $BASE_AMI_ID --out_file {override_artifact};
             else echo "Using environment base AMI ID";
                 echo "{empty_dict}" > {override_artifact}; fi;
         """,
         artifact_path='../' + constants.ARTIFACT_PATH,
-        ami_script='scripts/retrieve_base_ami.py',
+        ami_script='retrieve_base_ami.py',
         empty_dict='{}',
         override_artifact='../' + base_ami_override_artifact,
         working_dir="tubular",

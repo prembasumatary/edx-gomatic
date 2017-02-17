@@ -49,8 +49,7 @@ def generate_asg_cleanup(pipeline,
     tasks.generate_package_install(job, 'tubular')
     job.add_task(ExecTask(
         [
-            '/usr/bin/python',
-            'scripts/cleanup-asgs.py'
+            'cleanup-asgs.py'
         ],
         working_dir="tubular"
     ))
@@ -388,8 +387,7 @@ def generate_deploy_ami(
     job.ensure_artifacts(set([BuildArtifact(artifact_path)]))
 
     deploy_command =\
-        '/usr/bin/python ' \
-        'scripts/asgard-deploy.py ' \
+        'asgard-deploy.py ' \
         '--out_file ../{} '.format(artifact_path)
 
     if upstream_ami_artifact:
@@ -446,8 +444,7 @@ def generate_edp_validation(pipeline,
     job.add_task(
         ExecTask(
             [
-                '/usr/bin/python',
-                'scripts/validate_edp.py'
+                'validate_edp.py'
             ],
             working_dir='tubular'
         )
@@ -457,8 +454,7 @@ def generate_edp_validation(pipeline,
             [
                 '/bin/bash',
                 '-c',
-                '/usr/bin/python '
-                'scripts/submit_hipchat_msg.py '
+                'submit_hipchat_msg.py '
                 '-m '
                 '"${AMI_ID} is not tagged for ${AMI_ENVIRONMENT}-${AMI_DEPLOYMENT}-${AMI_PLAY}. '
                 'Are you sure you\'re deploying the right AMI to the right app?" '
@@ -765,8 +761,7 @@ def generate_rollback_asg_stage(
 
     job.add_task(ExecTask(
         [
-            '/usr/bin/python',
-            'scripts/rollback_asg.py',
+            'rollback_asg.py',
             '--config_file', deploy_file_location.file_name,
             '--out_file', '../{}'.format(artifact_path),
         ],
