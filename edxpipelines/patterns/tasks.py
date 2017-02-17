@@ -1481,12 +1481,12 @@ def generate_release_wiki_page(
     ]
 
     if input_artifact:
-        input_wiki_id_path = '{}/{}'.format(constants.ARTIFACT_PATH, 'input_release_page_id.yml')
+        input_wiki_id_folder = '{}/{}'.format(constants.ARTIFACT_PATH, input_artifact.pipeline)
         arguments.extend([
             '--in-file',
-            input_wiki_id_path,
+            '{}/{}'.format(input_wiki_id_folder, input_artifact.file_name),
         ])
-        job.add_task(input_artifact.as_fetch_task(input_wiki_id_path))
+        job.add_task(input_artifact.as_fetch_task(input_wiki_id_folder))
     else:
         if parent_title:
             arguments.extend(['--parent-title', parent_title])
