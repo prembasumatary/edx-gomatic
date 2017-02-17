@@ -200,8 +200,9 @@ def generate_build_stages(app_repo, edp, theme_url, configuration_secure_repo,
             edx_platform_repo='$APP_REPO',
             configuration_version='$GO_REVISION_CONFIGURATION',
             edxapp_theme_source_repo=theme_url,
-            edxapp_theme_version='$GO_REVISION_EDX_THEME',
-            edxapp_theme_name='$EDXAPP_THEME_NAME',
+            # Currently, edx-theme isn't exposed as a material. See https://openedx.atlassian.net/browse/TE-1874
+            # edxapp_theme_version='$GO_REVISION_EDX_THEME',
+            # edxapp_theme_name='$EDXAPP_THEME_NAME',
             disable_edx_services='true',
             COMMON_TAG_EC2_INSTANCE='true',
             cache_id='$GO_PIPELINE_COUNTER'
