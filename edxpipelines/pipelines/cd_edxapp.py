@@ -90,9 +90,7 @@ def install_pipelines(configurator, config, env_configs):  # pylint: disable=unu
     stages.generate_run_play(
         pipeline,
         'playbooks/edx-east/edxapp.yml',
-        play=config['play_name'],
-        deployment=config['edx_deployment'],
-        edx_environment=config['edx_environment'],
+        edp=utils.EDP(config['edx_environment'], config['edx_deployment'], config['play_name']),
         private_github_key=config['github_private_key'],
         app_repo=config['app_repo'],
         configuration_secure_dir='{}-secure'.format(config['edx_deployment']),
@@ -112,9 +110,7 @@ def install_pipelines(configurator, config, env_configs):  # pylint: disable=unu
 
     stages.generate_create_ami_from_instance(
         pipeline,
-        play=config['play_name'],
-        deployment=config['edx_deployment'],
-        edx_environment=config['edx_environment'],
+        edp=utils.EDP(config['edx_environment'], config['edx_deployment'], config['play_name']),
         app_repo=config['app_repo'],
         app_version='$GO_REVISION_EDX_PLATFORM',
         configuration_secure_repo=config['{}_configuration_secure_repo'.format(config['edx_deployment'])],

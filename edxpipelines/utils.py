@@ -43,8 +43,12 @@ class ArtifactLocation(namedtuple(
             dest=dest
         )
 
+
 # This sets the is_dir argument for ArtifactLocation to False by default
 ArtifactLocation.__new__.__defaults__ = (False,)
+
+
+EDP = namedtuple('EDP', ['environment', 'deployment', 'play'])
 
 
 def dict_merge(*args):
