@@ -17,7 +17,6 @@ anchors:
   - &play-ecommerce   "../gomatic-secure/gocd/vars/tools/plays/ecommerce.yml"
   - &play-ecomworker  "../gomatic-secure/gocd/vars/tools/plays/ecomworker.yml"
   - &play-credentials "../gomatic-secure/gocd/vars/tools/plays/credentials.yml"
-  - &play-programs    "../gomatic-secure/gocd/vars/tools/plays/programs.yml"
   - &play-discovery   "../gomatic-secure/gocd/vars/tools/plays/discovery.yml"
 
   - &prod-stage-edxapp         "edxpipelines/pipelines/config/prod-stage-edxapp.yml"
@@ -322,25 +321,6 @@ tools:
       - "../gomatic-secure/gocd/vars/tools/environment-deployment-play/loadtest-edx-credentials.yml"
       - *loadtest-edx
       - *play-credentials
-      - *deployment-edx
-    enabled: True
-
-  # Programs Service
-  - script: edxpipelines/pipelines/cd_programs.py
-    variable_file:
-      - *tools-admin
-      - "../gomatic-secure/gocd/vars/tools/environment-deployment-play/stage-edx-programs.yml"
-      - *stage-edx
-      - *play-programs
-      - *deployment-edx
-    enabled: True
-
-  - script: edxpipelines/pipelines/cd_programs.py
-    variable_file:
-      - *tools-admin
-      - "../gomatic-secure/gocd/vars/tools/environment-deployment-play/loadtest-edx-programs.yml"
-      - *loadtest-edx
-      - *play-programs
       - *deployment-edx
     enabled: True
 
