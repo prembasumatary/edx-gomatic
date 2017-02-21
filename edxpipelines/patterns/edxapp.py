@@ -51,7 +51,7 @@ def cut_branch(edxapp_group, config):
     return pipeline
 
 
-def prerelease_materials(edxapp_group):
+def prerelease_materials(edxapp_group, config):
     """
     Variables needed for this pipeline:
     - gocd_username
@@ -81,7 +81,16 @@ def prerelease_materials(edxapp_group):
 
     pipeline.ensure_material(TUBULAR())
 
-    stages.generate_armed_stage(pipeline, constants.ARM_PRERELEASE_STAGE)
+    stage = pipeline.ensure_stage(constants.PRERELEASE_MATERIALS_STAGE_NAME)
+    job = stage.ensure_job(constants.PRERELEASE_MATERIALS_JOB_NAME)
+
+    # This prevents the commit being released from being lost when the new
+    # release-candidate is cut. However, this will require a janitor job to
+    # deal with any releases that are never completed.
+    tasks.generate_create_branch(
+        pipeline, job, config['git_token'], 'edx', 'edx-platform',
+        target_branch="release-candidate/$GO_PIPELINE_COUNTER",
+        sha='$GO_REVISION_EDX_PLATFORM')
 
     return pipeline
 

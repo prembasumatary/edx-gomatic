@@ -73,6 +73,7 @@ def install_pipelines(configurator, config, env_configs):
     )
     prerelease_materials = edxapp.prerelease_materials(
         edxapp_group,
+        config
     )
 
     stage_b = edxapp.launch_and_terminate_subset_pipeline(
@@ -136,7 +137,7 @@ def install_pipelines(configurator, config, env_configs):
         pipeline.ensure_material(
             PipelineMaterial(
                 pipeline_name=prerelease_materials.name,
-                stage_name=constants.ARM_PRERELEASE_STAGE,
+                stage_name=constants.PRERELEASE_MATERIALS_STAGE_NAME,
                 material_name="prerelease",
             )
         )

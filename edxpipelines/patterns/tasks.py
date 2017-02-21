@@ -1013,7 +1013,9 @@ def generate_create_release_candidate_branch_and_pr(job,  # pylint: disable=inva
     ))
 
 
-def generate_create_branch(job,
+def generate_create_branch(pipeline,
+                           job,
+                           token,
                            org,
                            repo,
                            target_branch,
@@ -1025,7 +1027,9 @@ def generate_create_branch(job,
         Assumes a secure environment variable named "GIT_TOKEN"
 
     Args:
+        pipeline (gomatic.Pipeline): The Pipeline to insert environment variables into.
         job (gomatic.Job): the Job to attach this stage to.
+        token (str): The github token to use with the API.
         org (str): Name of the github organization that holds the repository (e.g. edx)
         repo (str): Name of repository (e.g edx-platform)
         target_branch (str): Name of the branch to be created (will be the head of the PR)
@@ -1037,6 +1041,12 @@ def generate_create_branch(job,
         The newly created task (gomatic.gocd.tasks.ExecTask)
 
     """
+    pipeline.ensure_unencrypted_secure_environment_variables(
+        {
+            'GIT_TOKEN': token
+        }
+    )
+
     args = [
         '--org', org,
         '--repo', repo,
