@@ -44,7 +44,7 @@ def cut_branch(edxapp_group, config):
         EDX_PLATFORM().branch,
         config['git_token'],
         manual_approval=True,
-        sha='$GO_REVISION_{}'.format(edx_platform_master.material_name.replace('-', '_').upper()),
+        sha='$GO_REVISION_{}'.format(edx_platform_master.destination_directory.replace('-', '_').upper()),
     )
     pipeline.set_timer('0 0/5 15-18 ? * MON-FRI', True)
 

@@ -128,7 +128,7 @@ def test_upstream_stages_for_artifacts(script_result, script_name):
 def test_duplicate_materials(script_result):
     Material = namedtuple('Material', ['pipeline', 'material'])  # pylint: disable=invalid-name
     material_counts = Counter(
-        Material(pipeline.get('name'), material.get('materialName'))
+        Material(pipeline.get('name'), material.get('materialName', material.get('dest')))
         for pipeline in script_result.iter('pipeline')
         for materials in pipeline.iter('materials')
         for material in materials
@@ -293,3 +293,24 @@ def test_environment_variables_defined(script_result, script_name):
     )
 
     assert required_environment_variables - provided_environment_variables == set()
+
+
+def test_unnecessary_material_name(script_result):
+    mats_with_unneccesary_name = set(
+        (
+            pipeline.get('name'),
+            material.get('materialName'),
+        )
+        for pipeline in script_result.iter('pipeline')
+        for materials in pipeline.iter('materials')
+        for material in materials
+        if material.get('dest') and material.get('dest') == material.get('materialName')
+    )
+
+    message = (
+        "The following materials specify 'materialName', but don't "
+        "need to, because it is the same as 'dest':\n{}"
+    ).format(
+        "\n".join("    Pipeline: {}, material: {}".format(*mat) for mat in sorted(mats_with_unneccesary_name))
+    )
+    assert mats_with_unneccesary_name == set(), message

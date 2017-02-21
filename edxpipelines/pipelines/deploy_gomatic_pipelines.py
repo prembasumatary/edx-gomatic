@@ -39,7 +39,6 @@ def install_pipelines(configurator, config, env_configs):  # pylint: disable=unu
     ).ensure_material(
         GitMaterial(
             'https://github.com/edx/edx-gomatic',
-            material_name='edx-gomatic',
             polling=True,
             destination_directory='edx-gomatic',
             branch='master'
@@ -47,7 +46,6 @@ def install_pipelines(configurator, config, env_configs):  # pylint: disable=unu
     ).ensure_material(
         GitMaterial(
             'git@github.com:edx-ops/gomatic-secure.git',
-            material_name='gomatic-secure',
             polling=True,
             destination_directory='gomatic-secure',
             branch='master',
