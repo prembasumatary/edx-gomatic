@@ -81,8 +81,7 @@ def generate_basic_multistage_pipeline(
     Notes:
         The instance launched/destroyed is NEVER inserted into the load balancer or serving user requests.
     """
-    environment = config['edx_environment']
-    deployment = config['edx_deployment']
+    edp = utils.EDP(config['edx_environment'], config['edx_deployment'], play)
 
     application_name = service_name
     application_path = '/edx/app/' + service_name
@@ -90,7 +89,7 @@ def generate_basic_multistage_pipeline(
     hipchat_token = config['hipchat_token']
 
     pipeline = configurator.ensure_pipeline_group(pipeline_group) \
-        .ensure_replacement_of_pipeline('-'.join([environment, deployment, play])) \
+        .ensure_replacement_of_pipeline('-'.join(edp)) \
         .ensure_material(GitMaterial(config['tubular_url'],
                                      branch=config.get('tubular_version', 'master'),
                                      material_name='tubular',
@@ -130,9 +129,7 @@ def generate_basic_multistage_pipeline(
         pipeline,
         config['aws_access_key_id'],
         config['aws_secret_access_key'],
-        play,
-        deployment,
-        environment,
+        edp=edp,
         manual_approval=not config.get('auto_run', False),
     )
 
@@ -160,9 +157,7 @@ def generate_basic_multistage_pipeline(
     stages.generate_run_play(
         pipeline,
         playbook_with_path=playbook_path,
-        play=play,
-        deployment=deployment,
-        edx_environment=environment,
+        edp=edp,
         app_repo=app_repo,
         configuration_secure_repo=config['configuration_secure_repo'],
         configuration_secure_dir=constants.PRIVATE_CONFIGURATION_LOCAL_DIR,
@@ -179,9 +174,7 @@ def generate_basic_multistage_pipeline(
     # Create an AMI
     stages.generate_create_ami_from_instance(
         pipeline,
-        play=play,
-        deployment=deployment,
-        edx_environment=environment,
+        edp=edp,
         app_repo=app_repo,
         configuration_secure_repo=config['configuration_secure_repo'],
         aws_access_key_id=config['aws_access_key_id'],

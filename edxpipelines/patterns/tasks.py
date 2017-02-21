@@ -665,8 +665,7 @@ def fetch_edx_mktg(job, secure_dir, runif="passed"):
 
 
 def generate_run_app_playbook(
-        pipeline, job, playbook_with_path, play, deployment,
-        edx_environment, app_repo,
+        pipeline, job, playbook_with_path, edp, app_repo,
         private_github_key='', hipchat_token='',
         hipchat_room=constants.HIPCHAT_ROOM,
         configuration_secure_dir=constants.PRIVATE_CONFIGURATION_LOCAL_DIR,
@@ -694,9 +693,7 @@ def generate_run_app_playbook(
         pipeline (gomatic.Pipeline): the gomatic pipeline to add environment variables to
         job (gomatic.job.Job): the gomatic job to which the playbook run task will be added
         playbook_with_path (str): path to playbook relative to the top-level 'configuration' directory
-        play (str):
-        deployment (str):
-        edx_environment (str):
+        edp (EDP):
         app_repo (str) :
         private_github_key (str):
         hipchat_token (str):
@@ -723,9 +720,9 @@ def generate_run_app_playbook(
     )
     pipeline.ensure_environment_variables(
         {
-            'PLAY': play,
-            'DEPLOYMENT': deployment,
-            'EDX_ENVIRONMENT': edx_environment,
+            'PLAY': edp.play,
+            'DEPLOYMENT': edp.deployment,
+            'EDX_ENVIRONMENT': edp.environment,
             'APP_REPO': app_repo,
             'ARTIFACT_PATH': '{}/'.format(constants.ARTIFACT_PATH),
             'HIPCHAT_ROOM': hipchat_room,

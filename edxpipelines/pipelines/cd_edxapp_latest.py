@@ -23,6 +23,11 @@ from edxpipelines.materials import (
 )
 
 
+STAGE_EDX_EDXAPP = utils.EDP('stage', 'edx', 'edxapp')
+PROD_EDX_EDXAPP = utils.EDP('prod', 'edx', 'edxapp')
+PROD_EDGE_EDXAPP = utils.EDP('prod', 'edge', 'edxapp')
+
+
 def install_pipelines(configurator, config, env_configs):
     """
     Arguments:
@@ -75,12 +80,14 @@ def install_pipelines(configurator, config, env_configs):
         [
             edxapp.generate_build_stages(
                 app_repo=EDX_PLATFORM().url,
+                edp=STAGE_EDX_EDXAPP,
                 theme_url=EDX_MICROSITE().url,
                 configuration_secure_repo=EDX_SECURE().url,
                 configuration_internal_repo=EDX_INTERNAL().url,
                 configuration_url=CONFIGURATION().url,
             ),
         ],
+        edp=STAGE_EDX_EDXAPP,
         config=env_configs['stage'],
         pipeline_name="STAGE_edxapp_B",
         ami_artifact=None,
@@ -92,12 +99,14 @@ def install_pipelines(configurator, config, env_configs):
         [
             edxapp.generate_build_stages(
                 app_repo=EDX_PLATFORM().url,
+                edp=PROD_EDX_EDXAPP,
                 theme_url=EDX_MICROSITE().url,
                 configuration_secure_repo=EDX_SECURE().url,
                 configuration_internal_repo=EDX_INTERNAL().url,
                 configuration_url=CONFIGURATION().url,
             ),
         ],
+        edp=PROD_EDX_EDXAPP,
         config=env_configs['prod-edx'],
         pipeline_name="PROD_edx_edxapp_B",
         ami_artifact=None,
@@ -109,12 +118,14 @@ def install_pipelines(configurator, config, env_configs):
         [
             edxapp.generate_build_stages(
                 app_repo=EDX_PLATFORM().url,
+                edp=PROD_EDGE_EDXAPP,
                 theme_url=EDX_MICROSITE().url,
                 configuration_secure_repo=EDGE_SECURE().url,
                 configuration_internal_repo=EDGE_INTERNAL().url,
                 configuration_url=CONFIGURATION().url,
             ),
         ],
+        edp=PROD_EDGE_EDXAPP,
         config=env_configs['prod-edge'],
         pipeline_name="PROD_edge_edxapp_B",
         ami_artifact=None,
@@ -132,7 +143,8 @@ def install_pipelines(configurator, config, env_configs):
 
     stage_md = edxapp.launch_and_terminate_subset_pipeline(
         edxapp_group,
-        [
+        edp=STAGE_EDX_EDXAPP,
+        stage_builders=[
             edxapp.generate_migrate_stages,
             edxapp.generate_deploy_stages(
                 pipeline_name_build=stage_b.name,
@@ -207,6 +219,7 @@ def install_pipelines(configurator, config, env_configs):
                 auto_deploy_ami=True,
             )
         ],
+        edp=PROD_EDX_EDXAPP,
         config=env_configs['prod-edx'],
         pipeline_name="PROD_edx_edxapp_M-D",
         ami_artifact=utils.ArtifactLocation(
@@ -229,6 +242,7 @@ def install_pipelines(configurator, config, env_configs):
                 auto_deploy_ami=True,
             )
         ],
+        edp=PROD_EDGE_EDXAPP,
         config=env_configs['prod-edge'],
         pipeline_name="PROD_edge_edxapp_M-D",
         ami_artifact=utils.ArtifactLocation(
@@ -314,6 +328,7 @@ def install_pipelines(configurator, config, env_configs):
         [
             edxapp.rollback_database(prod_edx_b, prod_edx_md),
         ],
+        edp=PROD_EDX_EDXAPP,
         config=env_configs['prod-edx'],
         pipeline_name="PROD_edx_edxapp_Rollback_Migrations_latest",
         ami_artifact=utils.ArtifactLocation(
@@ -333,6 +348,7 @@ def install_pipelines(configurator, config, env_configs):
         [
             edxapp.rollback_database(prod_edge_b, prod_edge_md),
         ],
+        edp=PROD_EDGE_EDXAPP,
         config=env_configs['prod-edge'],
         pipeline_name="PROD_edge_edxapp_Rollback_Migrations_latest",
         ami_artifact=utils.ArtifactLocation(

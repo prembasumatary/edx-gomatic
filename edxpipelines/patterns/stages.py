@@ -61,9 +61,7 @@ def generate_base_ami_selection(
         pipeline,
         aws_access_key_id,
         aws_secret_access_key,
-        play=None,
-        deployment=None,
-        edx_environment=None,
+        edp=None,
         base_ami_id=None,
         manual_approval=False
 ):
@@ -75,9 +73,7 @@ def generate_base_ami_selection(
         pipeline (gomatic.Pipeline):
         aws_access_key_id (str): AWS key ID for auth
         aws_secret_access_key (str): AWS secret key for auth
-        play (str): Pipeline's play.
-        deployment (str): Pipeline's deployment.
-        edx_environment (str): Pipeline's environment.
+        edp (EDP): Pipeline's EDP
         base_ami_id (str): the ami-id used to launch the instance, or None to use the provided EDP
         manual_approval (bool): Should this stage require manual approval?
 
@@ -93,8 +89,7 @@ def generate_base_ami_selection(
     job = stage.ensure_job(constants.BASE_AMI_SELECTION_JOB_NAME)
     tasks.generate_package_install(job, 'tubular')
     tasks.generate_base_ami_selection(
-        pipeline, job, aws_access_key_id, aws_secret_access_key,
-        play, deployment, edx_environment, base_ami_id,
+        pipeline, job, aws_access_key_id, aws_secret_access_key, edp, base_ami_id,
     )
     return stage
 
@@ -174,9 +169,7 @@ def generate_launch_instance(
 
 def generate_run_play(pipeline,
                       playbook_with_path,
-                      play,
-                      deployment,
-                      edx_environment,
+                      edp,
                       app_repo,
                       private_github_key='',
                       hipchat_token='',
@@ -229,9 +222,7 @@ def generate_run_play(pipeline,
         pipeline,
         job=job,
         playbook_with_path=playbook_with_path,
-        play=play,
-        deployment=deployment,
-        edx_environment=edx_environment,
+        edp=edp,
         app_repo=app_repo,
         private_github_key=private_github_key,
         hipchat_token=hipchat_token,
@@ -243,9 +234,7 @@ def generate_run_play(pipeline,
 
 
 def generate_create_ami_from_instance(pipeline,
-                                      play,
-                                      deployment,
-                                      edx_environment,
+                                      edp,
                                       app_repo,
                                       configuration_secure_repo,
                                       aws_access_key_id,
@@ -267,9 +256,7 @@ def generate_create_ami_from_instance(pipeline,
 
     Args:
         pipeline (gomatic.Pipeline):
-        play (str): Play that was run on the instance (used for tagging)
-        deployment (str):
-        edx_environment (str):
+        edp (EDP):
         app_repo (str):
         configuration_secure_repo (str):
         aws_access_key_id (str):
@@ -303,9 +290,9 @@ def generate_create_ami_from_instance(pipeline,
     tasks.generate_create_ami(
         pipeline=pipeline,
         job=job,
-        play=play,
-        deployment=deployment,
-        edx_environment=edx_environment,
+        play=edp.play,
+        deployment=edp.deployment,
+        edx_environment=edp.environment,
         app_repo=app_repo,
         configuration_secure_repo=configuration_secure_repo,
         aws_access_key_id=aws_access_key_id,

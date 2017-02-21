@@ -5,6 +5,7 @@ Tests of output XML created by gomatic.
 from collections import Counter, namedtuple
 import os.path
 import os
+import re
 
 from edxpipelines.utils import ArtifactLocation
 import pytest
@@ -186,3 +187,109 @@ def test_duplicate_artifacts(script_result):
     )
 
     assert duplicates == set()
+
+
+def environment_variables_for_scm_material(material):
+    """
+    Yield all environment variables exposed to jobs by SCM materials.
+    """
+    # pylint: disable=line-too-long
+    # This logic mirrors: https://github.com/gocd/gocd/blob/3cfb0a62fccabcc9e345df39cbede86c6cbea6db/domain/src/com/thoughtworks/go/config/materials/ScmMaterial.java#L141
+    mat_name = material.get('materialName', material.get('dest'))
+
+    if mat_name is None:
+        mat_name = ""
+    else:
+        mat_name = '_{}'.format(re.sub("[^A-Za-z0-9_]", "_", mat_name.upper()))
+
+    yield "GO_REVISION{}".format(mat_name)
+    yield "GO_TO_REVISION{}".format(mat_name)
+    yield "GO_FROM_REVISION{}".format(mat_name)
+
+
+def environment_variables_for_task(task):
+    """
+    Yield all environment variables exposed by a task.
+    """
+    if task.get('command') != '/bin/bash':
+        return
+
+    text = " ".join(arg.text for arg in task.iter('arg'))
+    # Find all places where we explicitly set bash variables
+    for match in re.finditer(r'(export )?(?P<var>\w+)=', text, flags=re.IGNORECASE):
+        yield match.group('var')
+
+    # Find all bash for-loops
+    for match in re.finditer(r'for (?P<var>\w+) in', text, re.IGNORECASE):
+        yield match.group('var')
+
+
+def required_variables_for_task(task):
+    """
+    Yield all environment variables required by a task.
+    """
+    if task.get('command') != '/bin/bash':
+        return
+
+    for arg in task.iter('arg'):
+        # Find all $VARIABLE or ${VARIABLE} instances
+        for match in re.finditer(
+                r'\$(((?P<variable>[^\W{]+))|({(?P<wrappedvar>[^-:=+/?}]+)[-:=+/?]{0,2}[^}]*}))',
+                arg.text
+        ):
+            yield match.group('variable') or match.group('wrappedvar')
+
+
+def global_environment_variables():
+    """
+    Yield all global environment variables.
+    """
+    yield 'GO_PIPELINE_COUNTER'
+    yield 'GO_PIPELINE_LABEL'
+    yield 'GO_PIPELINE_NAME'
+    yield 'GO_SERVER_URL'
+    yield 'GO_STAGE_COUNTER'
+    yield 'GO_STAGE_NAME'
+    yield 'GO_TRIGGER_USER'
+    yield 'PRIVATE_KEY'
+
+
+def test_environment_variables_defined(script_result, script_name):
+    if script_name in ['edxpipelines/pipelines/cd_edxapp.py']:
+        pytest.xfail("{} is known to be missing environment variables in test configurations".format(script_name))
+
+    required_environment_variables = set(
+        (
+            pipeline.get('name'),
+            var,
+        )
+        for pipeline in script_result.iter('pipeline')
+        for stage in pipeline.findall('stage')
+        for job in stage.iter('job')
+        for task in job.iter('exec')
+        for var in required_variables_for_task(task)
+    )
+
+    provided_environment_variables = set(
+        (pipeline.get('name'), var.get('name'))
+        for pipeline in script_result.iter('pipeline')
+        for var in pipeline.iter('variable')
+    ) | set(
+        (pipeline.get('name'), var)
+        for pipeline in script_result.iter('pipeline')
+        for git_material in pipeline.iter('git')
+        for var in environment_variables_for_scm_material(git_material)
+    ) | set(
+        (pipeline.get('name'), var)
+        for pipeline in script_result.iter('pipeline')
+        for var in global_environment_variables()
+    ) | set(
+        (pipeline.get('name'), var)
+        for pipeline in script_result.iter('pipeline')
+        for stage in pipeline.findall('stage')
+        for job in stage.iter('job')
+        for task in job.iter('exec')
+        for var in environment_variables_for_task(task)
+    )
+
+    assert required_environment_variables - provided_environment_variables == set()

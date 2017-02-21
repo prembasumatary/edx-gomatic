@@ -90,6 +90,7 @@ def launch_and_terminate_subset_pipeline(
         pipeline_group,
         stage_builders,
         config,
+        edp,
         pipeline_name,
         ami_artifact=None,
         auto_run=False,
@@ -102,8 +103,8 @@ def launch_and_terminate_subset_pipeline(
         stage_builders (list): a list of methods that will create pipeline stages used
             between instance launch and cleanup
         ami_artifact (ArtifactLocation): The ami to use to launch the
-            instances on. If None, select that ami based on the
-            edx_deployment and edx_environment.
+            instances on. If None, select that ami based on the supplied ``edp``.
+        edp (EDP): The environment-deployment-play that identifies the AMI
         config (dict): the configuration dictionary
         pipeline_name (str): name of the pipeline
         auto_run (bool): Should this pipeline auto execute?
@@ -136,9 +137,7 @@ def launch_and_terminate_subset_pipeline(
             pipeline,
             config['aws_access_key_id'],
             config['aws_secret_access_key'],
-            config['play_name'],
-            config['edx_deployment'],
-            config['edx_environment'],
+            edp,
             base_ami_id
         )
         ami_artifact = utils.ArtifactLocation(
@@ -178,7 +177,7 @@ def launch_and_terminate_subset_pipeline(
     return pipeline
 
 
-def generate_build_stages(app_repo, theme_url, configuration_secure_repo,
+def generate_build_stages(app_repo, edp, theme_url, configuration_secure_repo,
                           configuration_internal_repo, configuration_url):
     """
     Generate the stages needed to build an edxapp AMI.
@@ -190,21 +189,20 @@ def generate_build_stages(app_repo, theme_url, configuration_secure_repo,
         stages.generate_run_play(
             pipeline,
             'playbooks/edx-east/edxapp.yml',
-            play=config['play_name'],
-            deployment=config['edx_deployment'],
-            edx_environment=config['edx_environment'],
+            edp=edp,
             private_github_key=config['github_private_key'],
             app_repo=app_repo,
-            configuration_secure_dir='{}-secure'.format(config['edx_deployment']),
-            configuration_internal_dir='{}-internal'.format(config['edx_deployment']),
+            configuration_secure_dir='{}-secure'.format(edp.deployment),
+            configuration_internal_dir='{}-internal'.format(edp.deployment),
             hipchat_token=config['hipchat_token'],
             hipchat_room='release',
             edx_platform_version='$GO_REVISION_EDX_PLATFORM',
             edx_platform_repo='$APP_REPO',
             configuration_version='$GO_REVISION_CONFIGURATION',
             edxapp_theme_source_repo=theme_url,
-            edxapp_theme_version='$GO_REVISION_EDX_THEME',
-            edxapp_theme_name='$EDXAPP_THEME_NAME',
+            # Currently, edx-theme isn't exposed as a material. See https://openedx.atlassian.net/browse/TE-1874
+            # edxapp_theme_version='$GO_REVISION_EDX_THEME',
+            # edxapp_theme_name='$EDXAPP_THEME_NAME',
             disable_edx_services='true',
             COMMON_TAG_EC2_INSTANCE='true',
             cache_id='$GO_PIPELINE_COUNTER'
@@ -212,9 +210,7 @@ def generate_build_stages(app_repo, theme_url, configuration_secure_repo,
 
         stages.generate_create_ami_from_instance(
             pipeline,
-            play=config['play_name'],
-            deployment=config['edx_deployment'],
-            edx_environment=config['edx_environment'],
+            edp=edp,
             app_repo=app_repo,
             app_version='$GO_REVISION_EDX_PLATFORM',
             configuration_secure_repo=configuration_secure_repo,
@@ -223,8 +219,8 @@ def generate_build_stages(app_repo, theme_url, configuration_secure_repo,
             hipchat_token=config['hipchat_token'],
             hipchat_room='release pipeline',
             configuration_version='$GO_REVISION_CONFIGURATION',
-            configuration_secure_version='$GO_REVISION_{}_SECURE'.format(config['edx_deployment'].upper()),
-            configuration_internal_version='$GO_REVISION_{}_SECURE'.format(config['edx_deployment'].upper()),
+            configuration_secure_version='$GO_REVISION_{}_SECURE'.format(edp.deployment.upper()),
+            configuration_internal_version='$GO_REVISION_{}_SECURE'.format(edp.deployment.upper()),
             aws_access_key_id=config['aws_access_key_id'],
             aws_secret_access_key=config['aws_secret_access_key'],
             edxapp_theme_source_repo=theme_url,
