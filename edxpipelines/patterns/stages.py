@@ -493,7 +493,7 @@ def generate_run_migrations(pipeline,
             EC2 instance, for fetching.
         launch_info_location (ArtifactLocation): Location of the launch_info.yml file for fetching
         application_user (str): Username to use while running the migrations
-        application_name (str): Name of the application (e.g. edxapp, programs, etc...)
+        application_name (str): Name of the application (e.g. edxapp, ecommerce, etc...)
         application_path (str): path of the application installed on the target machine
         duration_threshold (int): Threshold in seconds over which a migration duration will be alerted.
         from_address (str): Any migration duration email alert will be from this address.
@@ -597,7 +597,7 @@ def generate_rollback_migrations(pipeline,
         instance_key_location (ArtifactLocation): Location of SSH key used to access the EC2 instance, for fetching.
         migration_info_location (ArtifactLocation): Location of the migration files
         application_user (str): Username to use while running the migrations
-        application_name (str): Name of the application (e.g. edxapp, programs, etc...)
+        application_name (str): Name of the application (e.g. edxapp, ecommerce, etc...)
         application_path (str): path of the application installed on the target machine
         sub_application_name (str): any sub application to insert in to the migrations commands {cms|lms}
         manual_approval (bool): Should this stage require manual approval?
@@ -796,7 +796,7 @@ def generate_ansible_stage(
         instance_key_location (ArtifactLocation): Location of SSH key used to access the EC2 instance, for fetching.
         launch_info_location (ArtifactLocation): Location of the launch_info.yml file for fetching
         application_user (str): Username to use while running the migrations
-        application_name (str): Name of the application (e.g. edxapp, programs, etc...)
+        application_name (str): Name of the application (e.g. edxapp, ecommerce, etc...)
         application_path (str): path of the application installed on the target machine
         hipchat_token (str): HipChat authentication token
         hipchat_room (str): HipChat room where announcements should be made
@@ -876,7 +876,7 @@ def generate_refresh_metadata(
             EC2 instance, for fetching.
         launch_info_location (ArtifactLocation): Location of the launch_info.yml file for fetching
         application_user (str): Username to use while running the migrations
-        application_name (str): Name of the application (e.g. edxapp, programs, etc...)
+        application_name (str): Name of the application (e.g. edxapp, ecommerce, etc...)
         application_path (str): path of the application installed on the target machine
         hipchat_token (str): HipChat authentication token
         hipchat_room (str): HipChat room where announcements should be made
@@ -923,7 +923,7 @@ def generate_update_index(
         instance_key_location (ArtifactLocation): Location of SSH key used to access the EC2 instance, for fetching.
         launch_info_location (ArtifactLocation): Location of the launch_info.yml file for fetching
         application_user (str): Username to use while running the migrations
-        application_name (str): Name of the application (e.g. edxapp, programs, etc...)
+        application_name (str): Name of the application (e.g. edxapp, ecommerce, etc...)
         application_path (str): path of the application installed on the target machine
         hipchat_token (str): HipChat authentication token
         hipchat_room (str): HipChat room where announcements should be made
