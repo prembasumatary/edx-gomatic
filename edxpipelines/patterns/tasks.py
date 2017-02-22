@@ -1120,19 +1120,15 @@ def generate_create_pr(job,
     ))
 
 
-def generate_merge_branch(job,
-                          org,
-                          repo,
-                          source_branch,
-                          target_branch,
-                          fast_forward_only,
-                          runif='passed'):
+def generate_merge_branch(
+        pipeline, job, token, org, repo, source_branch, target_branch,
+        fast_forward_only, runif='passed'
+):
     """
-    Assumptions:
-        Assumes a secure environment variable named "GIT_TOKEN"
-
     Args:
+        pipeline (gomatic.Pipeline): the Pipeline to add environment variables to.
         job (gomatic.Job): the Job to attach this stage to.
+        token (str): the github token to use to communicate with github.
         org (str): Name of the github organization that holds the repository (e.g. edx)
         repo (str): Name of repository (e.g edx-platform)
         source_branch (str): Name of the branch to merge into the target branch
@@ -1144,6 +1140,12 @@ def generate_merge_branch(job,
         The newly created task (gomatic.gocd.tasks.ExecTask)
 
     """
+    pipeline.ensure_unencrypted_secure_environment_variables(
+        {
+            'GIT_TOKEN': token
+        }
+    )
+
     output_file_path = '{}/{}'.format(
         constants.ARTIFACT_PATH,
         constants.MERGE_BRANCH_FILENAME

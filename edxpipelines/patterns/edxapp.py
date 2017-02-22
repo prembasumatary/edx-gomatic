@@ -25,7 +25,7 @@ from edxpipelines.materials import (
 EDXAPP_SUBAPPS = ['cms', 'lms']
 
 
-def cut_branch(edxapp_group, config):
+def make_release_candidate(edxapp_group, config):
     """
     Variables needed for this pipeline:
     - git_token
@@ -35,16 +35,18 @@ def cut_branch(edxapp_group, config):
     edx_platform_master = EDX_PLATFORM(branch="master", ignore_patterns=[])
     pipeline.ensure_material(edx_platform_master)
     pipeline.ensure_material(TUBULAR())
+    stage = pipeline.ensure_stage(constants.MAKE_RELEASE_CANDIDATE_STAGE_NAME)
+    job = stage.ensure_job(constants.MAKE_RELEASE_CANDIDATE_JOB_NAME)
 
-    stages.generate_create_branch(
+    tasks.generate_merge_branch(
         pipeline,
-        constants.GIT_CREATE_BRANCH_STAGE_NAME,
+        job,
+        config['git_token'],
         'edx',
         'edx-platform',
+        edx_platform_master.branch,
         EDX_PLATFORM().branch,
-        config['git_token'],
-        manual_approval=True,
-        sha='$GO_REVISION_{}'.format(edx_platform_master.destination_directory.replace('-', '_').upper()),
+        fast_forward_only=False,
     )
     pipeline.set_timer('0 0/5 15-18 ? * MON-FRI', True)
 

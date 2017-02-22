@@ -1195,11 +1195,6 @@ def generate_merge_branch_and_tag(pipeline,
     Returns:
         gomatic.Stage
     """
-    pipeline.ensure_unencrypted_secure_environment_variables(
-        {
-            'GIT_TOKEN': token
-        }
-    )
     git_stage = pipeline.ensure_stage(stage_name)
     if manual_approval:
         git_stage.set_has_manual_approval()
@@ -1208,7 +1203,9 @@ def generate_merge_branch_and_tag(pipeline,
     tasks.generate_package_install(merge_branch_job, 'tubular')
     tasks.generate_target_directory(merge_branch_job)
     tasks.generate_merge_branch(
+        pipeline,
         merge_branch_job,
+        token,
         org,
         repo,
         head_sha,
