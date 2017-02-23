@@ -4,9 +4,8 @@ Utility functions needed by edX gomatic code.
 from collections import namedtuple
 from copy import copy
 
-import yaml
-
 from gomatic import FetchArtifactFile, FetchArtifactDir, FetchArtifactTask
+import yaml
 
 
 class MergeConflict(Exception):

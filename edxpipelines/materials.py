@@ -6,6 +6,25 @@ from functools import partial
 from gomatic import GitMaterial
 
 
+def deployment_secure(deployment, branch='master', polling=True, destination_directory=None, ignore_patterns=None):
+    """
+    Initialize a GitMaterial representing a deployment's secure configuration repo.
+
+    Args:
+        deployment (str): Deployment for which to create the material (e.g., 'edx', 'edge')
+
+    Returns:
+        gomatic.gomatic.gocd.materials.GitMaterial
+    """
+    return GitMaterial(
+        url='git@github.com:edx-ops/{}-secure.git'.format(deployment),
+        branch=branch,
+        polling=polling,
+        destination_directory=destination_directory or '{}-secure'.format(deployment),
+        ignore_patterns=ignore_patterns or ['**/*']
+    )
+
+
 TUBULAR = partial(
     GitMaterial,
     url="https://github.com/edx/tubular",
@@ -33,23 +52,9 @@ EDX_PLATFORM = partial(
     ignore_patterns=['**/*'],
 )
 
-EDX_SECURE = partial(
-    GitMaterial,
-    url="git@github.com:edx-ops/edx-secure.git",
-    branch="master",
-    polling=True,
-    destination_directory="edx-secure",
-    ignore_patterns=['**/*'],
-)
+EDX_SECURE = partial(deployment_secure, 'edx')
 
-EDGE_SECURE = partial(
-    GitMaterial,
-    url="git@github.com:edx-ops/edge-secure.git",
-    branch="master",
-    polling=True,
-    destination_directory="edge-secure",
-    ignore_patterns=['**/*'],
-)
+EDGE_SECURE = partial(deployment_secure, 'edge')
 
 EDX_MICROSITE = partial(
     GitMaterial,

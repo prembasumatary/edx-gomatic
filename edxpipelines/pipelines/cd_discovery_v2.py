@@ -76,13 +76,10 @@ def install_pipelines(configurator, config, env_configs):  # pylint: disable=unu
 
     build_pipeline = pipeline_group.ensure_replacement_of_pipeline('-'.join(['build', edp.play]))
 
-    configuration_secure_material = GitMaterial(
-        url='git@github.com:edx-ops/{deployment}-secure.git'.format(deployment=edp.deployment),
-        branch='master',
-        polling=True,
-        # Downstream tasks expect a material named configuration-secure.
-        destination_directory='configuration-secure',
-        ignore_patterns=['**/*'],
+    # Downstream tasks expect a material named configuration-secure.
+    configuration_secure_material = materials.deployment_secure(
+        edp.deployment,
+        destination_directory='configuration-secure'
     )
 
     ensured_materials = [
