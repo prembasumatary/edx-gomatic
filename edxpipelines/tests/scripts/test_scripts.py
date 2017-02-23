@@ -10,6 +10,8 @@ import re
 from edxpipelines.utils import ArtifactLocation
 import pytest
 
+# pylint: disable=invalid-name
+
 KNOWN_FAILING_PIPELINES = [
     'edxpipelines/pipelines/api_deploy.py',
     'edxpipelines/pipelines/rollback_asgs.py'
@@ -43,15 +45,17 @@ def test_upstream_artifacts(script_result, script_name):
         for artifact in job.iter('artifact')
     )
 
-    assert required_artifacts - provided_artifacts == set([])
+    assert required_artifacts <= provided_artifacts, "Missing upstream artifacts (make sure to 'ensure' them)"
 
 
 def test_upstream_stages(script_result, script_name):
     if script_name in KNOWN_FAILING_PIPELINES:
         pytest.xfail("{} is known to be non-independent".format(script_name))
 
+    Stage = namedtuple('Stage', ['pipeline', 'stage'])
+
     required_stages = set(
-        (
+        Stage(
             pipeline_material.get('pipelineName'),
             pipeline_material.get('stageName')
         )
@@ -60,7 +64,7 @@ def test_upstream_stages(script_result, script_name):
     )
 
     provided_stages = set(
-        (
+        Stage(
             pipeline.get('name'),
             stage.get('name'),
         )
@@ -68,7 +72,7 @@ def test_upstream_stages(script_result, script_name):
         for stage in pipeline.findall('stage')
     )
 
-    assert required_stages - provided_stages == set([])
+    assert required_stages <= provided_stages, "Missing upstream stages"
 
 
 def test_scripts_are_executable(script_name):
@@ -95,8 +99,10 @@ def test_upstream_stages_for_artifacts(script_result, script_name):
     if script_name in ['edxpipelines/pipelines/api_deploy.py']:
         pytest.xfail("{} is known to be non-independent".format(script_name))
 
-    required_artifacts = set(
-        (
+    RequiredStage = namedtuple('RequiredStage', ['downstream_pipeline', 'upstream_pipeline', 'upstream_stage'])
+
+    required_stages = set(
+        RequiredStage(
             pipeline.get('name'),  # This pipeline
             fetch.get('pipeline'),  # The upstream pipeline
             fetch.get('stage'),  # The upstream stage
@@ -107,7 +113,7 @@ def test_upstream_stages_for_artifacts(script_result, script_name):
     )
 
     available_stages = set(
-        (
+        RequiredStage(
             pipeline.get('name'),  # This pipeline
             pipeline_material.get('pipelineName'),  # The upstream pipeline
             stage,  # The upstream stage
@@ -122,7 +128,7 @@ def test_upstream_stages_for_artifacts(script_result, script_name):
         ),
     )
 
-    assert required_artifacts - available_stages == set([])
+    assert required_stages <= available_stages, "Stages containing artifacts to be fetched aren't upstream"
 
 
 def test_duplicate_materials(script_result):
@@ -141,7 +147,7 @@ def test_duplicate_materials(script_result):
         if count > 1
     )
 
-    assert duplicates == set()
+    assert duplicates == set(), "Duplicate material names/destinations"
 
 
 def test_duplicate_upstream_pipelines(script_result):
@@ -160,7 +166,7 @@ def test_duplicate_upstream_pipelines(script_result):
         if count > 1
     )
 
-    assert duplicates == set()
+    assert duplicates == set(), "Duplicate upstream pipeline dependencies"
 
 
 def test_duplicate_artifacts(script_result):
@@ -186,7 +192,7 @@ def test_duplicate_artifacts(script_result):
         if count > 1
     )
 
-    assert duplicates == set()
+    assert duplicates == set(), "Multiple artifacts being fetched to the same path"
 
 
 def environment_variables_for_scm_material(material):
@@ -292,7 +298,7 @@ def test_environment_variables_defined(script_result, script_name):
         for var in environment_variables_for_task(task)
     )
 
-    assert required_environment_variables - provided_environment_variables == set()
+    assert required_environment_variables <= provided_environment_variables
 
 
 def test_unnecessary_material_name(script_result):
@@ -311,13 +317,7 @@ def test_unnecessary_material_name(script_result):
         )
     )
 
-    message = (
-        "The following materials specify 'materialName', but don't "
-        "need to, because it is the same as 'dest':\n{}"
-    ).format(
-        "\n".join("    Pipeline: {}, material: {}".format(*mat) for mat in sorted(mats_with_unneccesary_name))
-    )
-    assert mats_with_unneccesary_name == set(), message
+    assert mats_with_unneccesary_name == set()
 
 
 def extract_labeltemplate_vars(pipeline):
@@ -335,18 +335,19 @@ def extract_labeltemplate_vars(pipeline):
 
 
 def test_label_templates(script_result):
-    pipeline_template_vars = set(
-        (pipeline.get('name'), var)
+    Material = namedtuple('Material', ['pipeline', 'material_name'])
+    required_materials = set(
+        Material(pipeline.get('name'), var)
         for pipeline in script_result.iter('pipeline')
         for var in extract_labeltemplate_vars(pipeline)
     )
 
-    pipeline_material_names = set(
-        (pipeline.get('name'), material.get('materialName'))
+    named_materials = set(
+        Material(pipeline.get('name'), material.get('materialName'))
         for pipeline in script_result.iter('pipeline')
         for materials in pipeline.iter('materials')
         for material in materials
         if material.get('materialName')
     )
 
-    assert pipeline_template_vars <= pipeline_material_names
+    assert required_materials <= named_materials, "Missing material names needed by labeltemplates"
