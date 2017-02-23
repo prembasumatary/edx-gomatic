@@ -92,7 +92,7 @@ def prefixes(generator):
     yield current_prefix
 
 
-def find_available_stages(script_result, target_pipeline, target_stage, inclusive=True):
+def find_available_stages(script_result, target_pipeline, target_stage):
     """
     Yields the names of all stages inside ``target_pipeline`` that are available
     by depending on ``target_stage``.
@@ -112,7 +112,9 @@ def test_upstream_stages_for_artifacts(script_result, script_name):
     if script_name in ['edxpipelines/pipelines/api_deploy.py', 'edxpipelines/pipelines/rollback_asgs.py']:
         pytest.xfail("{} is known to be non-independent".format(script_name))
 
-    RequiredStage = namedtuple('RequiredStage', ['downstream_pipeline', 'downstearm_stage', 'upstream_pipeline', 'upstream_stage'])
+    RequiredStage = namedtuple('RequiredStage', [
+        'downstream_pipeline', 'downstream_stage', 'upstream_pipeline', 'upstream_stage'
+    ])
 
     required_stages = set(
         RequiredStage(

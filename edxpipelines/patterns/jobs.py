@@ -6,7 +6,6 @@ from gomatic import ExecTask
 
 import edxpipelines.constants as constants
 import edxpipelines.patterns.tasks as tasks
-from edxpipelines.utils import ArtifactLocation
 
 
 def generate_build_ami(pipeline,
@@ -55,14 +54,6 @@ def generate_build_ami(pipeline,
         base_ami_id=env_config['base_ami_id'],
     )
 
-    # Retrieve the AMI ID.
-    ami_artifact = ArtifactLocation(
-        pipeline.name,
-        stage.name,
-        job_name,
-        constants.BASE_AMI_OVERRIDE_FILENAME,
-    )
-
     # Launch a new instance on which to build the AMI.
     tasks.generate_launch_instance(
         pipeline,
@@ -73,13 +64,11 @@ def generate_build_ami(pipeline,
         ec2_security_group_id=env_config['ec2_security_group_id'],
         ec2_instance_profile_name=env_config['ec2_instance_profile_name'],
         base_ami_id=env_config['base_ami_id'],
-        upstream_build_artifact=ami_artifact,
+        variable_override_path='{}/{}'.format(
+            constants.ARTIFACT_PATH,
+            constants.BASE_AMI_OVERRIDE_FILENAME,
+        ),
     )
-
-    # This ArtifactLocation can be used to construct the full path at which artifacts
-    # can be found. Tasks consuming it are responsible for substituting the filenames
-    # they expect.
-    artifact_base = ArtifactLocation(pipeline.name, stage.name, job_name, None)
 
     # Run the Ansible play for the service.
     tasks.generate_run_app_playbook(
@@ -88,7 +77,6 @@ def generate_build_ami(pipeline,
         playbook_path,
         edp,
         app_repo_url,
-        upstream_artifact_base=artifact_base,
         private_github_key=env_config['github_private_key'],
         hipchat_token=env_config['hipchat_token'],
         disable_edx_services='true',
@@ -107,7 +95,10 @@ def generate_build_ami(pipeline,
         config_secure_repo_url,
         env_config['aws_access_key_id'],
         env_config['aws_secret_access_key'],
-        upstream_artifact_base=artifact_base,
+        launch_info_path='{}/{}'.format(
+            constants.ARTIFACT_PATH,
+            constants.LAUNCH_INSTANCE_FILENAME,
+        ),
         configuration_secure_version='$GO_REVISION_CONFIGURATION_SECURE',
         hipchat_token=env_config['hipchat_token'],
         **kwargs
@@ -144,13 +135,13 @@ def generate_rollback_migration(
     job = stage.ensure_job(job_name)
 
     # Fetch the Ansible inventory to use in reaching the EC2 instance.
-    job.add_task(inventory_location.as_fetch_task(constants.ARTIFACT_PATH))
+    tasks.retrieve_artifact(inventory_location, job, constants.ARTIFACT_PATH)
 
     # Fetch the SSH key to use in reaching the EC2 instance.
-    job.add_task(instance_key_location.as_fetch_task(constants.ARTIFACT_PATH))
+    tasks.retrieve_artifact(instance_key_location, job, constants.ARTIFACT_PATH)
 
     # fetch the migration outputs
-    job.add_task(migration_info_location.as_fetch_task(constants.ARTIFACT_PATH))
+    tasks.retrieve_artifact(migration_info_location, job, constants.ARTIFACT_PATH)
 
     # ensure the target directoy exists
     tasks.generate_target_directory(job)

@@ -4,7 +4,6 @@ Utility functions needed by edX gomatic code.
 from collections import namedtuple
 from copy import copy
 
-from gomatic import FetchArtifactFile, FetchArtifactDir, FetchArtifactTask
 import yaml
 
 
@@ -13,34 +12,12 @@ class MergeConflict(Exception):
     pass
 
 
-class ArtifactLocation(namedtuple(
-        "ArtifactLocationBase",
-        [
-            'pipeline', 'stage', 'job', 'file_name', 'is_dir'
-        ]
-)):
-    """
-    The identifying information for an artifact.
-    """
-    __slots__ = ()
-
-    def as_fetch_task(self, dest):
-        """
-        Return a :class:`~gomatic.FetchArtifactTask` that will retrieve
-        this artifact.
-        """
-        if self.is_dir:
-            src = FetchArtifactDir(self.file_name)
-        else:
-            src = FetchArtifactFile(self.file_name)  # pylint: disable=redefined-variable-type
-
-        return FetchArtifactTask(
-            pipeline=self.pipeline,
-            stage=self.stage,
-            job=self.job,
-            src=src,
-            dest=dest
-        )
+ArtifactLocation = namedtuple(
+    "ArtifactLocation",
+    [
+        'pipeline', 'stage', 'job', 'file_name', 'is_dir'
+    ]
+)
 
 
 # This sets the is_dir argument for ArtifactLocation to False by default

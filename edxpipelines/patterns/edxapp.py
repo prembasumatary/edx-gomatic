@@ -170,7 +170,7 @@ def launch_and_terminate_subset_pipeline(
         config['ec2_security_group_id'],
         config['ec2_instance_profile_name'],
         base_ami_id,
-        upstream_build_artifact=ami_artifact,
+        base_ami_id_artifact=ami_artifact,
         manual_approval=not auto_run
     )
 

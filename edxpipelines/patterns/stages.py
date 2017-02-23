@@ -107,7 +107,7 @@ def generate_launch_instance(
         ec2_instance_type=constants.EC2_INSTANCE_TYPE,
         ec2_timeout=constants.EC2_LAUNCH_INSTANCE_TIMEOUT,
         ec2_ebs_volume_size=constants.EC2_EBS_VOLUME_SIZE,
-        upstream_build_artifact=None
+        base_ami_id_artifact=None
 ):
     """
     Pattern to launch an AMI. Generates 3 artifacts:
@@ -131,7 +131,7 @@ def generate_launch_instance(
         ec2_instance_type (str):
         ec2_timeout (str):
         ec2_ebs_volume_size (str):
-        upstream_build_artifact (edxpipelines.utils.ArtifactLocation): overrides the base_ami_id and will force
+        base_ami_id_artifact (edxpipelines.utils.ArtifactLocation): overrides the base_ami_id and will force
                                                                        the task to run with the AMI built up stream.
 
     Returns:
@@ -147,6 +147,9 @@ def generate_launch_instance(
     tasks.generate_package_install(job, 'tubular')
     tasks.generate_requirements_install(job, 'configuration')
 
+    if base_ami_id_artifact:
+        tasks.retrieve_artifact(base_ami_id_artifact, job, constants.ARTIFACT_PATH)
+
     # Create the instance-launching task.
     tasks.generate_launch_instance(
         pipeline,
@@ -161,7 +164,9 @@ def generate_launch_instance(
         ec2_instance_type=ec2_instance_type,
         ec2_timeout=ec2_timeout,
         ec2_ebs_volume_size=ec2_ebs_volume_size,
-        upstream_build_artifact=upstream_build_artifact,
+        variable_override_path='{}/{}'.format(
+            constants.ARTIFACT_PATH, base_ami_id_artifact.file_name
+        ) if base_ami_id_artifact else None,
     )
 
     return stage
@@ -217,6 +222,18 @@ def generate_run_play(pipeline,
     tasks.generate_package_install(job, 'tubular')
     tasks.generate_requirements_install(job, 'configuration')
     tasks.generate_target_directory(job)
+
+    for file_name in ('key.pem', 'launch_info.yml', 'ansible_inventory'):
+        tasks.retrieve_artifact(
+            ArtifactLocation(
+                pipeline.name,
+                constants.LAUNCH_INSTANCE_STAGE_NAME,
+                constants.LAUNCH_INSTANCE_JOB_NAME,
+                file_name,
+            ),
+            job,
+            constants.ARTIFACT_PATH
+        )
 
     tasks.generate_run_app_playbook(
         pipeline,
@@ -286,6 +303,15 @@ def generate_create_ami_from_instance(pipeline,
     tasks.generate_requirements_install(job, 'configuration')
     tasks.generate_target_directory(job)
 
+    launch_info_artifact = ArtifactLocation(
+        pipeline.name,
+        constants.LAUNCH_INSTANCE_STAGE_NAME,
+        constants.LAUNCH_INSTANCE_JOB_NAME,
+        constants.LAUNCH_INSTANCE_FILENAME,
+    )
+
+    tasks.retrieve_artifact(launch_info_artifact, job)
+
     # Create an AMI from the instance
     tasks.generate_create_ami(
         pipeline=pipeline,
@@ -294,6 +320,7 @@ def generate_create_ami_from_instance(pipeline,
         deployment=edp.deployment,
         edx_environment=edp.environment,
         app_repo=app_repo,
+        launch_info_path='{}/{}'.format(constants.ARTIFACT_PATH, constants.LAUNCH_INSTANCE_FILENAME),
         configuration_secure_repo=configuration_secure_repo,
         aws_access_key_id=aws_access_key_id,
         aws_secret_access_key=aws_secret_access_key,
@@ -378,7 +405,7 @@ def generate_deploy_ami(
         '--out_file ../{} '.format(artifact_path)
 
     if upstream_ami_artifact:
-        job.add_task(upstream_ami_artifact.as_fetch_task('tubular'))
+        tasks.retrieve_artifact(upstream_ami_artifact, job, 'tubular')
         deploy_command += '--config-file {}'.format(upstream_ami_artifact.file_name)
 
     else:
@@ -525,16 +552,16 @@ def generate_run_migrations(pipeline,
     tasks.generate_package_install(job, 'tubular')
 
     # Fetch the Ansible inventory to use in reaching the EC2 instance.
-    job.add_task(inventory_location.as_fetch_task(constants.ARTIFACT_PATH))
+    tasks.retrieve_artifact(inventory_location, job, constants.ARTIFACT_PATH)
 
     # Fetch the SSH key to use in reaching the EC2 instance.
-    job.add_task(instance_key_location.as_fetch_task(constants.ARTIFACT_PATH))
+    tasks.retrieve_artifact(instance_key_location, job, constants.ARTIFACT_PATH)
 
     # ensure the target directoy exists
     tasks.generate_target_directory(job)
 
     # fetch the launch_info.yml
-    job.add_task(launch_info_location.as_fetch_task(constants.ARTIFACT_PATH))
+    tasks.retrieve_artifact(launch_info_location, job, constants.ARTIFACT_PATH)
 
     # The SSH key used to access the EC2 instance needs specific permissions.
     job.add_task(
@@ -674,7 +701,7 @@ def generate_terminate_instance(pipeline,
     job = stage.ensure_job(constants.TERMINATE_INSTANCE_JOB_NAME)
     tasks.generate_package_install(job, 'tubular')
     tasks.generate_requirements_install(job, 'configuration')
-    job.add_task(instance_info_location.as_fetch_task(constants.ARTIFACT_PATH))
+    tasks.retrieve_artifact(instance_info_location, job, constants.ARTIFACT_PATH)
 
     tasks.generate_ami_cleanup(job, runif=runif)
 
@@ -729,7 +756,7 @@ def generate_rollback_asg_stage(
     job = stage.ensure_job(constants.ROLLBACK_ASGS_JOB_NAME)
     tasks.generate_package_install(job, 'tubular')
 
-    job.add_task(deploy_file_location.as_fetch_task('tubular'))
+    tasks.retrieve_artifact(deploy_file_location, job, 'tubular')
 
     job.add_task(ExecTask(
         [
@@ -815,16 +842,16 @@ def generate_ansible_stage(
     tasks.generate_package_install(job, 'tubular')
 
     # Fetch the Ansible inventory to use in reaching the EC2 instance.
-    job.add_task(inventory_location.as_fetch_task('configuration'))
+    tasks.retrieve_artifact(inventory_location, job, 'configuration')
 
     # Fetch the SSH key to use in reaching the EC2 instance.
-    job.add_task(instance_key_location.as_fetch_task('configuration'))
+    tasks.retrieve_artifact(instance_key_location, job, 'configuration')
 
     # ensure the target directoy exists
     tasks.generate_target_directory(job)
 
     # fetch the launch_info.yml
-    job.add_task(launch_info_location.as_fetch_task('target'))
+    tasks.retrieve_artifact(launch_info_location, job, 'target')
 
     # The SSH key used to access the EC2 instance needs specific permissions.
     job.add_task(
@@ -1220,7 +1247,7 @@ def generate_merge_branch_and_tag(pipeline,
 
     if deploy_artifact:
         # Fetch the AMI-deployment artifact to extract deployment time.
-        tag_job.add_task(deploy_artifact.as_fetch_task(constants.ARTIFACT_PATH))
+        tasks.retrieve_artifact(deploy_artifact, tag_job, constants.ARTIFACT_PATH)
 
     tasks.generate_tag_commit(
         tag_job,

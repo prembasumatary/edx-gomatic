@@ -148,7 +148,7 @@ def generate_basic_multistage_pipeline(
         config['ec2_security_group_id'],
         config['ec2_instance_profile_name'],
         config['base_ami_id'],
-        upstream_build_artifact=ami_artifact
+        base_ami_id_artifact=ami_artifact
     )
 
     # Run the Ansible play for the service

@@ -4,10 +4,10 @@ Common gomatic task patterns.
 import re
 import textwrap
 
-from gomatic import ExecTask, BuildArtifact
+from gomatic import ExecTask, BuildArtifact, FetchArtifactFile, FetchArtifactDir, FetchArtifactTask
+
 
 from edxpipelines import constants
-from edxpipelines.utils import ArtifactLocation
 
 
 def ansible_task(
@@ -151,6 +151,26 @@ def bash_task(script, working_dir=None, runif="passed", **kwargs):
     )
 
 
+def retrieve_artifact(artifact_location, job, dest=constants.ARTIFACT_PATH, runif="passed"):
+    """
+    Make sure that there is a task in ``job`` that will retrieve ``ArtifactLocation`` to the folder ``dest``.
+    Also ensures that ``dest`` has been created.
+    """
+    generate_target_directory(job, dest, runif=runif)
+    if artifact_location.is_dir:
+        src = FetchArtifactDir(artifact_location.file_name)
+    else:
+        src = FetchArtifactFile(artifact_location.file_name)  # pylint: disable=redefined-variable-type
+
+    job.ensure_task(FetchArtifactTask(
+        pipeline=artifact_location.pipeline,
+        stage=artifact_location.stage,
+        job=artifact_location.job,
+        src=src,
+        dest=dest
+    ))
+
+
 def generate_requirements_install(job, working_dir, runif="passed"):
     """
     Generates a command that runs:
@@ -199,7 +219,7 @@ def generate_launch_instance(
         base_ami_id, ec2_region=constants.EC2_REGION, ec2_instance_type=constants.EC2_INSTANCE_TYPE,
         ec2_timeout=constants.EC2_LAUNCH_INSTANCE_TIMEOUT,
         ec2_ebs_volume_size=constants.EC2_EBS_VOLUME_SIZE,
-        upstream_build_artifact=None, runif="passed"
+        variable_override_path=None, runif="passed"
 ):
     """
     Generate the launch AMI job. This ansible script generates 3 artifacts:
@@ -210,11 +230,8 @@ def generate_launch_instance(
     Args:
         job (gomatic.job.Job): the gomatic job which to add the launch instance task
         runif (str): one of ['passed', 'failed', 'any'] Default: passed
-        optional_override_files (list): a list of additional override files to be passed to ansible.
-                                        File path should be relative to the root directory the goagent will
-                                        execute the job from
-                                        The Ansible launch job takes some overrides provided by these files:
-                                        https://github.com/edx/configuration/blob/master/playbooks/continuous_delivery/launch_instance.yml
+        variable_override_path (str): The path to an already-retrieved yaml file specifying
+            variable overrides to use when launching the instance.
 
     Returns:
         The newly created task (gomatic.gocd.tasks.ExecTask)
@@ -245,15 +262,8 @@ def generate_launch_instance(
 
     # fetch the artifacts if there are any
     optional_override_files = []
-    if upstream_build_artifact:
-        job.ensure_task(upstream_build_artifact.as_fetch_task(constants.ARTIFACT_PATH))
-        optional_override_files.append(
-            '{artifact_path}/{file_name}'
-            .format(
-                artifact_path=constants.ARTIFACT_PATH,
-                file_name=upstream_build_artifact.file_name
-            )
-        )
+    if variable_override_path:
+        optional_override_files.append(variable_override_path)
 
     job.ensure_artifacts({
         BuildArtifact('{}/key.pem'.format(constants.ARTIFACT_PATH)),
@@ -283,7 +293,7 @@ def generate_launch_instance(
 def generate_create_ami(
         pipeline, job, play, deployment, edx_environment,
         app_repo, configuration_secure_repo, aws_access_key_id,
-        aws_secret_access_key, upstream_artifact_base=None,
+        aws_secret_access_key, launch_info_path,
         configuration_repo=constants.PUBLIC_CONFIGURATION_REPO_URL,
         ami_creation_timeout='3600', ami_wait='yes', cache_id='',
         artifact_path=constants.ARTIFACT_PATH, hipchat_token='',
@@ -296,6 +306,7 @@ def generate_create_ami(
     Args:
         job (gomatic.job.Job): the gomatic job which to add the launch instance task
         runif (str): one of ['passed', 'failed', 'any'] Default: passed
+        launch_info_path (str): The path to launch_info.yml
         **kwargs (dict):
             k,v pairs:
                 k: the name of the option to pass to ansible
@@ -305,14 +316,6 @@ def generate_create_ami(
         The newly created task (gomatic.gocd.tasks.ExecTask)
 
     """
-    if not upstream_artifact_base:
-        upstream_artifact_base = ArtifactLocation(
-            pipeline.name,
-            constants.LAUNCH_INSTANCE_STAGE_NAME,
-            constants.LAUNCH_INSTANCE_JOB_NAME,
-            None
-        )
-
     pipeline.ensure_encrypted_environment_variables(
         {
             'AWS_ACCESS_KEY_ID': aws_access_key_id,
@@ -338,12 +341,9 @@ def generate_create_ami(
         }
     )
 
-    launch_info_location = upstream_artifact_base._replace(file_name='launch_info.yml')
-    job.ensure_task(launch_info_location.as_fetch_task(constants.ARTIFACT_PATH))
-
     job.ensure_artifacts(set([BuildArtifact('{}/ami.yml'.format(constants.ARTIFACT_PATH))]))
     variables = [
-        '{}/launch_info.yml'.format(constants.ARTIFACT_PATH),
+        launch_info_path,
         ('play', '$PLAY'),
         ('deployment', '$DEPLOYMENT'),
         ('edx_environment', '$EDX_ENVIRONMENT'),
@@ -669,7 +669,7 @@ def fetch_edx_mktg(job, secure_dir, runif="passed"):
 
 def generate_run_app_playbook(
         pipeline, job, playbook_with_path, edp, app_repo,
-        upstream_artifact_base=None,
+        launch_artifacts_base_path=None,
         private_github_key='', hipchat_token='',
         hipchat_room=constants.HIPCHAT_ROOM,
         configuration_secure_dir=constants.PRIVATE_CONFIGURATION_LOCAL_DIR,
@@ -683,9 +683,9 @@ def generate_run_app_playbook(
     Assumes:
         - The play will be run using the continuous delivery ansible config constants.ANSIBLE_CONTINUOUS_DELIVERY_CONFIG
         - The play will be run from the constants.PUBLIC_CONFIGURATION_DIR directory
-        - a key file for this host in "{constants.ARTIFACT_PATH}/key.pem"
-        - a ansible inventory file "{constants.ARTIFACT_PATH}/ansible_inventory"
-        - a launch info file "{constants.ARTIFACT_PATH}/launch_info.yml"
+        - a key file for this host in "{launch_artifacts_base_path}/key.pem"
+        - a ansible inventory file "{launch_artifacts_base_path}/ansible_inventory"
+        - a launch info file "{launch_artifacts_base_path}/launch_info.yml"
 
     The calling pipline for this task must have the following materials:
         - edx-secure
@@ -699,6 +699,7 @@ def generate_run_app_playbook(
         playbook_with_path (str): path to playbook relative to the top-level 'configuration' directory
         edp (EDP):
         app_repo (str) :
+        launch_artifacts_base_path (str): Path containing the launch artifacts. Defaults to constants.ARTIFACT_PATH
         private_github_key (str):
         hipchat_token (str):
         hipchat_room (str):
@@ -715,13 +716,8 @@ def generate_run_app_playbook(
         The newly created task (gomatic.gocd.tasks.ExecTask)
 
     """
-    if not upstream_artifact_base:
-        upstream_artifact_base = ArtifactLocation(
-            pipeline.name,
-            constants.LAUNCH_INSTANCE_STAGE_NAME,
-            constants.LAUNCH_INSTANCE_JOB_NAME,
-            None
-        )
+    if not launch_artifacts_base_path:
+        launch_artifacts_base_path = constants.ARTIFACT_PATH
 
     # Set up the necessary environment variables.
     pipeline.ensure_encrypted_environment_variables(
@@ -742,33 +738,21 @@ def generate_run_app_playbook(
         }
     )
 
-    # Fetch the key material.
-    key_material_location = upstream_artifact_base._replace(file_name='key.pem')
-    job.ensure_task(key_material_location.as_fetch_task(constants.ARTIFACT_PATH))
-
-    # Fetch the launch_info.yml.
-    launch_info_location = upstream_artifact_base._replace(file_name='launch_info.yml')
-    job.ensure_task(launch_info_location.as_fetch_task(constants.ARTIFACT_PATH))
-
-    # Fetch the inventory file.
-    ansible_inventory_location = upstream_artifact_base._replace(file_name='ansible_inventory')
-    job.ensure_task(ansible_inventory_location.as_fetch_task(constants.ARTIFACT_PATH))
-
     return job.add_task(ansible_task(
         prefix=[
-            'chmod 600 ../{}/key.pem;'.format(constants.ARTIFACT_PATH),
+            'chmod 600 ../{}/key.pem;'.format(launch_artifacts_base_path),
             'export ANSIBLE_HOST_KEY_CHECKING=False;',
             'export ANSIBLE_SSH_ARGS="-o ControlMaster=auto -o ControlPersist=30m";',
-            'PRIVATE_KEY=$(/bin/pwd)/../{}/key.pem;'.format(constants.ARTIFACT_PATH),
+            'PRIVATE_KEY=$(/bin/pwd)/../{}/key.pem;'.format(launch_artifacts_base_path),
         ],
         extra_options=[
             '--private-key=$PRIVATE_KEY',
             '--user=ubuntu',
             '--module-path=playbooks/library',
         ],
-        inventory='../{}/ansible_inventory '.format(constants.ARTIFACT_PATH),
+        inventory='../{}/ansible_inventory '.format(launch_artifacts_base_path),
         variables=[
-            '{}/launch_info.yml'.format(constants.ARTIFACT_PATH),
+            '{}/launch_info.yml'.format(launch_artifacts_base_path),
             '{}/ansible/vars/${{DEPLOYMENT}}.yml'.format(configuration_internal_dir),
             '{}/ansible/vars/${{EDX_ENVIRONMENT}}-${{DEPLOYMENT}}.yml'.format(configuration_internal_dir),
             '{}/ansible/vars/${{DEPLOYMENT}}.yml'.format(configuration_secure_dir),
@@ -1425,7 +1409,7 @@ def generate_message_pull_requests_in_commit_range(  # pylint: disable=invalid-n
         arguments.extend(['--base_sha', base_sha])
 
     if base_ami_artifact and ami_tag_app:
-        job.ensure_task(base_ami_artifact.as_fetch_task(constants.ARTIFACT_PATH))
+        retrieve_artifact(base_ami_artifact, job, constants.ARTIFACT_PATH)
 
         arguments.extend([
             '--base_ami_tags', "../{}/{}".format(constants.ARTIFACT_PATH, base_ami_artifact.file_name),
@@ -1503,7 +1487,7 @@ def generate_release_wiki_page(
             '--in-file',
             '{}/{}'.format(input_wiki_id_folder, input_artifact.file_name),
         ])
-        job.ensure_task(input_artifact.as_fetch_task(input_wiki_id_folder))
+        retrieve_artifact(input_artifact, job, input_wiki_id_folder)
     else:
         if parent_title:
             arguments.extend(['--parent-title', parent_title])
@@ -1517,7 +1501,7 @@ def generate_release_wiki_page(
         for artifact in (base, new):
             output_dir = '{}/{}'.format(constants.ARTIFACT_PATH, artifact.pipeline)
             compare_option.append("{}/{}".format(output_dir, artifact.file_name))
-            job.ensure_task(artifact.as_fetch_task(output_dir))
+            retrieve_artifact(artifact, job, output_dir)
         arguments.extend(compare_option)
 
     return job.add_task(tubular_task(
