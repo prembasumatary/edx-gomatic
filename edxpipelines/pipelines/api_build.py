@@ -36,7 +36,6 @@ def install_pipelines(configurator, config, env_configs):  # pylint: disable=unu
         .set_git_material(GitMaterial(
             config['github']['server_uri'] + '/' + config['github']['repository'],
             branch='#{GIT_BRANCH}',
-            material_name='api-manager',
             destination_directory=API_MANAGER_WORKING_DIR
         ))
 

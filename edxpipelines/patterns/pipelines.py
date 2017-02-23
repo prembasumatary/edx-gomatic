@@ -92,13 +92,11 @@ def generate_basic_multistage_pipeline(
         .ensure_replacement_of_pipeline('-'.join(edp)) \
         .ensure_material(GitMaterial(config['tubular_url'],
                                      branch=config.get('tubular_version', 'master'),
-                                     material_name='tubular',
                                      polling=True,
                                      destination_directory='tubular',
                                      ignore_patterns=constants.MATERIAL_IGNORE_ALL_REGEX)) \
         .ensure_material(GitMaterial(config['configuration_url'],
                                      branch=config.get('configuration_version', 'master'),
-                                     material_name='configuration',
                                      polling=True,
                                      destination_directory='configuration',
                                      ignore_patterns=constants.MATERIAL_IGNORE_ALL_REGEX)) \
