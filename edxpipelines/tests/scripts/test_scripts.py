@@ -328,7 +328,7 @@ def extract_labeltemplate_vars(pipeline):
     if labeltemplate is None:
         return
 
-    for match in re.finditer(r'\$\{(?P<var>[^}]*)\}', labeltemplate):
+    for match in re.finditer(r'\$\{(?P<var>.*?)(\[.*?\])?\}', labeltemplate):
         var = match.group('var')
         if var != 'COUNT':
             yield var

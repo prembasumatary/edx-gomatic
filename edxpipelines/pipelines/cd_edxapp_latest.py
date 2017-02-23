@@ -94,6 +94,7 @@ def install_pipelines(configurator, config, env_configs):
         ami_artifact=None,
         auto_run=True,
     )
+    stage_b.set_label_template('${prerelease}')
 
     prod_edx_b = edxapp.launch_and_terminate_subset_pipeline(
         edxapp_deploy_group,
@@ -113,6 +114,7 @@ def install_pipelines(configurator, config, env_configs):
         ami_artifact=None,
         auto_run=True,
     )
+    prod_edx_b.set_label_template('${prerelease}')
 
     prod_edge_b = edxapp.launch_and_terminate_subset_pipeline(
         edxapp_deploy_group,
@@ -132,6 +134,7 @@ def install_pipelines(configurator, config, env_configs):
         ami_artifact=None,
         auto_run=True,
     )
+    prod_edge_b.set_label_template('${prerelease}')
 
     for pipeline in (stage_b, prod_edx_b, prod_edge_b):
         pipeline.ensure_material(
@@ -168,6 +171,7 @@ def install_pipelines(configurator, config, env_configs):
         auto_run=True,
     )
     stage_md.set_automatic_pipeline_locking()
+    stage_md.set_label_template('${STAGE_edxapp_B_build}')
 
     for build_stage in (stage_b, prod_edx_b, prod_edge_b):
         stage_md.ensure_material(
@@ -181,6 +185,7 @@ def install_pipelines(configurator, config, env_configs):
     manual_verification = edxapp.manual_verification(
         edxapp_deploy_group,
     )
+    manual_verification.set_label_template('${stage_ami_deploy}')
 
     manual_verification.ensure_material(
         PipelineMaterial(
@@ -231,6 +236,7 @@ def install_pipelines(configurator, config, env_configs):
         ),
         auto_run=True,
     )
+    prod_edx_md.set_label_template('${prod_release_gate}')
 
     prod_edge_md = edxapp.launch_and_terminate_subset_pipeline(
         edxapp_deploy_group,
@@ -254,6 +260,7 @@ def install_pipelines(configurator, config, env_configs):
         ),
         auto_run=True,
     )
+    prod_edx_md.set_label_template('${prod_release_gate}')
 
     for deploy in (prod_edx_md, prod_edge_md):
         deploy.ensure_material(
@@ -287,6 +294,7 @@ def install_pipelines(configurator, config, env_configs):
         [prod_edx_b, prod_edge_b],
         stage_md,
     )
+    rollback_edx.set_label_template('${deploy_ami}')
     rollback_edge = edxapp.rollback_asgs(
         edxapp_deploy_group,
         'PROD_edge_edxapp_Rollback_latest',
@@ -296,6 +304,7 @@ def install_pipelines(configurator, config, env_configs):
         [prod_edx_b, prod_edge_b],
         stage_md,
     )
+    rollback_edge.set_label_template('${deploy_ami}')
 
     for rollback_stage in (rollback_edx, rollback_edge):
         rollback_stage.ensure_material(
@@ -324,7 +333,7 @@ def install_pipelines(configurator, config, env_configs):
         PipelineMaterial(prod_edge_md.name, constants.DEPLOY_AMI_STAGE_NAME, "deploy_ami")
     )
 
-    edxapp.launch_and_terminate_subset_pipeline(
+    rollback_edx_db = edxapp.launch_and_terminate_subset_pipeline(
         edxapp_deploy_group,
         [
             edxapp.rollback_database(prod_edx_b, prod_edx_md),
@@ -343,8 +352,9 @@ def install_pipelines(configurator, config, env_configs):
             edxapp.armed_stage_builder,
         ],
     )
+    rollback_edx_db.set_label_template('${deploy_pipeline}')
 
-    edxapp.launch_and_terminate_subset_pipeline(
+    rollback_edge_db = edxapp.launch_and_terminate_subset_pipeline(
         edxapp_deploy_group,
         [
             edxapp.rollback_database(prod_edge_b, prod_edge_md),
@@ -363,6 +373,7 @@ def install_pipelines(configurator, config, env_configs):
             edxapp.armed_stage_builder,
         ],
     )
+    rollback_edge_db.set_label_template('${deploy_pipeline}')
 
     deploy_artifact = utils.ArtifactLocation(
         prod_edx_md.name,
