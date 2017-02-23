@@ -132,7 +132,7 @@ def test_upstream_stages_for_artifacts(script_result, script_name):
 
 
 def test_duplicate_materials(script_result):
-    Material = namedtuple('Material', ['pipeline', 'material'])  # pylint: disable=invalid-name
+    Material = namedtuple('Material', ['pipeline', 'material'])
     material_counts = Counter(
         Material(pipeline.get('name'), material.get('materialName', material.get('dest')))
         for pipeline in script_result.iter('pipeline')
@@ -151,7 +151,7 @@ def test_duplicate_materials(script_result):
 
 
 def test_duplicate_upstream_pipelines(script_result):
-    Dependency = namedtuple('PipelineDependency', ['downstream', 'upstream'])  # pylint: disable=invalid-name
+    Dependency = namedtuple('PipelineDependency', ['downstream', 'upstream'])
     material_counts = Counter(
         Dependency(pipeline.get('name'), pipeline_material.get('pipelineName'))
         for pipeline in script_result.iter('pipeline')
@@ -170,7 +170,7 @@ def test_duplicate_upstream_pipelines(script_result):
 
 
 def test_duplicate_artifacts(script_result):
-    Artifact = namedtuple('Artifact', ['pipeline', 'stage', 'job', 'artifact_dir', 'artifact_name'])  # pylint: disable=invalid-name
+    Artifact = namedtuple('Artifact', ['pipeline', 'stage', 'job', 'artifact_dir', 'artifact_name'])
     artifact_counts = Counter(
         Artifact(
             pipeline.get('name'),

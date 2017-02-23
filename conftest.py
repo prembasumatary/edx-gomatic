@@ -18,7 +18,7 @@ def pytest_addoption(parser):
     )
 
 
-def pytest_assertrepr_compare(op, left, right):  # pylint: disable=invalid-name
+def pytest_assertrepr_compare(op, left, right):
     """
     Format assertions around set equality/emptiness.
     """

@@ -1,2 +1,29 @@
 [MASTER]
 load-plugins = edx_lint.pylint
+
+[MESSAGES CONTROL]
+disable =
+    locally-disabled,
+    locally-enabled,
+    too-few-public-methods,
+    bad-builtin,
+    star-args,
+    abstract-class-not-used,
+    abstract-class-little-used,
+    no-init,
+    fixme,
+    logging-format-interpolation,
+    too-many-lines,
+    no-self-use,
+    too-many-ancestors,
+    too-many-instance-attributes,
+    too-few-public-methods,
+    too-many-public-methods,
+    too-many-return-statements,
+    too-many-branches,
+    too-many-arguments,
+    too-many-locals,
+    unused-wildcard-import,
+    duplicate-code,
+    invalid-name,
+    too-many-statements,

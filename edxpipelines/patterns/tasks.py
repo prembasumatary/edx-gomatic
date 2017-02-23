@@ -565,7 +565,7 @@ def generate_migration_rollback(
     )
 
 
-def format_RSA_key(job, output_path, key):  # pylint: disable=invalid-name
+def format_RSA_key(job, output_path, key):
     """
     Formats an RSA key for use in future jobs. Does not last between stages.
     Args:
@@ -975,7 +975,7 @@ def generate_update_index(job, runif='passed'):
     ))
 
 
-def generate_create_release_candidate_branch_and_pr(job,  # pylint: disable=invalid-name
+def generate_create_release_candidate_branch_and_pr(job,
                                                     org,
                                                     repo,
                                                     source_branch,
@@ -1370,7 +1370,7 @@ def trigger_jenkins_build(
     ))
 
 
-def generate_message_pull_requests_in_commit_range(  # pylint: disable=invalid-name
+def generate_message_pull_requests_in_commit_range(
         job, org, repo, token, head_sha, release_status,
         runif='passed', base_sha=None, base_ami_artifact=None, ami_tag_app=None
 ):

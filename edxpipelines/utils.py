@@ -72,7 +72,7 @@ def dict_merge(*args):
         return reduce(_deep_dict_merge, args)
 
 
-def _deep_dict_merge(a, b):  # pylint: disable=invalid-name
+def _deep_dict_merge(a, b):
     """
     Deep merges 2 dictionaries together.
 
