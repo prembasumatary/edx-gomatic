@@ -632,7 +632,7 @@ def generate_target_directory(job, directory_name=constants.ARTIFACT_PATH, runif
         directory_name (str): The name of the directory to create. (Optional)
         runif (str): What state the job must be in to run this task.
     """
-    return job.add_task(bash_task(
+    return job.ensure_task(bash_task(
         '[ -d {dir_name} ] && echo "Directory Exists" || mkdir {dir_name}',
         dir_name=directory_name,
         runif=runif,
@@ -1046,6 +1046,8 @@ def generate_create_branch(pipeline,
             'GIT_TOKEN': token
         }
     )
+
+    generate_target_directory(job)
 
     args = [
         '--org', org,
