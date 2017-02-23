@@ -304,7 +304,11 @@ def test_unnecessary_material_name(script_result):
         for pipeline in script_result.iter('pipeline')
         for materials in pipeline.iter('materials')
         for material in materials
-        if material.get('dest') and material.get('dest') == material.get('materialName')
+        if (
+            material.get('dest') and
+            material.get('dest') == material.get('materialName') and
+            material.get('materialName') not in extract_labeltemplate_vars(pipeline)
+        )
     )
 
     message = (
@@ -314,3 +318,35 @@ def test_unnecessary_material_name(script_result):
         "\n".join("    Pipeline: {}, material: {}".format(*mat) for mat in sorted(mats_with_unneccesary_name))
     )
     assert mats_with_unneccesary_name == set(), message
+
+
+def extract_labeltemplate_vars(pipeline):
+    """
+    Yield a list of all variables used by the labeltemplate for a pipeline
+    """
+    labeltemplate = pipeline.get('labeltemplate')
+    if labeltemplate is None:
+        return
+
+    for match in re.finditer(r'\$\{(?P<var>[^}]*)\}', labeltemplate):
+        var = match.group('var')
+        if var != 'COUNT':
+            yield var
+
+
+def test_label_templates(script_result):
+    pipeline_template_vars = set(
+        (pipeline.get('name'), var)
+        for pipeline in script_result.iter('pipeline')
+        for var in extract_labeltemplate_vars(pipeline)
+    )
+
+    pipeline_material_names = set(
+        (pipeline.get('name'), material.get('materialName'))
+        for pipeline in script_result.iter('pipeline')
+        for materials in pipeline.iter('materials')
+        for material in materials
+        if material.get('materialName')
+    )
+
+    assert pipeline_template_vars <= pipeline_material_names
