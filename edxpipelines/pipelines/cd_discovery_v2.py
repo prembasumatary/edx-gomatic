@@ -128,4 +128,4 @@ def install_pipelines(configurator, config, env_configs):  # pylint: disable=unu
 
 
 if __name__ == '__main__':
-    pipeline_script(install_pipelines)
+    pipeline_script(install_pipelines, environments=('stage', 'prod'))
