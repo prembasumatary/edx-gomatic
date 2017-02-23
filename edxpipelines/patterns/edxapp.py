@@ -89,7 +89,7 @@ def prerelease_materials(edxapp_group, config):
     # deal with any releases that are never completed.
     tasks.generate_create_branch(
         pipeline, job, config['git_token'], 'edx', 'edx-platform',
-        target_branch="release-candidate/$GO_PIPELINE_COUNTER",
+        target_branch="release-candidate-$GO_PIPELINE_COUNTER",
         sha='$GO_REVISION_EDX_PLATFORM')
 
     return pipeline
