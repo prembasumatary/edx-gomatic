@@ -8,6 +8,7 @@ from gomatic import ExecTask, BuildArtifact, FetchArtifactFile, FetchArtifactDir
 
 
 from edxpipelines import constants
+from edxpipelines.utils import path_to_artifact
 
 
 def ansible_task(
@@ -395,7 +396,7 @@ def generate_ami_cleanup(job, runif="passed"):
     ))
 
 
-def generate_run_migrations(job, sub_application_name=None, runif="passed"):
+def generate_run_migrations(job, sub_application_name=None, launch_artifacts_base_path=None, runif='passed'):
     """
     Generates GoCD task that runs migrations via an Ansible script.
 
@@ -405,15 +406,22 @@ def generate_run_migrations(job, sub_application_name=None, runif="passed"):
     Args:
         job (gomatic.job.Job): the gomatic job to which the run migrations task will be added
         sub_application_name (str): additional command to be passed to the migrate app {cms|lms}
+        launch_artifacts_base_path (str): Path to directory in which launch artifacts
+            can be found. Defaults to constants.ARTIFACT_PATH
         runif (str): one of ['passed', 'failed', 'any'] Default: passed
 
     Returns:
         The newly created task (gomatic.gocd.tasks.ExecTask)
 
     """
+    if not launch_artifacts_base_path:
+        launch_artifacts_base_path = constants.ARTIFACT_PATH
+
+    migration_artifact_path = path_to_artifact('migrations')
+
     job.ensure_artifacts(
         set(
-            [BuildArtifact('{}/migrations'.format(constants.ARTIFACT_PATH))]
+            [BuildArtifact(migration_artifact_path)]
         )
     )
 
@@ -421,7 +429,7 @@ def generate_run_migrations(job, sub_application_name=None, runif="passed"):
         ('APPLICATION_PATH', '$APPLICATION_PATH'),
         ('APPLICATION_NAME', '$APPLICATION_NAME'),
         ('APPLICATION_USER', '$APPLICATION_USER'),
-        ('ARTIFACT_PATH', '`/bin/pwd`/../{}/migrations'.format(constants.ARTIFACT_PATH)),
+        ('ARTIFACT_PATH', '`/bin/pwd`/../' + migration_artifact_path),
         ('DB_MIGRATION_USER', '$DB_MIGRATION_USER'),
         ('DB_MIGRATION_PASS', '$DB_MIGRATION_PASS'),
     ]
@@ -431,12 +439,16 @@ def generate_run_migrations(job, sub_application_name=None, runif="passed"):
 
     return job.add_task(ansible_task(
         prefix=[
-            'mkdir -p {}/migrations;'.format(constants.ARTIFACT_PATH),
+            'mkdir -p {};'.format(migration_artifact_path),
             'export ANSIBLE_HOST_KEY_CHECKING=False;',
             'export ANSIBLE_SSH_ARGS="-o ControlMaster=auto -o ControlPersist=30m";',
-            'PRIVATE_KEY=`/bin/pwd`/../{}/key.pem;'.format(constants.ARTIFACT_PATH),
+            'PRIVATE_KEY=`/bin/pwd`/../{};'.format(
+                path_to_artifact(constants.KEY_PEM_FILENAME, artifact_path=launch_artifacts_base_path)
+            ),
         ],
-        inventory='../{}/ansible_inventory '.format(constants.ARTIFACT_PATH),
+        inventory='../{} '.format(
+            path_to_artifact(constants.ANSIBLE_INVENTORY_FILENAME, artifact_path=launch_artifacts_base_path)
+        ),
         extra_options=[
             '--private-key=$PRIVATE_KEY',
             '--user=ubuntu',

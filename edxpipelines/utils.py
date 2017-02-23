@@ -6,6 +6,8 @@ from copy import copy
 
 import yaml
 
+from edxpipelines import constants
+
 
 class MergeConflict(Exception):
     """Raised when a merge conflict is found when trying to deep-merge dictionaries."""
@@ -128,3 +130,16 @@ def merge_files_and_dicts(file_paths, dicts):
 
     file_variables.extend(dict_vars)
     return dict_merge(*file_variables)
+
+
+def path_to_artifact(filename, artifact_path=constants.ARTIFACT_PATH):
+    """
+    Construct the path to the named artifact, relative to the base directory for job execution.
+
+    Args:
+        filename (str): Name of the artifact.
+
+    Returns:
+        str
+    """
+    return '{}/{}'.format(artifact_path, filename)

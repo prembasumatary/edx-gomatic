@@ -20,52 +20,26 @@ from edxpipelines.utils import EDP
 
 def install_pipelines(configurator, config, env_configs):  # pylint: disable=unused-argument
     """
-    Generates 2 pipelines used to deploy the discovery service to stage and prod.
+    Generates 2 pipelines used to deploy the discovery service to stage, loadtest, and prod.
 
-    The first pipeline contains 2 stages, run serially:
+    The first pipeline contains 2 stages:
 
-        1. Build AMIs. Contains 2 jobs, run in parallel.
+        1. Build AMIs.
 
-            a. Build stage AMI. Contains 5 tasks, run serially:
-                i.   Select base AMI.
-                ii.  Launch a new instance on which we will build an AMI.
-                iii. Run the Ansible play for the service.
-                iv.  Create a stage AMI based on the instance.
-                v.   Regardless of job state: clean up instance.
+        2. Migrate and deploy to stage. For increased concurrency, this stage
+           may be broken into separate migration and deployment stages.
 
-            b. Build prod AMI. Contains 5 tasks, run serially:
-                i.   Select base AMI.
-                ii.  Launch a new instance on which we will build an AMI.
-                iii. Run the Ansible play for the service.
-                iv.  Create a prod AMI based on the instance.
-                v.   Regardless of job state: clean up instance.
-
-        2. Migrate and deploy to stage. Contains 1 job.
-
-            a. Migrate and deploy to stage. Contains 4+ tasks, run serially:
-                i.   Launch instance of stage AMI built in the previous stage.
-                ii.  Run migrations against stage.
-                iii. Any post-migration tasks (e.g., running management commands).
-                iv.  Deploy the stage AMI.
-                v.   Regardless of job state: clean up instance.
-
-    The second pipeline contains 4 stages, run serially:
+    The second pipeline contains 4 stages:
 
         1. Armed stage. Triggered by success of the last stage in the preceding pipeline.
            Can be armed by the earlier prod AMI build to provide a fast track to prod.
 
-        2. Migrate and deploy to prod. Requires manual execution. Contains 1 job.
-
-            a. Migrate and deploy to prod. Contains 4+ tasks, run serially:
-                i.   Launch instance of prod AMI built in the previous pipeline.
-                ii.  Run migrations against prod.
-                iii. Any post-migration tasks (e.g., running management commands).
-                iv.  Deploy the prod AMI.
-                v.   Regardless of job state: clean up instance.
+        2. Migrate and deploy to prod. Requires manual execution.
 
         3. Roll back prod ASGs (code). Requires manual execution.
 
-        4. Roll back prod migrations.
+        4. Roll back prod migrations. Requires manual execution. (Pipeline operators
+           won't always want to roll back migrations.)
     """
     edp = EDP(None, 'edx', 'discovery')
     app_repo_url = 'https://github.com/edx/course-discovery.git'
@@ -112,8 +86,7 @@ def install_pipelines(configurator, config, env_configs):  # pylint: disable=unu
     })
 
     build_stage = build_pipeline.ensure_stage(constants.BUILD_AMIS_STAGE_NAME)
-
-    for environment in ('stage', 'prod'):
+    for environment in ('stage', 'loadtest', 'prod'):
         jobs.generate_build_ami(
             build_pipeline,
             build_stage,
@@ -126,6 +99,16 @@ def install_pipelines(configurator, config, env_configs):  # pylint: disable=unu
             DISCOVERY_VERSION=app_version_var,
         )
 
+    deploy_stage = build_pipeline.ensure_stage(constants.DEPLOY_AMIS_STAGE_NAME)
+    # TODO: Add loadtest to this tuple once deploys to stage actually go to stage.
+    for environment in ('stage',):
+        jobs.generate_deploy_ami(
+            build_pipeline,
+            deploy_stage,
+            edp._replace(environment=environment),
+            env_configs[environment],
+        )
+
 
 if __name__ == '__main__':
-    pipeline_script(install_pipelines, environments=('stage', 'prod'))
+    pipeline_script(install_pipelines, environments=('stage', 'loadtest', 'prod'))

@@ -6,6 +6,7 @@ from enum import Enum
 
 # Names for the standard stages/jobs
 ARM_PRERELEASE_STAGE = 'arm_prerelease'
+DEPLOY_AMIS_STAGE_NAME = 'deploy_amis'
 DEPLOY_AMI_STAGE_NAME = 'deploy_ami'
 DEPLOY_AMI_JOB_NAME = 'deploy_ami_job'
 RUN_MIGRATIONS_STAGE_NAME = 'apply_migrations'
@@ -13,6 +14,7 @@ RUN_MIGRATIONS_JOB_NAME = 'apply_migrations_job'
 BUILD_AMIS_STAGE_NAME = 'build_amis'
 BUILD_AMI_STAGE_NAME = 'build_ami'
 BUILD_AMI_JOB_NAME = 'build_ami_job'
+BUILD_AMI_JOB_NAME_TPL = '{.environment}_build_ami_job'.format
 TERMINATE_INSTANCE_STAGE_NAME = 'cleanup_ami_Instance'
 TERMINATE_INSTANCE_JOB_NAME = 'cleanup_ami_instance_job'
 LAUNCH_INSTANCE_STAGE_NAME = 'launch_instance'
