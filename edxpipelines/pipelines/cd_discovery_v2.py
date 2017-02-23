@@ -13,6 +13,7 @@ from gomatic import GitMaterial
 
 from edxpipelines import constants, materials
 from edxpipelines.patterns import jobs
+from edxpipelines.patterns.authz import Permission, ensure_permissions
 from edxpipelines.pipelines.script import pipeline_script
 from edxpipelines.utils import EDP
 
@@ -73,6 +74,13 @@ def install_pipelines(configurator, config, env_configs):  # pylint: disable=unu
 
     configurator.ensure_removal_of_pipeline_group(edp.play)
     pipeline_group = configurator.ensure_pipeline_group(edp.play)
+
+    admin_role = '-'.join([edp.play, 'admin'])
+    ensure_permissions(pipeline_group, Permission.ADMINS, [admin_role])
+
+    operator_role = '-'.join([edp.play, 'operator'])
+    ensure_permissions(pipeline_group, Permission.OPERATE, [operator_role])
+    ensure_permissions(pipeline_group, Permission.VIEW, [operator_role])
 
     build_pipeline = pipeline_group.ensure_replacement_of_pipeline('-'.join(['build', edp.play]))
 
