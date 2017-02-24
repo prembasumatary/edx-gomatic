@@ -48,7 +48,6 @@ def generate_build_ami(pipeline,
         edx_environment=edp.environment,
         deployment=edp.deployment,
         play=edp.play,
-        base_ami_id=env_config['base_ami_id'],
     )
 
     # Launch a new instance on which to build the AMI.
