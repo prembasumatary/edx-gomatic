@@ -636,7 +636,7 @@ def generate_target_directory(job, directory_name=constants.ARTIFACT_PATH, runif
         runif (str): What state the job must be in to run this task.
     """
     return job.ensure_task(bash_task(
-        '[ -d {dir_name} ] && echo "Directory Exists" || mkdir {dir_name}',
+        'mkdir -p {dir_name}',
         dir_name=directory_name,
         runif=runif,
     ))
