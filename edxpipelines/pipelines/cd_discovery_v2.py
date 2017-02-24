@@ -64,17 +64,20 @@ def install_pipelines(configurator, config, env_configs):  # pylint: disable=unu
         destination_directory='configuration-secure'
     )
 
+    app_material = GitMaterial(
+        app_repo_url,
+        material_name=edp.play,
+        branch='master',
+        polling=True,
+        destination_directory=edp.play
+    )
+
     ensured_materials = [
         materials.TUBULAR(),
         materials.CONFIGURATION(),
         configuration_secure_material,
         materials.deployment_internal(edp.deployment),
-        GitMaterial(
-            app_repo_url,
-            branch='master',
-            polling=True,
-            destination_directory=edp.play
-        ),
+        app_material,
     ]
 
     for material in ensured_materials:
@@ -85,6 +88,8 @@ def install_pipelines(configurator, config, env_configs):  # pylint: disable=unu
         'APPLICATION_NAME': edp.play,
         'APPLICATION_PATH': '/edx/app/' + edp.play,
     })
+
+    build_pipeline.set_label_template(constants.BUILD_LABEL_TPL(app_material))
 
     build_stage = build_pipeline.ensure_stage(constants.BUILD_AMIS_STAGE_NAME)
     for environment in ('stage', 'loadtest', 'prod'):
