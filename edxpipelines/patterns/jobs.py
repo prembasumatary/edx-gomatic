@@ -1,5 +1,17 @@
 """
 Common gomatic Jobs patterns.
+
+Responsibilities:
+    Job patterns should ...
+        * return the created job (or a dict of jobs, if there are more than one).
+        * expect ArtifactLocations as input.
+            * It's the responsibility of the stage/pipeline to ensure that the
+              supplied artifacts don't refer to a job in the same stage.
+        * use constants for job names.
+        * not specify environment variables (leave that to tasks).
+        * only be used for common groupings of tasks that need to be parameterized
+          (task patterns can be used directly from stage patterns or pipeline patterns).
+        * ``ensure`` the scm materials needed for any non-pattern task to function.
 """
 
 from gomatic import ExecTask

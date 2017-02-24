@@ -1,5 +1,18 @@
 """
 Common gomatic stages.
+
+Responsibilities:
+    Stage patterns should ...
+        * use constants for stage names.
+        * not specify environment variables (leave that to tasks).
+        * use explicit arguments (rather than a configuration dictionary).
+        * return the created stage (or a list/namedtuple if there are multiple stages).
+        * only be used for common groupings of jobs/tasks that need to be parameterized
+          (task and job patterns can be used directly from pipeline patterns).
+        * expect ArtifactLocations as input.
+            * It's the responsibility of the calling pipeline to ensure that the
+              supplied artifacts don't refer to the current stage.
+        * ``ensure`` the scm materials needed for any non-pattern task to function.
 """
 
 from gomatic import ExecTask, BuildArtifact, FetchArtifactTask, FetchArtifactFile
