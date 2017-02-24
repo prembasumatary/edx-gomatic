@@ -74,14 +74,16 @@ def prerelease_materials(edxapp_group, config):
     - configuration_secure_version
     """
     pipeline = edxapp_group.ensure_replacement_of_pipeline("prerelease_edxapp_materials_latest")
+    pipeline.set_label_template('${edx-platform[:7]}-${COUNT}')
 
     for material in (
             CONFIGURATION, EDX_SECURE, EDGE_SECURE,
-            EDX_MICROSITE, EDX_INTERNAL, EDGE_INTERNAL, EDX_PLATFORM,
+            EDX_MICROSITE, EDX_INTERNAL, EDGE_INTERNAL,
     ):
         pipeline.ensure_material(material(ignore_patterns=[]))
 
     pipeline.ensure_material(TUBULAR())
+    pipeline.ensure_material(EDX_PLATFORM(material_name='edx-platform'))
 
     stage = pipeline.ensure_stage(constants.PRERELEASE_MATERIALS_STAGE_NAME)
     job = stage.ensure_job(constants.PRERELEASE_MATERIALS_JOB_NAME)

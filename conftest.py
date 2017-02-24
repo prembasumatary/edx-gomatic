@@ -18,7 +18,7 @@ def pytest_addoption(parser):
     )
 
 
-def pytest_assertrepr_compare(op, left, right):  # pylint: disable=invalid-name
+def pytest_assertrepr_compare(op, left, right):
     """
     Format assertions around set equality/emptiness.
     """
@@ -36,7 +36,7 @@ def pytest_assertrepr_compare(op, left, right):  # pylint: disable=invalid-name
         elif op == '==' and not right:
             return [
                 '{left.__class__.__name__}(...) is not empty'.format(left=left),
-                'Items missing from the lefthand set:',
+                'Unexpected items in the lefthand set:',
             ] + [
                 '    {!r}'.format(item)
                 for item in left

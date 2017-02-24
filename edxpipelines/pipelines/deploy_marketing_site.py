@@ -16,7 +16,7 @@ from edxpipelines.patterns import tasks
 from edxpipelines.pipelines.script import pipeline_script
 
 
-def install_pipelines(configurator, config, env_configs):  # pylint: disable=unused-argument, too-many-statements
+def install_pipelines(configurator, config, env_configs):  # pylint: disable=unused-argument
     """
     Install pipelines that can deploy the edx-mktg site.
     """
