@@ -79,6 +79,19 @@ def test_scripts_are_executable(script_name):
     assert os.access(script_name, os.X_OK)
 
 
+def prefixes(generator):
+    """
+    Yield all prefixes of a generator. For example:
+
+        list(prefixes("abc")) = ["", "a", "ab", "abc"]
+    """
+    current_prefix = []
+    for item in generator:
+        yield list(current_prefix)
+        current_prefix.append(item)
+    yield current_prefix
+
+
 def find_available_stages(script_result, target_pipeline, target_stage):
     """
     Yields the names of all stages inside ``target_pipeline`` that are available
@@ -96,36 +109,51 @@ def find_available_stages(script_result, target_pipeline, target_stage):
 
 
 def test_upstream_stages_for_artifacts(script_result, script_name):
-    if script_name in ['edxpipelines/pipelines/api_deploy.py']:
+    if script_name in ['edxpipelines/pipelines/api_deploy.py', 'edxpipelines/pipelines/rollback_asgs.py']:
         pytest.xfail("{} is known to be non-independent".format(script_name))
 
-    RequiredStage = namedtuple('RequiredStage', ['downstream_pipeline', 'upstream_pipeline', 'upstream_stage'])
+    RequiredStage = namedtuple('RequiredStage', [
+        'downstream_pipeline', 'downstream_stage', 'upstream_pipeline', 'upstream_stage'
+    ])
 
     required_stages = set(
         RequiredStage(
-            pipeline.get('name'),  # This pipeline
-            fetch.get('pipeline'),  # The upstream pipeline
-            fetch.get('stage'),  # The upstream stage
+            pipeline.get('name'),
+            stage.get('name'),
+            fetch.get('pipeline'),
+            fetch.get('stage'),
         )
         for pipeline in script_result.iter('pipeline')
-        for fetch in pipeline.iter('fetchartifact')
-        if fetch.get('pipeline') != pipeline.get('name')
+        for stage in pipeline.iter('stage')
+        for fetch in stage.iter('fetchartifact')
     )
 
     available_stages = set(
         RequiredStage(
-            pipeline.get('name'),  # This pipeline
-            pipeline_material.get('pipelineName'),  # The upstream pipeline
-            stage,  # The upstream stage
+            pipeline.get('name'),
+            downstream_stage.get('name'),
+            pipeline_material.get('pipelineName'),
+            upstream_stage,
         )
         for pipeline in script_result.iter('pipeline')
         for materials in pipeline.iter('materials')
         for pipeline_material in materials.findall('pipeline')
-        for stage in find_available_stages(
+        for upstream_stage in find_available_stages(
             script_result,
             pipeline_material.get('pipelineName'),
             pipeline_material.get('stageName')
-        ),
+        )
+        for downstream_stage in pipeline.iter('stage')
+    ) | set(
+        RequiredStage(
+            pipeline.get('name'),
+            stage_prefixes[-1].get('name'),
+            pipeline.get('name'),
+            upstream_stage.get('name'),
+        )
+        for pipeline in script_result.iter('pipeline')
+        for stage_prefixes in prefixes(pipeline.iter('stage'))
+        for upstream_stage in stage_prefixes[:-1]
     )
 
     assert required_stages <= available_stages, "Stages containing artifacts to be fetched aren't upstream"
