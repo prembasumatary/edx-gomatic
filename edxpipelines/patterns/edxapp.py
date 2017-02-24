@@ -32,7 +32,7 @@ def make_release_candidate(edxapp_group, config):
     """
     pipeline = edxapp_group.ensure_replacement_of_pipeline('edxapp_cut_release_candidate')
 
-    edx_platform_master = EDX_PLATFORM(branch="master", ignore_patterns=[])
+    edx_platform_master = EDX_PLATFORM(material_name='edx-platform', branch="master", ignore_patterns=[])
     pipeline.ensure_material(edx_platform_master)
     pipeline.ensure_material(TUBULAR())
     stage = pipeline.ensure_stage(constants.MAKE_RELEASE_CANDIDATE_STAGE_NAME)

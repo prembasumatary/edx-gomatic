@@ -40,6 +40,7 @@ def install_pipelines(configurator, config, env_configs):  # pylint: disable=unu
         GitMaterial(
             'https://github.com/edx/edx-gomatic',
             polling=True,
+            material_name='edx-gomatic',
             destination_directory='edx-gomatic',
             branch='master'
         )
@@ -51,7 +52,7 @@ def install_pipelines(configurator, config, env_configs):  # pylint: disable=unu
             branch='master',
             ignore_patterns=constants.MATERIAL_IGNORE_ALL_REGEX
         )
-    )
+    ).set_label_template('${edx-gomatic[:7]}')
 
     pipeline.ensure_encrypted_environment_variables(
         {
