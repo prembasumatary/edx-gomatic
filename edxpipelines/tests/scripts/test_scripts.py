@@ -379,3 +379,21 @@ def test_label_templates(script_result):
     )
 
     assert required_materials <= named_materials, "Missing material names needed by labeltemplates"
+
+
+def test_defined_roles(script_result):
+
+    available_roles = set(
+        role.get('name')
+        for security in script_result.iter('security')
+        for role in security.iter('role')
+    )
+
+    roles_on_groups = set(
+        role.text
+        for pipeline_group in script_result.iter('pipelines')
+        for authorization in pipeline_group.iter('authorization')
+        for role in authorization.iter('role')
+    )
+
+    assert roles_on_groups <= available_roles
