@@ -58,14 +58,14 @@ def install_pipelines(configurator, config, env_configs):
     configurator.ensure_removal_of_pipeline_group('edxapp_prod_deploys')
     edxapp_group = configurator.ensure_pipeline_group('edxapp')
 
-    ensure_permissions(edxapp_group, Permission.OPERATE, ['edxapp-operator'])
-    ensure_permissions(edxapp_group, Permission.VIEW, ['edxapp-operator'])
+    ensure_permissions(configurator, edxapp_group, Permission.OPERATE, ['edxapp-operator'])
+    ensure_permissions(configurator, edxapp_group, Permission.VIEW, ['edxapp-operator'])
 
     edxapp_deploy_group = configurator.ensure_pipeline_group('edxapp_prod_deploys')
 
-    ensure_permissions(edxapp_deploy_group, Permission.ADMINS, ['deploy'])
-    ensure_permissions(edxapp_deploy_group, Permission.OPERATE, ['prod-deploy-operators'])
-    ensure_permissions(edxapp_deploy_group, Permission.VIEW, ['prod-deploy-operators'])
+    ensure_permissions(configurator, edxapp_deploy_group, Permission.ADMINS, ['deploy'])
+    ensure_permissions(configurator, edxapp_deploy_group, Permission.OPERATE, ['prod-deploy-operators'])
+    ensure_permissions(configurator, edxapp_deploy_group, Permission.VIEW, ['prod-deploy-operators'])
 
     edxapp.make_release_candidate(
         edxapp_group,
