@@ -25,9 +25,9 @@ def ensure_role(configurator, role):
         role (str): The role to add
     """
     # pylint: disable=protected-access
-    security_element = Ensurance(configurator._GoCdConfigurator__xml_root).ensure_child('security').element
-    roles_element = Ensurance(security_element).ensure_child('roles').element
-    Ensurance(roles_element).ensure_child_with_attribute('role', 'name', role)
+    security = configurator._GoCdConfigurator__server_element_ensurance().ensure_child('security')
+    roles = security.ensure_child('roles')
+    roles.ensure_child_with_attribute('role', 'name', role)
 
 
 def ensure_permissions(configurator, pipeline_group, permission, roles):
@@ -43,9 +43,9 @@ def ensure_permissions(configurator, pipeline_group, permission, roles):
     for role in roles:
         ensure_role(configurator, role)
 
-    authorization_element = Ensurance(pipeline_group.element).ensure_child('authorization').element
-    permission_element = Ensurance(authorization_element).ensure_child(permission.value).element
-    permission_element[:] = []
+    authorization = Ensurance(pipeline_group.element).ensure_child('authorization')
+    permission = authorization.ensure_child(permission.value)
+    permission.element[:] = []
     for role in roles:
-        role_element = ET.SubElement(permission_element, tag='role')
+        role_element = ET.SubElement(permission.element, tag='role')
         role_element.text = role
