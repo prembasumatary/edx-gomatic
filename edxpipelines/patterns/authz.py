@@ -16,7 +16,21 @@ class Permission(Enum):
     VIEW = "view"
 
 
-def ensure_permissions(pipeline_group, permission, roles):
+def ensure_role(configurator, role):
+    """
+    Ensure that the supplied ``role`` is available in GoCD.
+
+    Arguments:
+        configurator (gomatic.GoCDConfigurator): the configurator to change
+        role (str): The role to add
+    """
+    # pylint: disable=protected-access
+    security_element = Ensurance(configurator._GoCdConfigurator__xml_root).ensure_child('security').element
+    roles_element = Ensurance(security_element).ensure_child('roles').element
+    Ensurance(roles_element).ensure_child_with_attribute('role', 'name', role)
+
+
+def ensure_permissions(configurator, pipeline_group, permission, roles):
     """
     Ensure that only the ``roles`` are given the ``permission``
     in the ``pipeline_group``.
@@ -26,6 +40,9 @@ def ensure_permissions(pipeline_group, permission, roles):
         permission (Permission)
         roles (list): List of role names to ensure
     """
+    for role in roles:
+        ensure_role(configurator, role)
+
     authorization_element = Ensurance(pipeline_group.element).ensure_child('authorization').element
     permission_element = Ensurance(authorization_element).ensure_child(permission.value).element
     permission_element[:] = []
