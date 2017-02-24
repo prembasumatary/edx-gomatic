@@ -223,7 +223,11 @@ def generate_run_play(pipeline,
     tasks.generate_requirements_install(job, 'configuration')
     tasks.generate_target_directory(job)
 
-    for file_name in ('key.pem', 'launch_info.yml', 'ansible_inventory'):
+    for file_name in (
+            constants.KEY_PEM_FILENAME,
+            constants.LAUNCH_INSTANCE_FILENAME,
+            constants.ANSIBLE_INVENTORY_FILENAME
+    ):
         tasks.retrieve_artifact(
             ArtifactLocation(
                 pipeline.name,

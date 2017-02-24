@@ -263,13 +263,13 @@ def generate_migrate_stages(pipeline, config):
         pipeline.name,
         constants.LAUNCH_INSTANCE_STAGE_NAME,
         constants.LAUNCH_INSTANCE_JOB_NAME,
-        'ansible_inventory'
+        constants.ANSIBLE_INVENTORY_FILENAME
     )
     instance_ssh_key_location = utils.ArtifactLocation(
         pipeline.name,
         constants.LAUNCH_INSTANCE_STAGE_NAME,
         constants.LAUNCH_INSTANCE_JOB_NAME,
-        'key.pem'
+        constants.KEY_PEM_FILENAME
     )
     launch_info_location = utils.ArtifactLocation(
         pipeline.name,
@@ -606,13 +606,13 @@ def rollback_database(build_pipeline, deploy_pipeline):
             pipeline.name,
             constants.LAUNCH_INSTANCE_STAGE_NAME,
             constants.LAUNCH_INSTANCE_JOB_NAME,
-            'ansible_inventory'
+            constants.ANSIBLE_INVENTORY_FILENAME
         )
         instance_ssh_key_location = utils.ArtifactLocation(
             pipeline.name,
             constants.LAUNCH_INSTANCE_STAGE_NAME,
             constants.LAUNCH_INSTANCE_JOB_NAME,
-            'key.pem'
+            constants.KEY_PEM_FILENAME
         )
 
         # Specify the upstream deploy pipeline material for this rollback pipeline.

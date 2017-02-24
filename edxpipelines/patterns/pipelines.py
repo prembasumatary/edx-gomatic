@@ -190,19 +190,19 @@ def generate_basic_multistage_pipeline(
         pipeline.name,
         constants.LAUNCH_INSTANCE_STAGE_NAME,
         constants.LAUNCH_INSTANCE_JOB_NAME,
-        'ansible_inventory'
+        constants.ANSIBLE_INVENTORY_FILENAME
     )
     instance_ssh_key_location = utils.ArtifactLocation(
         pipeline.name,
         constants.LAUNCH_INSTANCE_STAGE_NAME,
         constants.LAUNCH_INSTANCE_JOB_NAME,
-        'key.pem'
+        constants.KEY_PEM_FILENAME
     )
     launch_info_location = utils.ArtifactLocation(
         pipeline.name,
         constants.LAUNCH_INSTANCE_STAGE_NAME,
         constants.LAUNCH_INSTANCE_JOB_NAME,
-        'launch_info.yml'
+        constants.LAUNCH_INSTANCE_FILENAME
     )
 
     if not skip_migrations:
@@ -254,7 +254,7 @@ def generate_basic_multistage_pipeline(
         pipeline.name,
         constants.LAUNCH_INSTANCE_STAGE_NAME,
         constants.LAUNCH_INSTANCE_JOB_NAME,
-        'launch_info.yml'
+        constants.LAUNCH_INSTANCE_FILENAME
     )
     stages.generate_terminate_instance(
         pipeline,
