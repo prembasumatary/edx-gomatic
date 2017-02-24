@@ -67,10 +67,12 @@ def install_pipelines(configurator, config, env_configs):
     ensure_permissions(edxapp_deploy_group, Permission.OPERATE, ['prod-deploy-operators'])
     ensure_permissions(edxapp_deploy_group, Permission.VIEW, ['prod-deploy-operators'])
 
-    edxapp.make_release_candidate(
+    cut_branch = edxapp.make_release_candidate(
         edxapp_group,
         config,
     )
+    cut_branch.set_label_template('${edx-platform[:7]}')
+
     prerelease_materials = edxapp.prerelease_materials(
         edxapp_group,
         config
