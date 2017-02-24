@@ -44,7 +44,7 @@ def make_release_candidate(edxapp_group, config):
         config['git_token'],
         'edx',
         'edx-platform',
-        edx_platform_master.branch,
+        "origin/{}".format(edx_platform_master.branch),
         EDX_PLATFORM().branch,
         fast_forward_only=False,
     )
