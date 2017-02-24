@@ -58,12 +58,14 @@ def install_pipelines(configurator, config, env_configs):  # pylint: disable=unu
 
     build_pipeline = pipeline_group.ensure_replacement_of_pipeline('-'.join(['build', edp.play]))
 
-    # Downstream tasks expect a material named configuration-secure.
     configuration_secure_material = materials.deployment_secure(
         edp.deployment,
         destination_directory='configuration-secure'
     )
-
+    configuration_internal_material = materials.deployment_internal(
+        edp.deployment,
+        destination_directory='configuration-internal'
+    )
     app_material = GitMaterial(
         app_repo_url,
         material_name=edp.play,
@@ -76,7 +78,7 @@ def install_pipelines(configurator, config, env_configs):  # pylint: disable=unu
         materials.TUBULAR(),
         materials.CONFIGURATION(),
         configuration_secure_material,
-        materials.deployment_internal(edp.deployment),
+        configuration_internal_material,
         app_material,
     ]
 
@@ -98,7 +100,8 @@ def install_pipelines(configurator, config, env_configs):  # pylint: disable=unu
             build_stage,
             edp._replace(environment=environment),
             app_repo_url,
-            configuration_secure_material.url,
+            configuration_secure_material,
+            configuration_internal_material,
             playbook_path,
             env_configs[environment],
             app_version=app_version_var,

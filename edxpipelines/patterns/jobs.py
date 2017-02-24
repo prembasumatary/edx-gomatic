@@ -25,7 +25,8 @@ def generate_build_ami(pipeline,
                        stage,
                        edp,
                        app_repo_url,
-                       config_secure_repo_url,
+                       configuration_secure_material,
+                       configuration_internal_material,
                        playbook_path,
                        env_config,
                        **kwargs):
@@ -38,7 +39,10 @@ def generate_build_ami(pipeline,
         edp (edxpipelines.utils.EDP): Tuple indicating environment, deployment, and play
             for which an AMI will be created.
         app_repo_url (str): App repo's URL.
-        config_secure_repo_url (str): Secure configuration repo's URL.
+        configuration_secure_material (gomatic.gomatic.gocd.materials.GitMaterial): Secure
+            configuration material. Destination directory expected to be 'configuration-secure'.
+        configuration_internal_material (gomatic.gomatic.gocd.materials.GitMaterial): Internal
+            configuration material. Destination directory expected to be 'configuration-internal'.
         playbook_path (str): Path to the Ansible playbook to run when creating the AMI.
         env_config (dict): Environment-specific secure config.
 
@@ -84,6 +88,8 @@ def generate_build_ami(pipeline,
         app_repo_url,
         private_github_key=env_config['github_private_key'],
         hipchat_token=env_config['hipchat_token'],
+        configuration_secure_dir=configuration_secure_material.destination_directory,
+        configuration_internal_dir=configuration_internal_material.destination_directory,
         disable_edx_services='true',
         COMMON_TAG_EC2_INSTANCE='true',
         **kwargs
@@ -97,11 +103,11 @@ def generate_build_ami(pipeline,
         edp.deployment,
         edp.environment,
         app_repo_url,
-        config_secure_repo_url,
+        configuration_secure_material.url,
         env_config['aws_access_key_id'],
         env_config['aws_secret_access_key'],
         launch_info_path=path_to_artifact(constants.LAUNCH_INSTANCE_FILENAME),
-        configuration_secure_version='$GO_REVISION_CONFIGURATION_SECURE',
+        configuration_secure_version=constants.CONFIGURATION_SECURE_VERSION,
         hipchat_token=env_config['hipchat_token'],
         **kwargs
     )
