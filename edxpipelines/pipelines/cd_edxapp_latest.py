@@ -67,7 +67,7 @@ def install_pipelines(configurator, config, env_configs):
     ensure_permissions(edxapp_deploy_group, Permission.OPERATE, ['prod-deploy-operators'])
     ensure_permissions(edxapp_deploy_group, Permission.VIEW, ['prod-deploy-operators'])
 
-    edxapp.cut_branch(
+    edxapp.make_release_candidate(
         edxapp_group,
         config,
     )
