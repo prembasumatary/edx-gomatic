@@ -68,6 +68,7 @@ def install_pipelines(configurator, config, env_configs):  # pylint: disable=unu
         materials.TUBULAR(),
         materials.CONFIGURATION(),
         configuration_secure_material,
+        materials.deployment_internal(edp.deployment),
         GitMaterial(
             app_repo_url,
             branch='master',

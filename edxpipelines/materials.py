@@ -25,6 +25,25 @@ def deployment_secure(deployment, branch='master', polling=True, destination_dir
     )
 
 
+def deployment_internal(deployment, branch='master', polling=True, destination_directory=None, ignore_patterns=None):
+    """
+    Initialize a GitMaterial representing a deployment's internal configuration repo.
+
+    Args:
+        deployment (str): Deployment for which to create the material (e.g., 'edx', 'edge')
+
+    Returns:
+        gomatic.gomatic.gocd.materials.GitMaterial
+    """
+    return GitMaterial(
+        url='git@github.com:edx/{}-internal.git'.format(deployment),
+        branch=branch,
+        polling=polling,
+        destination_directory=destination_directory or '{}-internal'.format(deployment),
+        ignore_patterns=ignore_patterns or ['**/*']
+    )
+
+
 TUBULAR = partial(
     GitMaterial,
     url="https://github.com/edx/tubular",
@@ -65,20 +84,6 @@ EDX_MICROSITE = partial(
     ignore_patterns=['**/*'],
 )
 
-EDX_INTERNAL = partial(
-    GitMaterial,
-    url="git@github.com:edx/edx-internal.git",
-    branch="master",
-    polling=True,
-    destination_directory="edx-internal",
-    ignore_patterns=['**/*'],
-)
+EDX_INTERNAL = partial(deployment_internal, 'edx')
 
-EDGE_INTERNAL = partial(
-    GitMaterial,
-    url="git@github.com:edx/edge-internal.git",
-    branch="master",
-    polling=True,
-    destination_directory="edge-internal",
-    ignore_patterns=['**/*'],
-)
+EDGE_INTERNAL = partial(deployment_internal, 'edge')
