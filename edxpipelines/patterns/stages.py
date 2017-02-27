@@ -105,9 +105,7 @@ def generate_base_ami_selection(
         job,
         aws_access_key_id,
         aws_secret_access_key,
-        edx_environment=edp.environment,
-        deployment=edp.deployment,
-        play=edp.play,
+        edp,
         base_ami_id=base_ami_id,
     )
     return stage
@@ -1138,7 +1136,7 @@ def generate_create_branch(pipeline,
 
 
 def generate_deployment_messages(
-        pipeline, prod_build_pipelines, stage_deploy_pipeline, org,
+        pipeline, ami_pairs, stage_deploy_pipeline, org,
         repo, token, head_sha, release_status, confluence_user, confluence_password,
         github_token, manual_approval=False,
         base_sha=None, base_ami_artifact=None, ami_tag_app=None,
@@ -1203,23 +1201,6 @@ def generate_deployment_messages(
             constants.PUBLISH_WIKI_JOB_NAME,
             constants.RELEASE_WIKI_PAGE_ID_FILENAME,
         )
-
-    ami_pairs = [
-        (
-            ArtifactLocation(
-                build_pipeline.name,
-                constants.BASE_AMI_SELECTION_STAGE_NAME,
-                constants.BASE_AMI_SELECTION_JOB_NAME,
-                constants.BASE_AMI_OVERRIDE_FILENAME,
-            ),
-            ArtifactLocation(
-                build_pipeline.name,
-                constants.BUILD_AMI_STAGE_NAME,
-                constants.BUILD_AMI_JOB_NAME,
-                constants.BUILD_AMI_FILENAME,
-            )
-        ) for build_pipeline in prod_build_pipelines
-    ]
 
     tasks.generate_release_wiki_page(
         pipeline,
