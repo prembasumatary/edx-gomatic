@@ -184,6 +184,27 @@ def install_pipelines(configurator, config, env_configs):
             )
         )
 
+    rollback_stage_db = edxapp.launch_and_terminate_subset_pipeline(
+        edxapp_deploy_group,
+        [
+            edxapp.rollback_database(stage_b, stage_md),
+        ],
+        edp=STAGE_EDX_EDXAPP,
+        config=env_configs['stage'],
+        pipeline_name="stage_edxapp_Rollback_Migrations",
+        ami_artifact=utils.ArtifactLocation(
+            stage_b.name,
+            constants.BUILD_AMI_STAGE_NAME,
+            constants.BUILD_AMI_JOB_NAME,
+            constants.BUILD_AMI_FILENAME
+        ),
+        auto_run=False,
+        pre_launch_builders=[
+            edxapp.armed_stage_builder,
+        ],
+    )
+    rollback_stage_db.set_label_template('${stage_edxapp_Rollback_Migrations}')
+
     manual_verification = edxapp.manual_verification(
         edxapp_deploy_group,
     )
