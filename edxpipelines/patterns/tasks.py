@@ -1166,6 +1166,8 @@ def generate_merge_branch(
     if fast_forward_only:
         cmd_args.append('--fast_forward_only')
 
+    generate_target_directory(job)
+
     return job.add_task(tubular_task(
         'merge_branch.py',
         cmd_args,
