@@ -1,5 +1,14 @@
 """
 Common gomatic pipeline patterns.
+
+Responsibilities:
+    Pipeline patterns should ...
+        * expect ArtifactLocations as input.
+            * It's the responsibility of the pipeline install script to ensure that the
+              supplied artifacts don't refer to a job created by this pipeline.
+        * not add PipelineMaterials (that should be handled by the pipeline-group script).
+            * This allows pipeline pattern composition to be customized by pipeline groups.
+        * return the pipeline that was created (or a list/namedtuple, if there were multiple pipelines).
 """
 
 from gomatic import GitMaterial
