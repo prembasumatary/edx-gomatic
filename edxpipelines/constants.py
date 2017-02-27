@@ -95,6 +95,7 @@ RELEASE_WIKI_PAGE_ID_FILENAME = 'release_page_id.yml'
 # SHA and count are used together because SHA may not always be enough to uniquely
 # identify a build.
 BUILD_LABEL_TPL = '${{{.material_name}[:7]}}-${{COUNT}}'.format
+DB_MIGRATION_USER = 'migrate'
 
 # AWS Defaults
 EC2_REGION = 'us-east-1'

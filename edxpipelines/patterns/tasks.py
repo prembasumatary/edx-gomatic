@@ -357,7 +357,9 @@ def generate_create_ami(
         }
     )
 
-    job.ensure_artifacts(set([BuildArtifact('{}/ami.yml'.format(constants.ARTIFACT_PATH))]))
+    job.ensure_artifacts(set([
+        BuildArtifact(path_to_artifact(constants.BUILD_AMI_FILENAME))
+    ]))
     variables = [
         launch_info_path,
         ('play', '$PLAY'),

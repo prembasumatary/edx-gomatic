@@ -106,7 +106,7 @@ def generate_build_ami(pipeline,
         configuration_secure_material.url,
         env_config['aws_access_key_id'],
         env_config['aws_secret_access_key'],
-        launch_info_path=path_to_artifact(constants.LAUNCH_INSTANCE_FILENAME),
+        path_to_artifact(constants.LAUNCH_INSTANCE_FILENAME),
         configuration_secure_version=constants.CONFIGURATION_SECURE_VERSION,
         hipchat_token=env_config['hipchat_token'],
         **kwargs
@@ -145,12 +145,12 @@ def generate_deploy_ami(pipeline, stage, edp, env_config):
         pipeline.name,
         constants.BUILD_AMIS_STAGE_NAME,
         constants.BUILD_AMI_JOB_NAME_TPL(edp),
-        constants.BASE_AMI_OVERRIDE_FILENAME,
+        constants.BUILD_AMI_FILENAME,
     )
 
     # Retrieve the AMI ID from the upstream build stage.
     tasks.retrieve_artifact(ami_artifact_location, job, constants.ARTIFACT_PATH)
-    variable_override_path = path_to_artifact(constants.BASE_AMI_OVERRIDE_FILENAME)
+    variable_override_path = path_to_artifact(ami_artifact_location.file_name)
 
     tasks.generate_launch_instance(
         pipeline,

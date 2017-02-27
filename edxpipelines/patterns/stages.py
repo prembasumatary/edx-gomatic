@@ -540,7 +540,7 @@ def generate_run_migrations(pipeline,
             'APPLICATION_USER': application_user,
             'APPLICATION_NAME': application_name,
             'APPLICATION_PATH': application_path,
-            'DB_MIGRATION_USER': 'migrate',
+            'DB_MIGRATION_USER': constants.DB_MIGRATION_USER,
             'ARTIFACT_PATH': constants.ARTIFACT_PATH,
             'ANSIBLE_CONFIG': constants.ANSIBLE_CONTINUOUS_DELIVERY_CONFIG
         }

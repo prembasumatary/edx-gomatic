@@ -18,27 +18,22 @@ from edxpipelines.pipelines.script import pipeline_script
 from edxpipelines.utils import EDP
 
 
-def install_pipelines(configurator, config, env_configs):  # pylint: disable=unused-argument
+def install_pipelines(configurator, config, env_configs):
     """
-    Generates 2 pipelines used to deploy the discovery service to stage, loadtest, and prod.
+    Generates a pipeline used to deploy the discovery service to stage, loadtest, and prod.
 
-    The first pipeline contains 2 stages:
+    The pipeline contains the following stages:
 
         1. Build AMIs.
 
-        2. Migrate and deploy to stage. For increased concurrency, this stage
+        2. Migrate and deploy to stage and loadtest. For improved concurrency, this stage
            may be broken into separate migration and deployment stages.
 
-    The second pipeline contains 4 stages:
+        3. Migrate and deploy to prod. Requires manual approval.
 
-        1. Armed stage. Triggered by success of the last stage in the preceding pipeline.
-           Can be armed by the earlier prod AMI build to provide a fast track to prod.
+        4. Roll back prod ASGs (code). Requires manual approval.
 
-        2. Migrate and deploy to prod. Requires manual execution.
-
-        3. Roll back prod ASGs (code). Requires manual execution.
-
-        4. Roll back prod migrations. Requires manual execution. (Pipeline operators
+        5. Roll back prod migrations. Requires manual approval. (Pipeline operators
            won't always want to roll back migrations.)
     """
     edp = EDP(None, 'edx', 'discovery')
@@ -56,7 +51,7 @@ def install_pipelines(configurator, config, env_configs):  # pylint: disable=unu
     ensure_permissions(configurator, pipeline_group, Permission.OPERATE, [operator_role])
     ensure_permissions(configurator, pipeline_group, Permission.VIEW, [operator_role])
 
-    build_pipeline = pipeline_group.ensure_replacement_of_pipeline('-'.join(['build', edp.play]))
+    pipeline = pipeline_group.ensure_replacement_of_pipeline(edp.play)
 
     configuration_secure_material = materials.deployment_secure(
         edp.deployment,
@@ -83,20 +78,25 @@ def install_pipelines(configurator, config, env_configs):  # pylint: disable=unu
     ]
 
     for material in ensured_materials:
-        build_pipeline.ensure_material(material)
+        pipeline.ensure_material(material)
 
-    build_pipeline.ensure_environment_variables({
+    pipeline.ensure_environment_variables({
         'APPLICATION_USER': edp.play,
         'APPLICATION_NAME': edp.play,
         'APPLICATION_PATH': '/edx/app/' + edp.play,
+        'DB_MIGRATION_USER': constants.DB_MIGRATION_USER,
     })
 
-    build_pipeline.set_label_template(constants.BUILD_LABEL_TPL(app_material))
+    pipeline.ensure_encrypted_environment_variables({
+        'DB_MIGRATION_PASS': config['db_migration_pass'],
+    })
 
-    build_stage = build_pipeline.ensure_stage(constants.BUILD_AMIS_STAGE_NAME)
+    pipeline.set_label_template(constants.BUILD_LABEL_TPL(app_material))
+
+    build_stage = pipeline.ensure_stage(constants.BUILD_AMIS_STAGE_NAME)
     for environment in ('stage', 'loadtest', 'prod'):
         jobs.generate_build_ami(
-            build_pipeline,
+            pipeline,
             build_stage,
             edp._replace(environment=environment),
             app_repo_url,
@@ -108,15 +108,25 @@ def install_pipelines(configurator, config, env_configs):  # pylint: disable=unu
             DISCOVERY_VERSION=app_version_var,
         )
 
-    deploy_stage = build_pipeline.ensure_stage(constants.DEPLOY_AMIS_STAGE_NAME)
-    # TODO: Add loadtest to this tuple once deploys to stage actually go to stage.
-    for environment in ('stage',):
+    pre_prod_deploy_stage = pipeline.ensure_stage('_'.join(['pre_prod', constants.DEPLOY_AMIS_STAGE_NAME]))
+    # TODO: When development is complete, these jobs will be created for stage and loadtest.
+    for environment in ('loadtest',):
         jobs.generate_deploy_ami(
-            build_pipeline,
-            deploy_stage,
+            pipeline,
+            pre_prod_deploy_stage,
             edp._replace(environment=environment),
             env_configs[environment],
         )
+
+    prod_deploy_stage = pipeline.ensure_stage('_'.join(['prod', constants.DEPLOY_AMI_STAGE_NAME]))
+    prod_deploy_stage.set_has_manual_approval()
+    # TODO: When development is complete, this job will be created for prod.
+    jobs.generate_deploy_ami(
+        pipeline,
+        prod_deploy_stage,
+        edp._replace(environment='loadtest'),
+        env_configs['loadtest'],
+    )
 
 
 if __name__ == '__main__':
