@@ -59,6 +59,12 @@ tools:
       - "../gomatic-secure/gocd/vars/tools/build-edxapp-ami.yml"
     enabled: False
 
+  - script: edxpipelines/pipelines/build_ora2_sandbox.py
+    variable_file:
+      - *tools-admin
+      - "../gomatic-secure/gocd/vars/tools/build-ora2-sandbox.yml"
+    enabled: True
+
   ## Start of 'deploy' pipeline group
   - script: edxpipelines/pipelines/deploy_ami.py
     variable_file:
