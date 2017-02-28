@@ -203,7 +203,7 @@ def install_pipelines(configurator, config, env_configs):
             edxapp.armed_stage_builder,
         ],
     )
-    rollback_stage_db.set_label_template('${stage_edxapp_Rollback_Migrations}')
+    rollback_stage_db.set_label_template('${deploy_pipeline}')
 
     manual_verification = edxapp.manual_verification(
         edxapp_deploy_group,
