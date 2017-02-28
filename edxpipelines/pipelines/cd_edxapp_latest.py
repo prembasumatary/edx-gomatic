@@ -283,7 +283,7 @@ def install_pipelines(configurator, config, env_configs):
         ),
         auto_run=True,
     )
-    prod_edx_md.set_label_template('${prod_release_gate}')
+    prod_edge_md.set_label_template('${prod_release_gate}')
 
     for deploy in (prod_edx_md, prod_edge_md):
         deploy.ensure_material(
@@ -411,6 +411,7 @@ def install_pipelines(configurator, config, env_configs):
         deploy_artifact,
         config,
     )
+    merge_back.set_label_template('${{deploy_pipeline_{}}}'.format(prod_edx_md.name))
 
     # Specify the upstream deploy pipeline materials for this branch-merging pipeline.
     for deploy_pipeline in (prod_edx_md, prod_edge_md):
