@@ -245,16 +245,21 @@ def environment_variables_for_task(task):
     """
     Yield all environment variables exposed by a task.
     """
-    if task.get('command') != '/bin/bash':
+    if task.get('command') != '/bin/bash' and task[0].text != '-c':
         return
 
-    text = " ".join(arg.text for arg in task.iter('arg'))
+    command = task[1].text
+
+    # Yield numeric variables for all additional arguments
+    for index in range(len(task) - 2):
+        yield '{}'.format(index)
+
     # Find all places where we explicitly set bash variables
-    for match in re.finditer(r'(export )?(?P<var>\w+)=', text, flags=re.IGNORECASE):
+    for match in re.finditer(r'(^|;)\s*(export )?(?P<var>\w+)=', command, flags=re.IGNORECASE | re.MULTILINE):
         yield match.group('var')
 
     # Find all bash for-loops
-    for match in re.finditer(r'for (?P<var>\w+) in', text, re.IGNORECASE):
+    for match in re.finditer(r'for (?P<var>\w+) in', command, re.IGNORECASE | re.MULTILINE):
         yield match.group('var')
 
 
@@ -262,16 +267,17 @@ def required_variables_for_task(task):
     """
     Yield all environment variables required by a task.
     """
-    if task.get('command') != '/bin/bash':
+    if task.get('command') != '/bin/bash' and task[0].text != '-c':
         return
 
-    for arg in task.iter('arg'):
-        # Find all $VARIABLE or ${VARIABLE} instances
-        for match in re.finditer(
-                r'\$(((?P<variable>[^\W{]+))|({(?P<wrappedvar>[^-:=+/?}]+)[-:=+/?]{0,2}[^}]*}))',
-                arg.text
-        ):
-            yield match.group('variable') or match.group('wrappedvar')
+    command = task[1].text
+
+    # Find all $VARIABLE or ${VARIABLE} instances
+    for match in re.finditer(
+            r'\$(((?P<variable>[^\W{]+))|({(?P<wrappedvar>[^-:=+/?}]+)[-:=+/?]{0,2}[^}]*}))',
+            command
+    ):
+        yield match.group('variable') or match.group('wrappedvar')
 
 
 def global_environment_variables():
