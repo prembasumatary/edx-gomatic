@@ -137,6 +137,10 @@ def generate_deploy_ami(pipeline, stage, edp, env_config):
     )
     job = stage.ensure_job(job_name)
 
+    job.ensure_encrypted_environment_variables({
+        'DB_MIGRATION_PASS': env_config['db_migration_pass'],
+    })
+
     tasks.generate_requirements_install(job, 'configuration')
     tasks.generate_package_install(job, 'tubular')
     tasks.generate_target_directory(job)

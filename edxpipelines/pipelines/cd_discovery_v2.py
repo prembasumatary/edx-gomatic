@@ -18,7 +18,7 @@ from edxpipelines.pipelines.script import pipeline_script
 from edxpipelines.utils import EDP
 
 
-def install_pipelines(configurator, config, env_configs):
+def install_pipelines(configurator, config, env_configs):  # pylint: disable=unused-argument
     """
     Generates a pipeline used to deploy the discovery service to stage, loadtest, and prod.
 
@@ -85,10 +85,6 @@ def install_pipelines(configurator, config, env_configs):
         'APPLICATION_NAME': edp.play,
         'APPLICATION_PATH': '/edx/app/' + edp.play,
         'DB_MIGRATION_USER': constants.DB_MIGRATION_USER,
-    })
-
-    pipeline.ensure_encrypted_environment_variables({
-        'DB_MIGRATION_PASS': config['db_migration_pass'],
     })
 
     pipeline.set_label_template(constants.BUILD_LABEL_TPL(app_material))
