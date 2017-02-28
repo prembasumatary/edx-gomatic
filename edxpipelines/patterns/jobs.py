@@ -21,8 +21,7 @@ import edxpipelines.patterns.tasks as tasks
 from edxpipelines.utils import ArtifactLocation, path_to_artifact
 
 
-def generate_build_ami(pipeline,
-                       stage,
+def generate_build_ami(stage,
                        edp,
                        app_repo_url,
                        configuration_secure_material,
@@ -34,7 +33,6 @@ def generate_build_ami(pipeline,
     Generates a job for creating a new AMI.
 
     Args:
-        pipeline (gomatic.gocd.pipelines.Pipeline): Pipeline to which this job belongs.
         stage (gomatic.gocd.pipelines.Stage): Stage to which this job belongs.
         edp (edxpipelines.utils.EDP): Tuple indicating environment, deployment, and play
             for which an AMI will be created.
@@ -57,7 +55,6 @@ def generate_build_ami(pipeline,
 
     # Locate the base AMI.
     tasks.generate_base_ami_selection(
-        pipeline,
         job,
         env_config['aws_access_key_id'],
         env_config['aws_secret_access_key'],
@@ -68,7 +65,6 @@ def generate_build_ami(pipeline,
 
     # Launch a new instance on which to build the AMI.
     tasks.generate_launch_instance(
-        pipeline,
         job,
         aws_access_key_id=env_config['aws_access_key_id'],
         aws_secret_access_key=env_config['aws_secret_access_key'],
@@ -81,7 +77,6 @@ def generate_build_ami(pipeline,
 
     # Run the Ansible play for the service.
     tasks.generate_run_app_playbook(
-        pipeline,
         job,
         playbook_path,
         edp,
@@ -97,7 +92,6 @@ def generate_build_ami(pipeline,
 
     # Create an AMI from the instance.
     tasks.generate_create_ami(
-        pipeline,
         job,
         edp.play,
         edp.deployment,
@@ -157,7 +151,6 @@ def generate_deploy_ami(pipeline, stage, edp, env_config):
     variable_override_path = path_to_artifact(ami_artifact_location.file_name)
 
     tasks.generate_launch_instance(
-        pipeline,
         job,
         aws_access_key_id=env_config['aws_access_key_id'],
         aws_secret_access_key=env_config['aws_secret_access_key'],

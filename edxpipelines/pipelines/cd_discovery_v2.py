@@ -92,7 +92,6 @@ def install_pipelines(configurator, config, env_configs):  # pylint: disable=unu
     build_stage = pipeline.ensure_stage(constants.BUILD_AMIS_STAGE_NAME)
     for environment in ('stage', 'loadtest', 'prod'):
         jobs.generate_build_ami(
-            pipeline,
             build_stage,
             edp._replace(environment=environment),
             app_repo_url,

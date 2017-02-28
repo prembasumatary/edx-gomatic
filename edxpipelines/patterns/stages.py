@@ -102,7 +102,13 @@ def generate_base_ami_selection(
     job = stage.ensure_job(constants.BASE_AMI_SELECTION_JOB_NAME)
     tasks.generate_package_install(job, 'tubular')
     tasks.generate_base_ami_selection(
-        pipeline, job, aws_access_key_id, aws_secret_access_key, edp, base_ami_id,
+        job,
+        aws_access_key_id,
+        aws_secret_access_key,
+        edx_environment=edp.environment,
+        deployment=edp.deployment,
+        play=edp.play,
+        base_ami_id=base_ami_id,
     )
     return stage
 
@@ -165,7 +171,6 @@ def generate_launch_instance(
 
     # Create the instance-launching task.
     tasks.generate_launch_instance(
-        pipeline,
         job,
         aws_access_key_id=aws_access_key_id,
         aws_secret_access_key=aws_secret_access_key,
@@ -253,7 +258,6 @@ def generate_run_play(pipeline,
         )
 
     tasks.generate_run_app_playbook(
-        pipeline,
         job=job,
         playbook_with_path=playbook_with_path,
         edp=edp,
@@ -331,7 +335,6 @@ def generate_create_ami_from_instance(pipeline,
 
     # Create an AMI from the instance
     tasks.generate_create_ami(
-        pipeline=pipeline,
         job=job,
         play=edp.play,
         deployment=edp.deployment,
