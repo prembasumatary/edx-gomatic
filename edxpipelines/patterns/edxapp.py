@@ -641,7 +641,7 @@ def rollback_database(build_pipeline, deploy_pipeline):
                 deploy_pipeline.name,
                 constants.APPLY_MIGRATIONS_STAGE + "_" + sub_app,
                 constants.APPLY_MIGRATIONS_JOB,
-                "migrations",
+                constants.MIGRATION_OUTPUT_DIR_NAME,
                 is_dir=True
             )
 

@@ -18,7 +18,7 @@ from edxpipelines.pipelines.script import pipeline_script
 from edxpipelines.utils import EDP
 
 
-def install_pipelines(configurator, config, env_configs):  # pylint: disable=unused-argument
+def install_pipelines(configurator, config, env_configs):
     """
     Generates a pipeline used to deploy the discovery service to stage, loadtest, and prod.
 
@@ -121,6 +121,29 @@ def install_pipelines(configurator, config, env_configs):  # pylint: disable=unu
         prod_deploy_stage,
         edp._replace(environment='loadtest'),
         env_configs['loadtest'],
+    )
+
+    prod_rollback_asgs_stage = pipeline.ensure_stage('_'.join(['prod', constants.ROLLBACK_ASGS_STAGE_NAME]))
+    prod_rollback_asgs_stage.set_has_manual_approval()
+    # TODO: When development is complete, this job will be created for prod.
+    jobs.generate_rollback_asgs(
+        pipeline,
+        prod_deploy_stage,
+        prod_rollback_asgs_stage,
+        edp._replace(environment='loadtest'),
+        config,
+    )
+
+    prod_rollback_migrations_stage = pipeline.ensure_stage(
+        '_'.join(['prod', constants.ROLLBACK_MIGRATIONS_STAGE_NAME])
+    )
+    prod_rollback_migrations_stage.set_has_manual_approval()
+    # TODO: When development is complete, this job will be created for prod.
+    jobs.generate_rollback_migrations(
+        prod_rollback_migrations_stage,
+        pipeline=pipeline,
+        deploy_stage=prod_deploy_stage,
+        edp=edp._replace(environment='loadtest'),
     )
 
 

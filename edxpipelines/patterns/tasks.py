@@ -434,7 +434,7 @@ def generate_run_migrations(job, sub_application_name=None, launch_artifacts_bas
     if not launch_artifacts_base_path:
         launch_artifacts_base_path = constants.ARTIFACT_PATH
 
-    migration_artifact_path = path_to_artifact('migrations')
+    migration_artifact_path = path_to_artifact(constants.MIGRATION_OUTPUT_DIR_NAME)
 
     job.ensure_artifacts(
         set(

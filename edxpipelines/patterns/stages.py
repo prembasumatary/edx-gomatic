@@ -663,12 +663,12 @@ def generate_rollback_migrations(pipeline,
     if manual_approval:
         stage.set_has_manual_approval()
 
-    jobs.generate_rollback_migration(
+    jobs.generate_rollback_migrations(
         stage,
-        inventory_location,
-        instance_key_location,
-        migration_info_location,
-        sub_application_name
+        inventory_location=inventory_location,
+        instance_key_location=instance_key_location,
+        migration_info_location=migration_info_location,
+        sub_application_name=sub_application_name,
     )
 
     return stage

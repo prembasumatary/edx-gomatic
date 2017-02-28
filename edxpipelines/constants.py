@@ -9,6 +9,7 @@ ARM_PRERELEASE_STAGE = 'arm_prerelease'
 DEPLOY_AMIS_STAGE_NAME = 'deploy_amis'
 DEPLOY_AMI_STAGE_NAME = 'deploy_ami'
 DEPLOY_AMI_JOB_NAME = 'deploy_ami_job'
+DEPLOY_AMI_JOB_NAME_TPL = '{.environment}_deploy_ami_job'.format
 RUN_MIGRATIONS_STAGE_NAME = 'apply_migrations'
 RUN_MIGRATIONS_JOB_NAME = 'apply_migrations_job'
 BUILD_AMIS_STAGE_NAME = 'build_amis'
@@ -96,6 +97,7 @@ RELEASE_WIKI_PAGE_ID_FILENAME = 'release_page_id.yml'
 # identify a build.
 BUILD_LABEL_TPL = '${{{.material_name}[:7]}}-${{COUNT}}'.format
 DB_MIGRATION_USER = 'migrate'
+MIGRATION_OUTPUT_DIR_NAME = 'migrations'
 
 # AWS Defaults
 EC2_REGION = 'us-east-1'
