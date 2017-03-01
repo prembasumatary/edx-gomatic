@@ -540,10 +540,6 @@ def generate_run_migrations(pipeline,
     """
     pipeline.ensure_environment_variables(
         {
-            'APPLICATION_USER': application_user,
-            'APPLICATION_NAME': application_name,
-            'APPLICATION_PATH': application_path,
-            'DB_MIGRATION_USER': constants.DB_MIGRATION_USER,
             'ARTIFACT_PATH': constants.ARTIFACT_PATH,
             'ANSIBLE_CONFIG': constants.ANSIBLE_CONTINUOUS_DELIVERY_CONFIG
         }
@@ -554,11 +550,6 @@ def generate_run_migrations(pipeline,
                 'MAX_EMAIL_TRIES': constants.MAX_EMAIL_TRIES
             }
         )
-    pipeline.ensure_encrypted_environment_variables(
-        {
-            'DB_MIGRATION_PASS': db_migration_pass,
-        }
-    )
 
     if sub_application_name is not None:
         stage_name = "{}_{}".format(constants.APPLY_MIGRATIONS_STAGE, sub_application_name)
@@ -592,7 +583,15 @@ def generate_run_migrations(pipeline,
     )
 
     tasks.generate_requirements_install(job, 'configuration')
-    tasks.generate_run_migrations(job, sub_application_name)
+    tasks.generate_run_migrations(
+        job,
+        application_user,
+        application_name,
+        application_path,
+        constants.DB_MIGRATION_USER,
+        db_migration_pass,
+        sub_application_name
+    )
 
     if duration_threshold:
         tasks.generate_check_migration_duration(
@@ -639,22 +638,6 @@ def generate_rollback_migrations(pipeline,
     Returns:
         gomatic.Stage
     """
-    pipeline.ensure_environment_variables(
-        {
-            'APPLICATION_USER': application_user,
-            'APPLICATION_NAME': application_name,
-            'APPLICATION_PATH': application_path,
-            'DB_MIGRATION_USER': 'migrate',
-            'ARTIFACT_PATH': constants.ARTIFACT_PATH,
-            'ANSIBLE_CONFIG': constants.ANSIBLE_CONTINUOUS_DELIVERY_CONFIG,
-        }
-    )
-    pipeline.ensure_encrypted_environment_variables(
-        {
-            'DB_MIGRATION_PASS': db_migration_pass,
-        }
-    )
-
     stage_name = constants.ROLLBACK_MIGRATIONS_STAGE_NAME
     if sub_application_name is not None:
         stage_name += "_{}".format(sub_application_name)
@@ -665,6 +648,11 @@ def generate_rollback_migrations(pipeline,
 
     jobs.generate_rollback_migrations(
         stage,
+        application_user=application_user,
+        application_name=application_name,
+        application_path=application_path,
+        db_migration_user=constants.DB_MIGRATION_USER,
+        db_migration_pass=db_migration_pass,
         inventory_location=inventory_location,
         instance_key_location=instance_key_location,
         migration_info_location=migration_info_location,

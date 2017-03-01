@@ -80,13 +80,6 @@ def install_pipelines(configurator, config, env_configs):
     for material in ensured_materials:
         pipeline.ensure_material(material)
 
-    pipeline.ensure_environment_variables({
-        'APPLICATION_USER': edp.play,
-        'APPLICATION_NAME': edp.play,
-        'APPLICATION_PATH': '/edx/app/' + edp.play,
-        'DB_MIGRATION_USER': constants.DB_MIGRATION_USER,
-    })
-
     pipeline.set_label_template(constants.BUILD_LABEL_TPL(app_material))
 
     build_stage = pipeline.ensure_stage(constants.BUILD_AMIS_STAGE_NAME)
@@ -141,6 +134,11 @@ def install_pipelines(configurator, config, env_configs):
     # TODO: When development is complete, this job will be created for prod.
     jobs.generate_rollback_migrations(
         prod_rollback_migrations_stage,
+        application_user=edp.play,
+        application_name=edp.play,
+        application_path='/edx/app/{}'.format(edp.play),
+        db_migration_user=constants.DB_MIGRATION_USER,
+        db_migration_pass=env_configs['loadtest']['db_migration_pass'],
         pipeline=pipeline,
         deploy_stage=prod_deploy_stage,
         edp=edp._replace(environment='loadtest'),
