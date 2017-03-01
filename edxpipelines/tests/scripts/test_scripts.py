@@ -295,14 +295,14 @@ def global_environment_variables():
     yield 'PRIVATE_KEY'
 
 
-def environment_variables_provided_by(object):
+def environment_variables_provided_by(element):
     """
-    Yield all environment variables provided by ``object``.
+    Yield all environment variables provided by ``element``.
 
     Argument:
-        object (Element): The element for a pipeline, stage or job
+        element (Element): The element for a pipeline, stage or job
     """
-    for env_vars in object.findall('environmentvariables'):
+    for env_vars in element.findall('environmentvariables'):
         for variable in env_vars.findall('variable'):
             yield variable.get('name')
 
