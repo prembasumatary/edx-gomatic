@@ -64,7 +64,7 @@ def install_pipelines(configurator, config, env_configs):
     app_material = GitMaterial(
         app_repo_url,
         material_name=edp.play,
-        branch='master',
+        branch='renzo/pipeline-test',
         polling=True,
         destination_directory=edp.play
     )
