@@ -270,7 +270,6 @@ def generate_launch_instance(
             'EBS_VOLUME_SIZE': ec2_ebs_volume_size,
             'EC2_INSTANCE_TYPE': ec2_instance_type,
             'EC2_INSTANCE_PROFILE_NAME': ec2_instance_profile_name,
-            'NO_REBOOT': 'no',
             'BASE_AMI_ID': base_ami_id,
             'ANSIBLE_CONFIG': constants.ANSIBLE_CONTINUOUS_DELIVERY_CONFIG,
         }
@@ -354,6 +353,7 @@ def generate_create_ami(
             'ARTIFACT_PATH': artifact_path,
             'HIPCHAT_ROOM': hipchat_room,
             'ANSIBLE_CONFIG': constants.ANSIBLE_CONTINUOUS_DELIVERY_CONFIG,
+            'NO_REBOOT': 'no',
         }
     )
 

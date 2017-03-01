@@ -3,6 +3,7 @@ Tests of output XML created by gomatic.
 """
 
 from collections import Counter, namedtuple
+import itertools
 import os.path
 import os
 import re
@@ -294,6 +295,18 @@ def global_environment_variables():
     yield 'PRIVATE_KEY'
 
 
+def environment_variables_provided_by(object):
+    """
+    Yield all environment variables provided by ``object``.
+
+    Argument:
+        object (Element): The element for a pipeline, stage or job
+    """
+    for env_vars in object.findall('environmentvariables'):
+        for variable in env_vars.findall('variable'):
+            yield variable.get('name')
+
+
 def test_environment_variables_defined(script_result, script_name):
     if script_name in ['edxpipelines/pipelines/cd_edxapp.py']:
         pytest.xfail("{} is known to be missing environment variables in test configurations".format(script_name))
@@ -301,6 +314,8 @@ def test_environment_variables_defined(script_result, script_name):
     required_environment_variables = set(
         (
             pipeline.get('name'),
+            stage.get('name'),
+            job.get('name'),
             var,
         )
         for pipeline in script_result.iter('pipeline')
@@ -311,25 +326,31 @@ def test_environment_variables_defined(script_result, script_name):
     )
 
     provided_environment_variables = set(
-        (pipeline.get('name'), var.get('name'))
-        for pipeline in script_result.iter('pipeline')
-        for var in pipeline.iter('variable')
-    ) | set(
-        (pipeline.get('name'), var)
-        for pipeline in script_result.iter('pipeline')
-        for git_material in pipeline.iter('git')
-        for var in environment_variables_for_scm_material(git_material)
-    ) | set(
-        (pipeline.get('name'), var)
-        for pipeline in script_result.iter('pipeline')
-        for var in global_environment_variables()
-    ) | set(
-        (pipeline.get('name'), var)
+        (
+            pipeline.get('name'),
+            stage.get('name'),
+            job.get('name'),
+            var
+        )
         for pipeline in script_result.iter('pipeline')
         for stage in pipeline.findall('stage')
         for job in stage.iter('job')
-        for task in job.iter('exec')
-        for var in environment_variables_for_task(task)
+        for var in itertools.chain(
+            environment_variables_provided_by(pipeline),
+            environment_variables_provided_by(stage),
+            environment_variables_provided_by(job),
+            (
+                var
+                for git_material in pipeline.iter('git')
+                for var in environment_variables_for_scm_material(git_material)
+            ),
+            global_environment_variables(),
+            (
+                var
+                for task in job.iter('exec')
+                for var in environment_variables_for_task(task)
+            ),
+        )
     )
 
     assert required_environment_variables <= provided_environment_variables
