@@ -235,7 +235,8 @@ def generate_launch_instance(
         base_ami_id, ec2_region=constants.EC2_REGION, ec2_instance_type=constants.EC2_INSTANCE_TYPE,
         ec2_timeout=constants.EC2_LAUNCH_INSTANCE_TIMEOUT,
         ec2_ebs_volume_size=constants.EC2_EBS_VOLUME_SIZE,
-        variable_override_path=None, runif="passed"
+        variable_override_path=None, hipchat_token='',
+        hipchat_room=constants.HIPCHAT_ROOM, runif="passed"
 ):
     """
     Generate the launch AMI job. This ansible script generates 3 artifacts:
@@ -272,6 +273,8 @@ def generate_launch_instance(
             'EC2_INSTANCE_PROFILE_NAME': ec2_instance_profile_name,
             'BASE_AMI_ID': base_ami_id,
             'ANSIBLE_CONFIG': constants.ANSIBLE_CONTINUOUS_DELIVERY_CONFIG,
+            'HIPCHAT_TOKEN': hipchat_token,
+            'HIPCHAT_ROOM': hipchat_room,
         }
     )
 
@@ -413,7 +416,17 @@ def generate_ami_cleanup(job, runif="passed"):
     ))
 
 
-def generate_run_migrations(job, sub_application_name=None, launch_artifacts_base_path=None, runif='passed'):
+def generate_run_migrations(
+        job,
+        application_user,
+        application_name,
+        application_path,
+        db_migration_user,
+        db_migration_pass,
+        sub_application_name=None,
+        launch_artifacts_base_path=None,
+        runif='passed'
+):
     """
     Generates GoCD task that runs migrations via an Ansible script.
 
@@ -435,6 +448,20 @@ def generate_run_migrations(job, sub_application_name=None, launch_artifacts_bas
         launch_artifacts_base_path = constants.ARTIFACT_PATH
 
     migration_artifact_path = path_to_artifact(constants.MIGRATION_OUTPUT_DIR_NAME)
+
+    job.ensure_environment_variables(
+        {
+            'APPLICATION_USER': application_user,
+            'APPLICATION_NAME': application_name,
+            'APPLICATION_PATH': application_path,
+            'DB_MIGRATION_USER': db_migration_user,
+        }
+    )
+    job.ensure_encrypted_environment_variables(
+        {
+            'DB_MIGRATION_PASS': db_migration_pass,
+        }
+    )
 
     job.ensure_artifacts(
         set(
@@ -526,6 +553,11 @@ def generate_check_migration_duration(job,
 
 def generate_migration_rollback(
         job,
+        application_user,
+        application_name,
+        application_path,
+        db_migration_user,
+        db_migration_pass,
         sub_application_name=None,
         runif="passed"
 ):
@@ -551,6 +583,20 @@ def generate_migration_rollback(
         set(
             [BuildArtifact(migration_artifact_path)]
         )
+    )
+
+    job.ensure_environment_variables(
+        {
+            'APPLICATION_USER': application_user,
+            'APPLICATION_NAME': application_name,
+            'APPLICATION_PATH': application_path,
+            'DB_MIGRATION_USER': db_migration_user,
+        }
+    )
+    job.ensure_encrypted_environment_variables(
+        {
+            'DB_MIGRATION_PASS': db_migration_pass,
+        }
     )
 
     command = ' '.join(

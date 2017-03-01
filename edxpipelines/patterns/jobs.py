@@ -127,10 +127,6 @@ def generate_deploy_ami(pipeline, stage, edp, env_config):
     """
     job = stage.ensure_job(constants.DEPLOY_AMI_JOB_NAME_TPL(edp))
 
-    job.ensure_encrypted_environment_variables({
-        'DB_MIGRATION_PASS': env_config['db_migration_pass'],
-    })
-
     tasks.generate_requirements_install(job, 'configuration')
     tasks.generate_package_install(job, 'tubular')
     tasks.generate_target_directory(job)
@@ -162,7 +158,14 @@ def generate_deploy_ami(pipeline, stage, edp, env_config):
         key_pem_path=path_to_artifact(constants.KEY_PEM_FILENAME)
     ))
 
-    tasks.generate_run_migrations(job)
+    tasks.generate_run_migrations(
+        job,
+        application_user=edp.play,
+        application_name=edp.play,
+        application_path='/edx/app/{}'.format(edp.play),
+        db_migration_user=constants.DB_MIGRATION_USER,
+        db_migration_pass=env_config['db_migration_pass'],
+    )
 
     deployment_artifact_path = path_to_artifact(constants.DEPLOY_AMI_OUT_FILENAME)
     job.ensure_artifacts(set([BuildArtifact(deployment_artifact_path)]))
@@ -240,14 +243,21 @@ def generate_rollback_asgs(pipeline, deploy_stage, rollback_stage, edp, config):
     return job
 
 
-def generate_rollback_migrations(stage,
-                                 pipeline=None,
-                                 deploy_stage=None,
-                                 edp=None,
-                                 inventory_location=None,
-                                 instance_key_location=None,
-                                 migration_info_location=None,
-                                 sub_application_name=None):
+def generate_rollback_migrations(
+        stage,
+        application_user,
+        application_name,
+        application_path,
+        db_migration_user,
+        db_migration_pass,
+        pipeline=None,
+        deploy_stage=None,
+        edp=None,
+        inventory_location=None,
+        instance_key_location=None,
+        migration_info_location=None,
+        sub_application_name=None
+):
     """
     Generates a job for rolling back database migrations.
 
@@ -318,6 +328,14 @@ def generate_rollback_migrations(stage,
         )
     tasks.retrieve_artifact(migration_info_location, job)
 
-    tasks.generate_migration_rollback(job, sub_application_name)
+    tasks.generate_migration_rollback(
+        job=job,
+        application_user=application_user,
+        application_name=application_name,
+        application_path=application_path,
+        db_migration_user=db_migration_user,
+        db_migration_pass=db_migration_pass,
+        sub_application_name=sub_application_name,
+    )
 
     return job
