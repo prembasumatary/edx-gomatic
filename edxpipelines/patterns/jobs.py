@@ -13,9 +13,6 @@ Responsibilities:
           (task patterns can be used directly from stage patterns or pipeline patterns).
         * ``ensure`` the scm materials needed for any non-pattern task to function.
 """
-
-from gomatic import BuildArtifact
-
 import edxpipelines.constants as constants
 import edxpipelines.patterns.tasks as tasks
 from edxpipelines.utils import ArtifactLocation, path_to_artifact
@@ -106,7 +103,7 @@ def generate_build_ami(stage,
         **kwargs
     )
 
-    tasks.generate_ami_cleanup(job, runif='any')
+    tasks.generate_ami_cleanup(job, hipchat_token=env_config['hipchat_token'], runif='any')
 
     return job
 
@@ -167,18 +164,14 @@ def generate_deploy_ami(pipeline, stage, edp, env_config):
         db_migration_pass=env_config['db_migration_pass'],
     )
 
-    deployment_artifact_path = path_to_artifact(constants.DEPLOY_AMI_OUT_FILENAME)
-    job.ensure_artifacts(set([BuildArtifact(deployment_artifact_path)]))
-
-    arguments = [
-        '--config-file', variable_override_path,
-        '--out_file', deployment_artifact_path,
-    ]
-    job.ensure_task(
-        tasks.tubular_task('asgard-deploy.py', arguments, working_dir=None)
+    tasks.generate_deploy_ami(
+        job,
+        variable_override_path,
+        env_config['asgard_api_endpoints'],
+        env_config['asgard_token'],
     )
 
-    tasks.generate_ami_cleanup(job, runif='any')
+    tasks.generate_ami_cleanup(job, hipchat_token=env_config['hipchat_token'], runif='any')
 
     return job
 
@@ -205,17 +198,6 @@ def generate_rollback_asgs(pipeline, deploy_stage, rollback_stage, edp, config):
     )
     job = rollback_stage.ensure_job(job_name)
 
-    job.ensure_environment_variables({
-        'ASGARD_API_ENDPOINTS': config['asgard_api_endpoints'],
-        'HIPCHAT_ROOM': constants.HIPCHAT_ROOM,
-    })
-    job.ensure_encrypted_environment_variables({
-        'ASGARD_API_TOKEN': config['asgard_token'],
-        'AWS_ACCESS_KEY_ID': config['aws_access_key_id'],
-        'AWS_SECRET_ACCESS_KEY': config['aws_secret_access_key'],
-        'HIPCHAT_TOKEN': config['hipchat_token'],
-    })
-
     tasks.generate_package_install(job, 'tubular')
     tasks.generate_target_directory(job)
 
@@ -229,15 +211,11 @@ def generate_rollback_asgs(pipeline, deploy_stage, rollback_stage, edp, config):
     tasks.retrieve_artifact(deploy_info_artifact_location, job)
     deploy_info_artifact_path = path_to_artifact(deploy_info_artifact_location.file_name)
 
-    rollback_info_artifact_path = path_to_artifact(constants.ROLLBACK_AMI_OUT_FILENAME)
-    job.ensure_artifacts(set([BuildArtifact(rollback_info_artifact_path)]))
-
-    arguments = [
-        '--config_file', deploy_info_artifact_path,
-        '--out_file', rollback_info_artifact_path,
-    ]
-    job.ensure_task(
-        tasks.tubular_task('rollback_asg.py', arguments, working_dir=None)
+    tasks.generate_rollback_asg(
+        job,
+        deploy_info_artifact_path,
+        config['asgard_api_endpoints'],
+        config['asgard_token'],
     )
 
     return job

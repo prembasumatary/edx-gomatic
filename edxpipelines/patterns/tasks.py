@@ -391,7 +391,37 @@ def generate_create_ami(
     ))
 
 
-def generate_ami_cleanup(job, runif="passed"):
+def generate_deploy_ami(job, variable_override_path, asgard_api_endpoints, asgard_token):
+    """
+    Generates a task used to deploy an AMI.
+
+    Args:
+        job (gomatic.gocd.pipelines.Job): Job to which this task should belong.
+        variable_override_path (str): Path to file from which to get the AMI ID to deploy.
+        asgard_api_endpoints (str): Endpoint used to connect to Asgard.
+        asgard_token (str): Token used to connect to Asgard.
+    """
+    job.ensure_environment_variables({
+        'ASGARD_API_ENDPOINTS': asgard_api_endpoints,
+    })
+    job.ensure_encrypted_environment_variables({
+        'ASGARD_API_TOKEN': asgard_token,
+    })
+
+    deployment_artifact_path = path_to_artifact(constants.DEPLOY_AMI_OUT_FILENAME)
+    job.ensure_artifacts(set([BuildArtifact(deployment_artifact_path)]))
+
+    arguments = [
+        '--config-file', variable_override_path,
+        '--out_file', deployment_artifact_path,
+    ]
+
+    job.ensure_task(
+        tubular_task('asgard-deploy.py', arguments, working_dir=None)
+    )
+
+
+def generate_ami_cleanup(job, hipchat_room=constants.HIPCHAT_ROOM, hipchat_token='', runif='passed'):
     """
     Use in conjunction with patterns.generate_launch_instance this will cleanup the EC2 instances and associated actions
 
@@ -403,6 +433,13 @@ def generate_ami_cleanup(job, runif="passed"):
         The newly created task (gomatic.gocd.tasks.ExecTask)
 
     """
+    job.ensure_environment_variables({
+        'HIPCHAT_ROOM': hipchat_room,
+    })
+    job.ensure_encrypted_environment_variables({
+        'HIPCHAT_TOKEN': hipchat_token,
+    })
+
     return job.add_task(ansible_task(
         variables=[
             '{}/launch_info.yml'.format(constants.ARTIFACT_PATH),
@@ -549,6 +586,36 @@ def generate_check_migration_duration(job,
         cmd_args,
         runif=runif,
     ))
+
+
+def generate_rollback_asg(job, deploy_info_artifact_path, asgard_api_endpoints, asgard_token):
+    """
+    Generates a task used to roll back an ASG.
+
+    Args:
+        job (gomatic.gocd.pipelines.Job): Job to which this task should belong.
+        deploy_info_artifact_path (str): Path to file from which to get information
+            about the previous deployment.
+        asgard_api_endpoints (str): Endpoint used to connect to Asgard.
+        asgard_token (str): Token used to connect to Asgard.
+    """
+    job.ensure_environment_variables({
+        'ASGARD_API_ENDPOINTS': asgard_api_endpoints,
+    })
+    job.ensure_encrypted_environment_variables({
+        'ASGARD_API_TOKEN': asgard_token,
+    })
+
+    rollback_info_artifact_path = path_to_artifact(constants.ROLLBACK_AMI_OUT_FILENAME)
+    job.ensure_artifacts(set([BuildArtifact(rollback_info_artifact_path)]))
+
+    arguments = [
+        '--config_file', deploy_info_artifact_path,
+        '--out_file', rollback_info_artifact_path,
+    ]
+    job.ensure_task(
+        tubular_task('rollback_asg.py', arguments, working_dir=None)
+    )
 
 
 def generate_migration_rollback(
