@@ -45,7 +45,7 @@ def install_pipelines(configurator, config, env_configs):  # pylint: disable=unu
         "aws_access_key_id": config['aws_access_key_id'],
         "aws_secret_access_key": config['aws_secret_access_key']
     }
-    configurator = pipelines.generate_deploy_pipeline(configurator, **pipeline_params)
+    configurator = pipelines.generate_ami_deployment_pipeline(configurator, **pipeline_params)
     print "done"
 
 if __name__ == "__main__":

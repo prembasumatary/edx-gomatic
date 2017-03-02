@@ -98,6 +98,7 @@ RELEASE_WIKI_PAGE_ID_FILENAME = 'release_page_id.yml'
 BUILD_LABEL_TPL = '${{{.material_name}[:7]}}-${{COUNT}}'.format
 DB_MIGRATION_USER = 'migrate'
 MIGRATION_OUTPUT_DIR_NAME = 'migrations'
+PLAYBOOK_PATH_TPL = 'playbooks/edx-east/{.play}.yml'.format
 
 # AWS Defaults
 EC2_REGION = 'us-east-1'

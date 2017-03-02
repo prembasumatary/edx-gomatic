@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """
-Script for installing pipelines used to deploy the discovery service.
+Script for installing pipelines used to deploy the credentials service.
 """
 import sys
 from os import path
@@ -18,12 +18,12 @@ from edxpipelines.utils import EDP
 
 def install_pipelines(configurator, config, env_configs):
     """
-    Generates a pipeline used to deploy the discovery service to stage, loadtest, and prod.
+    Generates a pipeline used to deploy the credentials service to stage, loadtest, and prod.
     """
-    edp = EDP(None, 'edx', 'discovery')
+    edp = EDP(None, 'edx', 'credentials')
 
     app_material = GitMaterial(
-        'https://github.com/edx/course-discovery.git',
+        'https://github.com/edx/credentials.git',
         material_name=edp.play,
         branch='renzo/pipeline-test',
         polling=True,

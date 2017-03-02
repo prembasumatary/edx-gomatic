@@ -10,23 +10,21 @@ Responsibilities:
             * This allows pipeline pattern composition to be customized by pipeline groups.
         * return the pipeline that was created (or a list/namedtuple, if there were multiple pipelines).
 """
-
 from gomatic import GitMaterial
 
-from edxpipelines import utils
-from edxpipelines import constants
-from edxpipelines.patterns import stages
+from edxpipelines import constants, materials, utils
+from edxpipelines.patterns import jobs, stages
+from edxpipelines.patterns.authz import Permission, ensure_permissions
 
 
-def generate_deploy_pipeline(configurator,
-                             pipeline_name,
-                             pipeline_group,
-                             asgard_api_endpoints,
-                             asgard_token,
-                             aws_access_key_id,
-                             aws_secret_access_key):
+def generate_ami_deployment_pipeline(configurator,
+                                     pipeline_name,
+                                     pipeline_group,
+                                     asgard_api_endpoints,
+                                     asgard_token,
+                                     aws_access_key_id,
+                                     aws_secret_access_key):
     """
-
     Args:
         configurator (GoCdConfigurator)
         pipeline_name (str):
@@ -272,4 +270,136 @@ def generate_basic_multistage_pipeline(
         aws_secret_access_key=config['aws_secret_access_key'],
         hipchat_token=hipchat_token,
         runif='any'
+    )
+
+
+def generate_service_deployment_pipeline(configurator, config, env_configs, edp, app_material):
+    """
+    Generates a pipeline used to build and deploy a service to stage, loadtest, and prod.
+
+    The generated pipeline supports a single deployment (e.g., edx, edge).
+
+    The pipeline will contain the following stages:
+
+        1. Build AMIs.
+
+        2. Migrate and deploy to stage and loadtest. For improved concurrency,
+           this stage could be broken into separate migration and deployment stages.
+
+        3. Migrate and deploy to prod. Requires manual approval.
+
+        4. Roll back prod ASGs (code). Requires manual approval.
+
+        5. Roll back prod migrations. Requires manual approval. (Pipeline operators
+           won't always want to roll back migrations.)
+
+    Args:
+        configurator (gomatic.go_cd_configurator.GoCdConfigurator): GoCdConfigurator
+            to use for building the pipeline.
+        config (dict): Environment-independent config.
+        env_config (dict): Environment-specific config, keyed by environment.
+        edp (edxpipelines.utils.EDP): Tuple indicating deployment and play for
+            which to build a pipeline. The environment set in the tuple will be ignored.
+        app_material (gomatic.gomatic.gocd.materials.GitMaterial): Material representing
+            the source of the app to be deployed.
+    """
+    configurator.ensure_removal_of_pipeline_group(edp.play)
+    pipeline_group = configurator.ensure_pipeline_group(edp.play)
+
+    admin_role = '-'.join([edp.play, 'admin'])
+    ensure_permissions(configurator, pipeline_group, Permission.ADMINS, [admin_role])
+
+    operator_role = '-'.join([edp.play, 'operator'])
+    ensure_permissions(configurator, pipeline_group, Permission.OPERATE, [operator_role])
+    ensure_permissions(configurator, pipeline_group, Permission.VIEW, [operator_role])
+
+    pipeline = pipeline_group.ensure_replacement_of_pipeline(edp.play)
+
+    configuration_secure_material = materials.deployment_secure(
+        edp.deployment,
+        destination_directory='configuration-secure'
+    )
+    configuration_internal_material = materials.deployment_internal(
+        edp.deployment,
+        destination_directory='configuration-internal'
+    )
+
+    ensured_materials = [
+        materials.TUBULAR(),
+        materials.CONFIGURATION(),
+        configuration_secure_material,
+        configuration_internal_material,
+        app_material,
+    ]
+
+    for material in ensured_materials:
+        pipeline.ensure_material(material)
+
+    pipeline.set_label_template(constants.BUILD_LABEL_TPL(app_material))
+
+    build_stage = pipeline.ensure_stage(constants.BUILD_AMIS_STAGE_NAME)
+
+    app_version_var = '$GO_REVISION_{}'.format(app_material.material_name.upper())
+    overrides = {
+        'app_version': app_version_var,
+        '{}_VERSION'.format(edp.play.upper()): app_version_var,
+    }
+    for environment in ('stage', 'loadtest', 'prod'):
+        jobs.generate_build_ami(
+            build_stage,
+            edp._replace(environment=environment),
+            app_material.url,
+            configuration_secure_material,
+            configuration_internal_material,
+            constants.PLAYBOOK_PATH_TPL(edp),
+            env_configs[environment],
+            **overrides
+        )
+
+    pre_prod_deploy_stage = pipeline.ensure_stage('_'.join(['pre_prod', constants.DEPLOY_AMIS_STAGE_NAME]))
+    # TODO: When development is complete, these jobs will be created for stage and loadtest.
+    for environment in ('loadtest',):
+        jobs.generate_deploy_ami(
+            pipeline,
+            pre_prod_deploy_stage,
+            edp._replace(environment=environment),
+            env_configs[environment],
+        )
+
+    prod_deploy_stage = pipeline.ensure_stage('_'.join(['prod', constants.DEPLOY_AMI_STAGE_NAME]))
+    prod_deploy_stage.set_has_manual_approval()
+    # TODO: When development is complete, this job will be created for prod.
+    jobs.generate_deploy_ami(
+        pipeline,
+        prod_deploy_stage,
+        edp._replace(environment='loadtest'),
+        env_configs['loadtest'],
+    )
+
+    prod_rollback_asgs_stage = pipeline.ensure_stage('_'.join(['prod', constants.ROLLBACK_ASGS_STAGE_NAME]))
+    prod_rollback_asgs_stage.set_has_manual_approval()
+    # TODO: When development is complete, this job will be created for prod.
+    jobs.generate_rollback_asgs(
+        pipeline,
+        prod_deploy_stage,
+        prod_rollback_asgs_stage,
+        edp._replace(environment='loadtest'),
+        config,
+    )
+
+    prod_rollback_migrations_stage = pipeline.ensure_stage(
+        '_'.join(['prod', constants.ROLLBACK_MIGRATIONS_STAGE_NAME])
+    )
+    prod_rollback_migrations_stage.set_has_manual_approval()
+    # TODO: When development is complete, this job will be created for prod.
+    jobs.generate_rollback_migrations(
+        prod_rollback_migrations_stage,
+        application_user=edp.play,
+        application_name=edp.play,
+        application_path='/edx/app/{}'.format(edp.play),
+        db_migration_user=constants.DB_MIGRATION_USER,
+        db_migration_pass=env_configs['loadtest']['db_migration_pass'],
+        pipeline=pipeline,
+        deploy_stage=prod_deploy_stage,
+        edp=edp._replace(environment='loadtest'),
     )
