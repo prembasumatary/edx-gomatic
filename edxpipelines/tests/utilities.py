@@ -12,7 +12,9 @@ class ContextSet(object):
     """
     # pylint: disable=protected-access
 
-    def __init__(self, contexts=()):
+    def __init__(self, name, contexts=()):
+        self.name = name
+
         # A dict mapping from values to the contexts they came from
         self._contexts = defaultdict(list)
 
@@ -74,10 +76,16 @@ class ContextSet(object):
             return NotImplemented
 
         return ContextSet(
-            (item, context)
-            for item in set(self._contexts) & set(other._contexts)
-            for context in itertools.chain(self._contexts[item], other._contexts[item])
+            "{} & {}".format(self.name, other.name),
+            (
+                (item, context)
+                for item in set(self._contexts) & set(other._contexts)
+                for context in itertools.chain(
+                    ("{} -> {}".format(self.name, context) for context in self._contexts[item]),
+                    ("{} -> {}".format(other.name, context) for context in other._contexts[item])
+                )
+            )
         )
 
     def __repr__(self):
-        return "ContextSet({!r})".format(list(self.iteritems()))
+        return "ContextSet({!r}, {!r})".format(self.name, list(self.iteritems()))

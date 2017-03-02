@@ -463,20 +463,23 @@ def test_defined_roles(script_result):
         for role in security.iter('role')
     )
 
-    roles_on_groups = set(
-        role.text
-        for pipeline_group in script_result.iter('pipelines')
-        for authorization in pipeline_group.iter('authorization')
-        for role in authorization.iter('role')
+    roles_on_groups = ContextSet(
+        "roles_on_groups",
+        (
+            (role.text, "{}::{}".format(pipeline_group.get('name'), authorization))
+            for pipeline_group in script_result.iter('pipelines')
+            for authorization in pipeline_group.iter('authorization')
+            for role in authorization.iter('role')
+        )
     )
 
     assert roles_on_groups <= available_roles
 
 
 def test_environment_variable_consistancy(script_result):
-    unsecure_vars = ContextSet()
-    encrypted_secure_vars = ContextSet()
-    unencrypted_secure_vars = ContextSet()
+    unsecure_vars = ContextSet("unsecure")
+    encrypted_secure_vars = ContextSet("encrypted")
+    unencrypted_secure_vars = ContextSet("unencrypted")
 
     def bin_variable(element, context):
         """
@@ -500,11 +503,14 @@ def test_environment_variable_consistancy(script_result):
 
 
 def test_valid_format_encrypted_vars(script_result):
-    empty_encrypted_vars = ContextSet(
-        (var.get('name'), context)
-        for context in iterate_contexts(script_result)
-        for var in context.job.iter('variable')
-        if var[0].tag == 'encryptedValue' and (var[0].text is None or not var[0].text.strip())
+    invalid_encrypted_vars = ContextSet(
+        "invalid_encrypted_vars",
+        (
+            (var.get('name'), context)
+            for context in iterate_contexts(script_result)
+            for var in context.job.iter('variable')
+            if var[0].tag == 'encryptedValue' and (var[0].text is None or not var[0].text.strip())
+        )
     )
 
-    assert empty_encrypted_vars == set()
+    assert invalid_encrypted_vars == set()
