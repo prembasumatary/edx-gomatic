@@ -257,7 +257,8 @@ def generate_launch_instance(
     job.ensure_encrypted_environment_variables(
         {
             'AWS_ACCESS_KEY_ID': aws_access_key_id,
-            'AWS_SECRET_ACCESS_KEY': aws_secret_access_key
+            'AWS_SECRET_ACCESS_KEY': aws_secret_access_key,
+            'HIPCHAT_TOKEN': hipchat_token,
         }
     )
 
@@ -273,7 +274,6 @@ def generate_launch_instance(
             'EC2_INSTANCE_PROFILE_NAME': ec2_instance_profile_name,
             'BASE_AMI_ID': base_ami_id,
             'ANSIBLE_CONFIG': constants.ANSIBLE_CONTINUOUS_DELIVERY_CONFIG,
-            'HIPCHAT_TOKEN': hipchat_token,
             'HIPCHAT_ROOM': hipchat_room,
         }
     )
