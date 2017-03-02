@@ -8,6 +8,7 @@ import os.path
 import os
 import re
 
+from enum import Enum
 from edxpipelines.utils import ArtifactLocation
 from edxpipelines.tests.utilities import ContextSet
 import pytest
@@ -29,6 +30,29 @@ class GoCDContext(namedtuple('GoCDContext', ['pipeline', 'stage', 'job'])):
 
 # Set default values for the GoCDContext constructor
 GoCDContext.__new__.__defaults__ = (None, None)
+
+
+class Context(Enum):
+    """All available contexts to iterate with iterate_contexts."""
+    PIPELINE = 'pipeline'
+    STAGE = 'stage'
+    JOB = 'job'
+
+
+def iterate_contexts(script_result, context_type=Context.JOB):
+    """
+    Yield filled-in GoCDContext objects for each ``context_type`` in script_result.
+    """
+    for pipeline in script_result.iter('pipeline'):
+        if context_type == Context.PIPELINE:
+            yield GoCDContext(pipeline)
+        else:
+            for stage in pipeline.iter('stage'):
+                if context_type == Context.STAGE:
+                    yield GoCDContext(pipeline, stage)
+                elif context_type == Context.JOB:
+                    for job in stage.iter('job'):
+                        yield GoCDContext(pipeline, stage, job)
 
 
 def test_upstream_artifacts(script_result, script_name):
@@ -480,3 +504,14 @@ def test_environment_variable_consistancy(script_result):
     assert unsecure_vars & encrypted_secure_vars == set()
     assert unsecure_vars & unencrypted_secure_vars == set()
     assert encrypted_secure_vars & unencrypted_secure_vars == set()
+
+
+def test_valid_format_encrypted_vars(script_result):
+    empty_encrypted_vars = ContextSet(
+        (var.get('name'), context)
+        for context in iterate_contexts(script_result)
+        for var in context.job.iter('variable')
+        if var[0].tag == 'encryptedValue' and (var[0].text is None or not var[0].text.strip())
+    )
+
+    assert empty_encrypted_vars == set()

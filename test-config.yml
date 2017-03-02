@@ -23,9 +23,9 @@ global-config:
         catalog: dummy_catalog
     log_lambda:
         splunk_host: dummy_splunk_host
-        splunk_token: dummy_splunk_token
-        acct_id: dummy_acct_id
-        kms_key: dummy_kms_key
+        splunk_token: valid_encryption_must_be_a_multiple_of_32_xxxxxxxxxxxxxxxxxxxxxx
+        acct_id: valid_encryption_must_be_a_multiple_of_32_xxxxxxxxxxxxxxxxxxxxxx
+        kms_key: valid_encryption_must_be_a_multiple_of_32_xxxxxxxxxxxxxxxxxxxxxx
         subnet_list: dummy_subnet_list
         sg_list: dummy_sg_list
         environment: dummy_environment
@@ -43,9 +43,55 @@ global-config:
         job_name: dummy_job_name
         artifact_name: dummy_artifact_name
 
+    hipchat_token: valid_encryption_must_be_a_multiple_of_32_xxxxxxxxxxxxxxxxxxxxxx
+    github_private_key: valid_encryption_must_be_a_multiple_of_32_xxxxxxxxxxxxxxxxxxxxxx
+    aws_secret_access_key: valid_encryption_must_be_a_multiple_of_32_xxxxxxxxxxxxxxxxxxxxxx
+    aws_access_key_id: valid_encryption_must_be_a_multiple_of_32_xxxxxxxxxxxxxxxxxxxxxx
+    db_migration_pass: valid_encryption_must_be_a_multiple_of_32_xxxxxxxxxxxxxxxxxxxxxx
+    asgard_token: valid_encryption_must_be_a_multiple_of_32_xxxxxxxxxxxxxxxxxxxxxx
+
 stage:
     edx_environment: stage
+
+    hipchat_token: valid_encryption_must_be_a_multiple_of_32_xxxxxxxxxxxxxxxxxxxxxx
+    github_private_key: valid_encryption_must_be_a_multiple_of_32_xxxxxxxxxxxxxxxxxxxxxx
+    aws_secret_access_key: valid_encryption_must_be_a_multiple_of_32_xxxxxxxxxxxxxxxxxxxxxx
+    aws_access_key_id: valid_encryption_must_be_a_multiple_of_32_xxxxxxxxxxxxxxxxxxxxxx
+    db_migration_pass: valid_encryption_must_be_a_multiple_of_32_xxxxxxxxxxxxxxxxxxxxxx
+    asgard_token: valid_encryption_must_be_a_multiple_of_32_xxxxxxxxxxxxxxxxxxxxxx
+
 prod-edx:
     edx_environment: prod
+
+    hipchat_token: valid_encryption_must_be_a_multiple_of_32_xxxxxxxxxxxxxxxxxxxxxx
+    github_private_key: valid_encryption_must_be_a_multiple_of_32_xxxxxxxxxxxxxxxxxxxxxx
+    aws_secret_access_key: valid_encryption_must_be_a_multiple_of_32_xxxxxxxxxxxxxxxxxxxxxx
+    aws_access_key_id: valid_encryption_must_be_a_multiple_of_32_xxxxxxxxxxxxxxxxxxxxxx
+    db_migration_pass: valid_encryption_must_be_a_multiple_of_32_xxxxxxxxxxxxxxxxxxxxxx
+    asgard_token: valid_encryption_must_be_a_multiple_of_32_xxxxxxxxxxxxxxxxxxxxxx
+
 prod-edge:
     edx_environment: prod
+
+    hipchat_token: valid_encryption_must_be_a_multiple_of_32_xxxxxxxxxxxxxxxxxxxxxx
+    github_private_key: valid_encryption_must_be_a_multiple_of_32_xxxxxxxxxxxxxxxxxxxxxx
+    aws_secret_access_key: valid_encryption_must_be_a_multiple_of_32_xxxxxxxxxxxxxxxxxxxxxx
+    aws_access_key_id: valid_encryption_must_be_a_multiple_of_32_xxxxxxxxxxxxxxxxxxxxxx
+    db_migration_pass: valid_encryption_must_be_a_multiple_of_32_xxxxxxxxxxxxxxxxxxxxxx
+    asgard_token: valid_encryption_must_be_a_multiple_of_32_xxxxxxxxxxxxxxxxxxxxxx
+
+loadtest:
+    hipchat_token: valid_encryption_must_be_a_multiple_of_32_xxxxxxxxxxxxxxxxxxxxxx
+    github_private_key: valid_encryption_must_be_a_multiple_of_32_xxxxxxxxxxxxxxxxxxxxxx
+    aws_secret_access_key: valid_encryption_must_be_a_multiple_of_32_xxxxxxxxxxxxxxxxxxxxxx
+    aws_access_key_id: valid_encryption_must_be_a_multiple_of_32_xxxxxxxxxxxxxxxxxxxxxx
+    db_migration_pass: valid_encryption_must_be_a_multiple_of_32_xxxxxxxxxxxxxxxxxxxxxx
+    asgard_token: valid_encryption_must_be_a_multiple_of_32_xxxxxxxxxxxxxxxxxxxxxx
+
+prod:
+    hipchat_token: valid_encryption_must_be_a_multiple_of_32_xxxxxxxxxxxxxxxxxxxxxx
+    github_private_key: valid_encryption_must_be_a_multiple_of_32_xxxxxxxxxxxxxxxxxxxxxx
+    aws_secret_access_key: valid_encryption_must_be_a_multiple_of_32_xxxxxxxxxxxxxxxxxxxxxx
+    aws_access_key_id: valid_encryption_must_be_a_multiple_of_32_xxxxxxxxxxxxxxxxxxxxxx
+    db_migration_pass: valid_encryption_must_be_a_multiple_of_32_xxxxxxxxxxxxxxxxxxxxxx
+    asgard_token: valid_encryption_must_be_a_multiple_of_32_xxxxxxxxxxxxxxxxxxxxxx
