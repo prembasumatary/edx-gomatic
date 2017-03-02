@@ -590,13 +590,13 @@ def generate_check_migration_duration(job,
     ))
 
 
-def generate_rollback_asg(job, deploy_info_artifact_path, asgard_api_endpoints, asgard_token):
+def generate_rollback_asg(job, deployment_artifact_path, asgard_api_endpoints, asgard_token):
     """
     Generates a task used to roll back an ASG.
 
     Args:
         job (gomatic.gocd.pipelines.Job): Job to which this task should belong.
-        deploy_info_artifact_path (str): Path to file from which to get information
+        deployment_artifact_path (str): Path to file from which to get information
             about the previous deployment.
         asgard_api_endpoints (str): Endpoint used to connect to Asgard.
         asgard_token (str): Token used to connect to Asgard.
@@ -608,12 +608,12 @@ def generate_rollback_asg(job, deploy_info_artifact_path, asgard_api_endpoints, 
         'ASGARD_API_TOKEN': asgard_token,
     })
 
-    rollback_info_artifact_path = path_to_artifact(constants.ROLLBACK_AMI_OUT_FILENAME)
-    job.ensure_artifacts(set([BuildArtifact(rollback_info_artifact_path)]))
+    rollback_artifact_path = path_to_artifact(constants.ROLLBACK_AMI_OUT_FILENAME)
+    job.ensure_artifacts(set([BuildArtifact(rollback_artifact_path)]))
 
     arguments = [
-        '--config_file', deploy_info_artifact_path,
-        '--out_file', rollback_info_artifact_path,
+        '--config_file', deployment_artifact_path,
+        '--out_file', rollback_artifact_path,
     ]
     job.ensure_task(
         tubular_task('rollback_asg.py', arguments, working_dir=None)

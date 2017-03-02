@@ -200,18 +200,18 @@ def generate_rollback_asgs(pipeline, deploy_stage, rollback_stage, edp, config):
     tasks.generate_target_directory(job)
 
     # Retrieve build info from the upstream deploy stage.
-    deploy_info_artifact_location = ArtifactLocation(
+    deployment_artifact_location = ArtifactLocation(
         pipeline.name,
         deploy_stage.name,
         constants.DEPLOY_AMI_JOB_NAME_TPL(edp),
-        constants.ANSIBLE_INVENTORY_FILENAME
+        constants.DEPLOY_AMI_OUT_FILENAME
     )
-    tasks.retrieve_artifact(deploy_info_artifact_location, job)
-    deploy_info_artifact_path = path_to_artifact(deploy_info_artifact_location.file_name)
+    tasks.retrieve_artifact(deployment_artifact_location, job)
+    deployment_artifact_path = path_to_artifact(deployment_artifact_location.file_name)
 
     tasks.generate_rollback_asg(
         job,
-        deploy_info_artifact_path,
+        deployment_artifact_path,
         config['asgard_api_endpoints'],
         config['asgard_token'],
     )
