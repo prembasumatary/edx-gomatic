@@ -273,7 +273,7 @@ def generate_rollback_migrations(
             pipeline.name,
             deploy_stage.name,
             constants.DEPLOY_AMI_JOB_NAME_TPL(edp),
-            constants.DEPLOY_AMI_OUT_FILENAME
+            constants.ANSIBLE_INVENTORY_FILENAME
         )
     tasks.retrieve_artifact(inventory_location, job)
 
