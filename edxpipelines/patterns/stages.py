@@ -602,10 +602,6 @@ def generate_run_migrations(pipeline,
             to_addresses
         )
 
-    # Cleanup EC2 instance if running the migrations failed.
-    # I think this should be left for the terminate instance stage
-    # tasks.generate_ami_cleanup(job, runif='failed')
-
     return stage
 
 
@@ -690,14 +686,12 @@ def generate_terminate_instance(pipeline,
         {
             'AWS_ACCESS_KEY_ID': aws_access_key_id,
             'AWS_SECRET_ACCESS_KEY': aws_secret_access_key,
-            'HIPCHAT_TOKEN': hipchat_token
         }
     )
     pipeline.ensure_environment_variables(
         {
             'ARTIFACT_PATH': artifact_path,
             'EC2_REGION': ec2_region,
-            'HIPCHAT_ROOM': constants.HIPCHAT_ROOM
         }
     )
 
@@ -711,7 +705,7 @@ def generate_terminate_instance(pipeline,
     tasks.generate_requirements_install(job, 'configuration')
     tasks.retrieve_artifact(instance_info_location, job, constants.ARTIFACT_PATH)
 
-    tasks.generate_ami_cleanup(job, runif=runif)
+    tasks.generate_ami_cleanup(job, hipchat_token, runif=runif)
 
     return stage
 

@@ -103,7 +103,7 @@ def generate_build_ami(stage,
         **kwargs
     )
 
-    tasks.generate_ami_cleanup(job, hipchat_token=env_config['hipchat_token'], runif='any')
+    tasks.generate_ami_cleanup(job, env_config['hipchat_token'], runif='any')
 
     return job
 
@@ -171,7 +171,7 @@ def generate_deploy_ami(pipeline, stage, edp, env_config):
         env_config['asgard_token'],
     )
 
-    tasks.generate_ami_cleanup(job, hipchat_token=env_config['hipchat_token'], runif='any')
+    tasks.generate_ami_cleanup(job, env_config['hipchat_token'], runif='any')
 
     return job
 

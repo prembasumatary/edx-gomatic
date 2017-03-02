@@ -421,12 +421,14 @@ def generate_deploy_ami(job, variable_override_path, asgard_api_endpoints, asgar
     )
 
 
-def generate_ami_cleanup(job, hipchat_room=constants.HIPCHAT_ROOM, hipchat_token='', runif='passed'):
+def generate_ami_cleanup(job, hipchat_token, hipchat_room=constants.HIPCHAT_ROOM, runif='passed'):
     """
     Use in conjunction with patterns.generate_launch_instance this will cleanup the EC2 instances and associated actions
 
     Args:
         job (gomatic.job.Job): the gomatic job which to add the launch instance task
+        hipchat_token (str): Token used to authenticate to HipChat.
+        hipchat_room (str): HipChat room to which to post notifications.
         runif (str): one of ['passed', 'failed', 'any'] Default: passed
 
     Returns:
