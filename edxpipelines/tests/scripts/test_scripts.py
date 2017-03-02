@@ -9,6 +9,7 @@ import os
 import re
 
 from edxpipelines.utils import ArtifactLocation
+from edxpipelines.tests.utilities import ContextSet
 import pytest
 
 # pylint: disable=invalid-name
@@ -17,6 +18,17 @@ KNOWN_FAILING_PIPELINES = [
     'edxpipelines/pipelines/api_deploy.py',
     'edxpipelines/pipelines/rollback_asgs.py'
 ]
+
+
+class GoCDContext(namedtuple('GoCDContext', ['pipeline', 'stage', 'job'])):
+    """
+    A tuple that prints out as pipeline::stage::job, for nicer message formatting.
+    """
+    def __str__(self):
+        return '::'.join(element.get('name') for element in self if element is not None)
+
+# Set default values for the GoCDContext constructor
+GoCDContext.__new__.__defaults__ = (None, None)
 
 
 def test_upstream_artifacts(script_result, script_name):
@@ -297,14 +309,25 @@ def global_environment_variables():
 
 def environment_variables_provided_by(element):
     """
-    Yield all environment variables provided by ``element``.
+    Yield all environment variable elements provided by ``element``.
 
     Argument:
         element (Element): The element for a pipeline, stage or job
     """
     for env_vars in element.findall('environmentvariables'):
         for variable in env_vars.findall('variable'):
-            yield variable.get('name')
+            yield variable
+
+
+def environment_variable_names_provided_by(element):
+    """
+    Yield all environment variable names provided by ``element``.
+
+    Argument:
+        element (Element): The element for a pipeline, stage or job
+    """
+    for variable in environment_variables_provided_by(element):
+        yield variable.get('name')
 
 
 def test_environment_variables_defined(script_result, script_name):
@@ -336,9 +359,9 @@ def test_environment_variables_defined(script_result, script_name):
         for stage in pipeline.findall('stage')
         for job in stage.iter('job')
         for var in itertools.chain(
-            environment_variables_provided_by(pipeline),
-            environment_variables_provided_by(stage),
-            environment_variables_provided_by(job),
+            environment_variable_names_provided_by(pipeline),
+            environment_variable_names_provided_by(stage),
+            environment_variable_names_provided_by(job),
             (
                 var
                 for git_material in pipeline.iter('git')
@@ -427,21 +450,32 @@ def test_defined_roles(script_result):
 
 
 def test_environment_variable_consistancy(script_result):
-    unsecure_vars = set(
-        var.get('name')
-        for var in script_result.iter('variable')
-        if var.get('secure') != 'true'
-    )
-    encrypted_secure_vars = set(
-        var.get('name')
-        for var in script_result.iter('variable')
-        if var.get('secure') == 'true' and var[0].tag == 'encryptedValue'
-    )
-    unencrypted_secure_vars = set(
-        var.get('name')
-        for var in script_result.iter('variable')
-        if var.get('secure') == 'true' and var[0].tag == 'value'
-    )
+    unsecure_vars = ContextSet()
+    encrypted_secure_vars = ContextSet()
+    unencrypted_secure_vars = ContextSet()
+
+    def bin_variable(element, context):
+        """
+        Add ``element`` to one of the ContextSets for variable types.
+        """
+        if element.get('secure') != 'true':
+            unsecure_vars.add(element.get('name'), context)
+        elif element[0].tag == 'encryptedValue':
+            encrypted_secure_vars.add(element.get('name'), context)
+        else:
+            unencrypted_secure_vars.add(element.get('name'), context)
+
+    for pipeline in script_result.iter('pipeline'):
+        for var in environment_variables_provided_by(pipeline):
+            bin_variable(var, GoCDContext(pipeline))
+
+        for stage in pipeline.findall('stage'):
+            for var in environment_variables_provided_by(stage):
+                bin_variable(var, GoCDContext(pipeline, stage))
+
+            for job in stage.iter('job'):
+                for var in environment_variables_provided_by(job):
+                    bin_variable(var, GoCDContext(pipeline, stage, job))
 
     assert unsecure_vars & encrypted_secure_vars == set()
     assert unsecure_vars & unencrypted_secure_vars == set()
