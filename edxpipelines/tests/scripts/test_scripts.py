@@ -424,3 +424,25 @@ def test_defined_roles(script_result):
     )
 
     assert roles_on_groups <= available_roles
+
+
+def test_environment_variable_consistancy(script_result):
+    unsecure_vars = set(
+        var.get('name')
+        for var in script_result.iter('variable')
+        if var.get('secure') != 'true'
+    )
+    encrypted_secure_vars = set(
+        var.get('name')
+        for var in script_result.iter('variable')
+        if var.get('secure') == 'true' and var[0].tag == 'encryptedValue'
+    )
+    unencrypted_secure_vars = set(
+        var.get('name')
+        for var in script_result.iter('variable')
+        if var.get('secure') == 'true' and var[0].tag == 'value'
+    )
+
+    assert unsecure_vars & encrypted_secure_vars == set()
+    assert unsecure_vars & unencrypted_secure_vars == set()
+    assert encrypted_secure_vars & unencrypted_secure_vars == set()
