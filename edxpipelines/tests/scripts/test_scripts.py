@@ -489,17 +489,10 @@ def test_environment_variable_consistancy(script_result):
         else:
             unencrypted_secure_vars.add(element.get('name'), context)
 
-    for pipeline in script_result.iter('pipeline'):
-        for var in environment_variables_provided_by(pipeline):
-            bin_variable(var, GoCDContext(pipeline))
-
-        for stage in pipeline.findall('stage'):
-            for var in environment_variables_provided_by(stage):
-                bin_variable(var, GoCDContext(pipeline, stage))
-
-            for job in stage.iter('job'):
-                for var in environment_variables_provided_by(job):
-                    bin_variable(var, GoCDContext(pipeline, stage, job))
+    for context_type in Context:
+        for context in iterate_contexts(script_result, context_type):
+            for var in environment_variables_provided_by(getattr(context, context_type.value)):
+                bin_variable(var, context)
 
     assert unsecure_vars & encrypted_secure_vars == set()
     assert unsecure_vars & unencrypted_secure_vars == set()
