@@ -6,6 +6,8 @@ from enum import Enum
 
 # Names for the standard stages/jobs
 ARM_PRERELEASE_STAGE = 'arm_prerelease'
+CUT_PRIVATE_RC_STAGE_NAME = 'cut_private_rc'
+CUT_PRIVATE_RC_JOB_NAME = 'cut_private_rc_job'
 DEPLOY_AMIS_STAGE_NAME = 'deploy_amis'
 DEPLOY_AMI_STAGE_NAME = 'deploy_ami'
 DEPLOY_AMI_JOB_NAME = 'deploy_ami_job'
@@ -59,6 +61,7 @@ PUBLISH_WIKI_JOB_NAME = 'publish_wiki_job'
 
 # Pipeline names
 BRANCH_CLEANUP_PIPELINE_NAME = 'edxapp_branch_cleanup'
+PRERELEASE_EDXAPP_CUT_RC_PIPELINE_NAME = "prerelease_edxapp_private_rc"
 
 # Tubular configuration
 TUBULAR_SLEEP_WAIT_TIME = '20'
