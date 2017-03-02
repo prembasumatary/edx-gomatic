@@ -258,7 +258,6 @@ def generate_launch_instance(
         {
             'AWS_ACCESS_KEY_ID': aws_access_key_id,
             'AWS_SECRET_ACCESS_KEY': aws_secret_access_key,
-            'HIPCHAT_TOKEN': hipchat_token,
         }
     )
 
@@ -274,14 +273,38 @@ def generate_launch_instance(
             'EC2_INSTANCE_PROFILE_NAME': ec2_instance_profile_name,
             'BASE_AMI_ID': base_ami_id,
             'ANSIBLE_CONFIG': constants.ANSIBLE_CONTINUOUS_DELIVERY_CONFIG,
-            'HIPCHAT_ROOM': hipchat_room,
         }
     )
+    variables = [
+        ('artifact_path', '`/bin/pwd`/../{} '.format(constants.ARTIFACT_PATH)),
+        ('base_ami_id', '$BASE_AMI_ID'),
+        ('ec2_vpc_subnet_id', '$EC2_VPC_SUBNET_ID'),
+        ('ec2_security_group_id', '$EC2_SECURITY_GROUP_ID'),
+        ('ec2_instance_type', '$EC2_INSTANCE_TYPE'),
+        ('ec2_instance_profile_name', '$EC2_INSTANCE_PROFILE_NAME'),
+        ('ebs_volume_size', '$EBS_VOLUME_SIZE'),
+        ('ec2_timeout', '900'),
+    ]
+
+    if hipchat_token:
+        job.ensure_encrypted_environment_variables(
+            {
+                'HIPCHAT_TOKEN': hipchat_token,
+            }
+        )
+        job.ensure_environment_variables(
+            {
+                'HIPCHAT_ROOM': hipchat_room,
+            }
+        )
+        variables.extend([
+            ('hipchat_token', '$HIPCHAT_TOKEN'),
+            ('hipchat_room', '"$HIPCHAT_ROOM"'),
+        ])
 
     # fetch the artifacts if there are any
-    optional_override_files = []
     if variable_override_path:
-        optional_override_files.append(variable_override_path)
+        variables.append(variable_override_path)
 
     job.ensure_artifacts({
         BuildArtifact('{}/key.pem'.format(constants.ARTIFACT_PATH)),
@@ -290,18 +313,7 @@ def generate_launch_instance(
     })
 
     return job.add_task(ansible_task(
-        variables=[
-            ('artifact_path', '`/bin/pwd`/../{} '.format(constants.ARTIFACT_PATH)),
-            ('base_ami_id', '$BASE_AMI_ID'),
-            ('ec2_vpc_subnet_id', '$EC2_VPC_SUBNET_ID'),
-            ('ec2_security_group_id', '$EC2_SECURITY_GROUP_ID'),
-            ('ec2_instance_type', '$EC2_INSTANCE_TYPE'),
-            ('ec2_instance_profile_name', '$EC2_INSTANCE_PROFILE_NAME'),
-            ('ebs_volume_size', '$EBS_VOLUME_SIZE'),
-            ('hipchat_token', '$HIPCHAT_TOKEN'),
-            ('hipchat_room', '"$HIPCHAT_ROOM"'),
-            ('ec2_timeout', '900'),
-        ] + optional_override_files,
+        variables=variables,
         extra_options=['--module-path=playbooks/library'],
         playbook='playbooks/continuous_delivery/launch_instance.yml',
         runif=runif,
