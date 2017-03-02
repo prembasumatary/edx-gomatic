@@ -232,7 +232,7 @@ def generate_package_install(job, working_dir, runif="passed", pip="pip3"):
 def generate_launch_instance(
         job, aws_access_key_id, aws_secret_access_key,
         ec2_vpc_subnet_id, ec2_security_group_id, ec2_instance_profile_name,
-        base_ami_id, ec2_region=constants.EC2_REGION, ec2_instance_type=constants.EC2_INSTANCE_TYPE,
+        base_ami_id=None, ec2_region=constants.EC2_REGION, ec2_instance_type=constants.EC2_INSTANCE_TYPE,
         ec2_timeout=constants.EC2_LAUNCH_INSTANCE_TIMEOUT,
         ec2_ebs_volume_size=constants.EC2_EBS_VOLUME_SIZE,
         variable_override_path=None, hipchat_token='',

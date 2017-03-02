@@ -68,7 +68,6 @@ def generate_build_ami(stage,
         ec2_vpc_subnet_id=env_config['ec2_vpc_subnet_id'],
         ec2_security_group_id=env_config['ec2_security_group_id'],
         ec2_instance_profile_name=env_config['ec2_instance_profile_name'],
-        base_ami_id=env_config['base_ami_id'],
         variable_override_path=path_to_artifact(constants.BASE_AMI_OVERRIDE_FILENAME),
     )
 
@@ -145,7 +144,6 @@ def generate_deploy_ami(pipeline, stage, edp, env_config):
         ec2_vpc_subnet_id=env_config['ec2_vpc_subnet_id'],
         ec2_security_group_id=env_config['ec2_security_group_id'],
         ec2_instance_profile_name=env_config['ec2_instance_profile_name'],
-        base_ami_id=env_config['base_ami_id'],
         variable_override_path=variable_override_path,
     )
 
