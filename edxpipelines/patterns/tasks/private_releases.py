@@ -31,11 +31,17 @@ def generate_create_private_release_candidate(
     # Gomatic forgot to expose ensure_unencrypted_secure_environment_variables,
     # so we have to reach behind the mangled name to get it ourselves.
     thing_with_environment_variables = job._Job__thing_with_environment_variables  # pylint: disable=protected-access
-    thing_with_environment_variables.ensure_unencrypted_secure_environment_variables(
-        {
-            'GIT_TOKEN': git_token,
-        }
-    )
+    thing_with_environment_variables.ensure_unencrypted_secure_environment_variables({
+        'GIT_TOKEN': git_token,
+    })
+
+    job.ensure_environment_variables({
+        'GIT_AUTHOR_NAME': 'edx-pipeline-bot',
+        'GIT_AUTHOR_EMAIL': 'admin+edx-pipeline-bot@edx.org',
+        'GIT_COMMITTER_NAME': 'edx-pipeline-bot',
+        'GIT_COMMITTER_EMAIL': 'admin+edx-pipeline-bot@edx.org',
+    })
+
     job.ensure_task(tubular_task(
         'merge-approved-prs', [
             '--token', '$GIT_TOKEN',
