@@ -15,10 +15,11 @@ sys.path.append(path.dirname(path.dirname(path.dirname(path.abspath(__file__))))
 from edxpipelines import utils
 from edxpipelines.patterns import stages
 from edxpipelines.patterns import tasks
+from edxpipelines.patterns.tasks import private_releases
 from edxpipelines import constants
 from edxpipelines.materials import (
     TUBULAR, CONFIGURATION, EDX_PLATFORM, EDX_SECURE, EDGE_SECURE,
-    EDX_MICROSITE, EDX_INTERNAL, EDGE_INTERNAL
+    EDX_MICROSITE, EDX_INTERNAL, EDGE_INTERNAL, EDX_PLATFORM_PRIVATE,
 )
 
 
@@ -77,17 +78,42 @@ def prerelease_materials(edxapp_group, config):
     Optional variables:
     - configuration_secure_version
     """
+    cut_rc = edxapp_group.ensure_replacement_of_pipeline(constants.PRERELEASE_EDXAPP_CUT_RC_PIPELINE_NAME)
+    cut_rc.set_label_template('${edx-platform[:7]}-${COUNT}')
+
+    cut_rc_stage = cut_rc.ensure_stage(constants.CUT_PRIVATE_RC_STAGE_NAME)
+    cut_rc_job = cut_rc_stage.ensure_job(constants.CUT_PRIVATE_RC_JOB_NAME)
+    private_releases.generate_create_private_release_candidate(
+        cut_rc_job, config['git_token'],
+        ('edx', 'edx-platform'),
+        'master',
+        EDX_PLATFORM().branch,
+        ('edx', 'edx-platform-private'),
+        'security-release',
+        EDX_PLATFORM_PRIVATE().branch,
+    )
+
+    cut_rc_material = PipelineMaterial(
+        cut_rc.name,
+        constants.CUT_PRIVATE_RC_STAGE_NAME,
+        material_name='cut_private_rc'
+    )
+
     pipeline = edxapp_group.ensure_replacement_of_pipeline("prerelease_edxapp_materials_latest")
-    pipeline.set_label_template('${edx-platform[:7]}-${COUNT}')
+    pipeline.set_label_template('${{{}}}'.format(cut_rc_material._PipelineMaterial__material_name))  # pylint: disable=no-member, protected-access
 
     for material in (
             CONFIGURATION, EDX_SECURE, EDGE_SECURE,
             EDX_MICROSITE, EDX_INTERNAL, EDGE_INTERNAL,
     ):
+        cut_rc.ensure_material(material(ignore_patterns=[]))
         pipeline.ensure_material(material(ignore_patterns=[]))
 
     pipeline.ensure_material(TUBULAR())
-    pipeline.ensure_material(EDX_PLATFORM(material_name='edx-platform'))
+    cut_rc.ensure_material(EDX_PLATFORM(material_name='edx-platform'))
+    pipeline.ensure_material(EDX_PLATFORM())
+    pipeline.ensure_material(EDX_PLATFORM_PRIVATE())
+    pipeline.ensure_material(cut_rc_material)
 
     stage = pipeline.ensure_stage(constants.PRERELEASE_MATERIALS_STAGE_NAME)
     job = stage.ensure_job(constants.PRERELEASE_MATERIALS_JOB_NAME)

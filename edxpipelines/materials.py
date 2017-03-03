@@ -71,6 +71,15 @@ EDX_PLATFORM = partial(
     ignore_patterns=['**/*'],
 )
 
+EDX_PLATFORM_PRIVATE = partial(
+    GitMaterial,
+    url="git@github.com:edx/edx-platform-private",
+    branch="release-candidate",
+    polling=True,
+    destination_directory="edx-platform-private",
+    ignore_patterns=['**/*'],
+)
+
 EDX_SECURE = partial(deployment_secure, 'edx')
 
 EDGE_SECURE = partial(deployment_secure, 'edge')
