@@ -452,7 +452,7 @@ def generate_edp_validation(pipeline,
     Args:
         pipeline (gomatic.Pipeline):
         hipchat_token (str):
-        hipchat_channels (str): The channels/users to notify
+        hipchat_channels (list(str)): The channels/users to notify
         asgard_api_endpoints (str): canonical URL for asgard.
         ami_deployment (str): typically one of: [edx, edge, etc...]
         ami_environment (str): typically one of: [stage, prod, loadtest, etc...]
@@ -464,7 +464,6 @@ def generate_edp_validation(pipeline,
     """
     pipeline.ensure_environment_variables({'AMI_ID': None,
                                            'AMI_DEPLOYMENT': ami_deployment,
-                                           'HIPCHAT_CHANNELS': hipchat_channels,
                                            'ASGARD_API_ENDPOINTS': asgard_api_endpoints,
                                            'AMI_ENVIRONMENT': ami_environment,
                                            'AMI_PLAY': ami_play}) \
@@ -483,20 +482,12 @@ def generate_edp_validation(pipeline,
             working_dir='tubular'
         )
     )
-    job.add_task(
-        ExecTask(
-            [
-                '/bin/bash',
-                '-c',
-                'submit_hipchat_msg.py '
-                '-m '
-                '"${AMI_ID} is not tagged for ${AMI_ENVIRONMENT}-${AMI_DEPLOYMENT}-${AMI_PLAY}. '
-                'Are you sure you\'re deploying the right AMI to the right app?" '
-                '--color "red"'
-            ],
-            working_dir='tubular',
-            runif='failed'
-        )
+    tasks.generate_hipchat_message(
+        job,
+        '"${AMI_ID} is not tagged for ${AMI_ENVIRONMENT}-${AMI_DEPLOYMENT}-${AMI_PLAY}. '
+        'Are you sure you\'re deploying the right AMI to the right app?"',
+        hipchat_channels, 'red',
+        runif='failed'
     )
 
     return stage
@@ -1495,6 +1486,62 @@ def generate_build_value_stream_map_url(pipeline):
                 script
             ]
         )
+    )
+
+    return stage
+
+
+def generate_find_and_advance_release(
+        pipeline,
+        advance_pipeline_name,
+        advance_pipeline_stage_name,
+        gocd_user,
+        gocd_password,
+        gocd_url,
+        hipchat_token,
+        hipchat_room=constants.HIPCHAT_ROOM,
+):
+    """
+    Generates a stage used to find the next release to advance and "manually" advance it.
+
+    Args:
+        pipeline (gomatic.Pipeline):
+        stage_name (str): Name of the stage.
+
+    Returns:
+        gomatic.Stage
+    """
+    stage = pipeline.ensure_stage(constants.RELEASE_ADVANCER_STAGE_NAME)
+    job = stage.ensure_job(constants.RELEASE_ADVANCER_JOB_NAME)
+
+    pipeline.ensure_environment_variables(
+        {
+            'GOCD_USER': gocd_user,
+            'GOCD_URL': gocd_url
+        }
+    )
+    pipeline.ensure_unencrypted_secure_environment_variables(
+        {
+            'GOCD_PASSWORD': gocd_password
+        }
+    )
+    job.ensure_encrypted_environment_variables(
+        {
+            'HIPCHAT_TOKEN': hipchat_token,
+        }
+    )
+    artifact_path = '{}/{}'.format(
+        constants.ARTIFACT_PATH,
+        constants.FIND_ADVANCE_PIPELINE_OUT_FILENAME
+    )
+    job.ensure_artifacts(set([BuildArtifact(artifact_path)]))
+
+    tasks.generate_find_and_advance_release(
+        job,
+        advance_pipeline_name,
+        advance_pipeline_stage_name,
+        hipchat_room,
+        out_file=artifact_path
     )
 
     return stage

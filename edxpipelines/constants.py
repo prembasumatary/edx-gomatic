@@ -57,6 +57,8 @@ BUILD_VALUE_STREAM_MAP_URL_JOB_NAME = 'build_value_stream_map_url_job'
 PUBLISH_WIKI_JOB_NAME = 'publish_wiki_job'
 INSTANCE_JANITOR_STAGE_NAME = 'janitor_instances'
 INSTANCE_JANITOR_JOB_NAME = 'janitor_instances_job'
+RELEASE_ADVANCER_STAGE_NAME = 'advance_release'
+RELEASE_ADVANCER_JOB_NAME = 'advance_release_job'
 
 # Pipeline names
 BRANCH_CLEANUP_PIPELINE_NAME = 'edxapp_branch_cleanup'
@@ -97,6 +99,7 @@ BASE_VALUE_STREAM_MAP_URL = 'https://gocd.tools.edx.org/go/pipelines/value_strea
 VALUE_STREAM_MAP_FILENAME = 'value_stream_map.yaml'
 RELEASE_WIKI_PAGE_ID_FILENAME = 'release_page_id.yml'
 PRIVATE_RC_FILENAME = 'private_rc.yaml'
+FIND_ADVANCE_PIPELINE_OUT_FILENAME = 'find_advance_pipeline.yml'
 # SHA and count are used together because SHA may not always be enough to uniquely
 # identify a build.
 DEPLOYMENT_PIPELINE_LABEL_TPL = '${{{.material_name}[:7]}}-${{COUNT}}'.format

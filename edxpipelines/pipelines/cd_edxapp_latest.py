@@ -234,6 +234,12 @@ def install_pipelines(configurator, config, env_configs):
         )
     )
 
+    release_advancer = edxapp.release_advancer(
+        edxapp_deploy_group,
+        config
+    )
+    release_advancer.set_label_template('${tubular[:7]}-${COUNT}')
+
     # When manually triggered in the pipeline above, the following two pipelines migrate/deploy
     # to the production EDX and EDGE environments.
 
