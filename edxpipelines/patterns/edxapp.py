@@ -48,7 +48,11 @@ def make_release_candidate(edxapp_group, config):
         EDX_PLATFORM().branch,
         fast_forward_only=False,
     )
-    pipeline.set_timer('0 0/5 15-18 ? * MON-FRI', True)
+
+    # These two options together make sure that the pipeline only triggers
+    # from the timer trigger.
+    pipeline.set_timer('0 0/5 15-18 ? * MON-FRI', only_on_changes=True)
+    stage.set_has_manual_approval()
 
     return pipeline
 
