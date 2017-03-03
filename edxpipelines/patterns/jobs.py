@@ -15,7 +15,7 @@ Responsibilities:
 """
 import edxpipelines.constants as constants
 import edxpipelines.patterns.tasks as tasks
-from edxpipelines.utils import ArtifactLocation, path_to_artifact
+from edxpipelines.utils import path_to_artifact
 
 
 def generate_build_ami(stage,
@@ -107,13 +107,14 @@ def generate_build_ami(stage,
     return job
 
 
-def generate_deploy_ami(pipeline, stage, edp, env_config):
+def generate_deploy_ami(stage, ami_artifact_location, edp, env_config):
     """
     Generates a job for deploying an AMI. Migrations are applied as part of this job.
 
     Args:
-        pipeline (gomatic.gocd.pipelines.Pipeline): Pipeline to which this job belongs.
         stage (gomatic.gocd.pipelines.Stage): Stage to which this job belongs.
+        ami_artifact_location (edxpipelines.utils.ArtifactLocation): Where to find
+            the AMI artifact to deploy.
         edp (edxpipelines.utils.EDP): Tuple indicating environment, deployment, and play
             to which the AMI belongs.
         env_config (dict): Environment-specific secure config.
@@ -121,19 +122,13 @@ def generate_deploy_ami(pipeline, stage, edp, env_config):
     Returns:
         gomatic.gocd.pipelines.Job
     """
-    job = stage.ensure_job(constants.DEPLOY_AMI_JOB_NAME_TPL(edp))
+    job = stage.ensure_job(constants.DEPLOY_AMI_JOB_NAME)
 
     tasks.generate_requirements_install(job, 'configuration')
     tasks.generate_package_install(job, 'tubular')
     tasks.generate_target_directory(job)
 
     # Retrieve the AMI ID from the upstream build stage.
-    ami_artifact_location = ArtifactLocation(
-        pipeline.name,
-        constants.BUILD_AMIS_STAGE_NAME,
-        constants.BUILD_AMI_JOB_NAME_TPL(edp),
-        constants.BUILD_AMI_FILENAME
-    )
     tasks.retrieve_artifact(ami_artifact_location, job)
     variable_override_path = path_to_artifact(ami_artifact_location.file_name)
 
@@ -174,38 +169,25 @@ def generate_deploy_ami(pipeline, stage, edp, env_config):
     return job
 
 
-def generate_rollback_asgs(pipeline, deploy_stage, rollback_stage, edp, config):
+def generate_rollback_asgs(stage, deployment_artifact_location, config):
     """
     Generates a job for rolling back ASGs (code).
 
     Args:
-        pipeline (gomatic.gocd.pipelines.Pipeline): Pipeline to which this job belongs.
-        deploy_stage (gomatic.gocd.pipelines.Stage): Upstream deploy stage from which to
-            retrieve deploy info.
-        rollback_stage (gomatic.gocd.pipelines.Stage): Stage to which this job belongs.
-        edp (edxpipelines.utils.EDP): Tuple indicating environment, deployment, and play
-            on which to operate.
+        stage (gomatic.gocd.pipelines.Stage): Stage to which this job belongs.
+        deployment_artifact_location (edxpipelines.utils.ArtifactLocation): Where to find
+            the AMI artifact to roll back.
         config (dict): Environment-independent secure config.
 
     Returns:
         gomatic.gocd.pipelines.Job
     """
-    job_name = '{environment}_{base_job_name}'.format(
-        environment=edp.environment,
-        base_job_name=constants.ROLLBACK_ASGS_JOB_NAME
-    )
-    job = rollback_stage.ensure_job(job_name)
+    job = stage.ensure_job(constants.ROLLBACK_ASGS_JOB_NAME)
 
     tasks.generate_package_install(job, 'tubular')
     tasks.generate_target_directory(job)
 
     # Retrieve build info from the upstream deploy stage.
-    deployment_artifact_location = ArtifactLocation(
-        pipeline.name,
-        deploy_stage.name,
-        constants.DEPLOY_AMI_JOB_NAME_TPL(edp),
-        constants.DEPLOY_AMI_OUT_FILENAME
-    )
     tasks.retrieve_artifact(deployment_artifact_location, job)
     deployment_artifact_path = path_to_artifact(deployment_artifact_location.file_name)
 
@@ -226,12 +208,9 @@ def generate_rollback_migrations(
         application_path,
         db_migration_user,
         db_migration_pass,
-        pipeline=None,
-        deploy_stage=None,
-        edp=None,
-        inventory_location=None,
-        instance_key_location=None,
-        migration_info_location=None,
+        inventory_location,
+        instance_key_location,
+        migration_info_location,
         sub_application_name=None
 ):
     """
@@ -239,52 +218,31 @@ def generate_rollback_migrations(
 
     Args:
         stage (gomatic.gocd.pipelines.Stage): Stage this job will be part of
-        pipeline (gomatic.gocd.pipelines.Pipeline): Pipeline to which this job belongs.
-        deploy_stage (gomatic.gocd.pipelines.Stage): Upstream deploy stage from which to
-            retrieve deploy info.
-        edp (edxpipelines.utils.EDP): Tuple indicating environment, deployment, and play
-            on which to operate.
-        inventory_location (utils.ArtifactLocation): Location of the ansible inventory location
-        instance_key_location (utils.ArtifactLocation): Location of key used to ssh in to the instance
-        migration_info_location (utils.ArtifactLocation): Location of the migration output to roll back
+        inventory_location (edxpipelines.utils.ArtifactLocation): Location of the
+            ansible inventory
+        instance_key_location (edxpipelines.utils.ArtifactLocation): Location of
+            the key used to ssh in to the instance
+        migration_info_location (edxpipelines.utils.ArtifactLocation): Location of
+            the migration output to roll back
         sub_application_name (str): additional command to be passed to the migrate app {cms|lms}
 
     Returns:
         gomatic.gocd.pipelines.Job
     """
-    if edp:
-        job_name = '{environment}_{base_job_name}'.format(
-            environment=edp.environment,
-            base_job_name=constants.ROLLBACK_MIGRATIONS_JOB_NAME
-        )
-    else:
-        job_name = constants.ROLLBACK_MIGRATIONS_JOB_NAME
+    job_name = constants.ROLLBACK_MIGRATIONS_JOB_NAME
 
     if sub_application_name is not None:
         job_name += '_{}'.format(sub_application_name)
+
     job = stage.ensure_job(job_name)
 
     tasks.generate_requirements_install(job, 'configuration')
     tasks.generate_target_directory(job)
 
     # Fetch the Ansible inventory to use in reaching the EC2 instance.
-    if not inventory_location:
-        inventory_location = ArtifactLocation(
-            pipeline.name,
-            deploy_stage.name,
-            constants.DEPLOY_AMI_JOB_NAME_TPL(edp),
-            constants.ANSIBLE_INVENTORY_FILENAME
-        )
     tasks.retrieve_artifact(inventory_location, job)
 
     # Fetch the SSH key to use in reaching the EC2 instance.
-    if not instance_key_location:
-        instance_key_location = ArtifactLocation(
-            pipeline.name,
-            deploy_stage.name,
-            constants.DEPLOY_AMI_JOB_NAME_TPL(edp),
-            constants.KEY_PEM_FILENAME
-        )
     tasks.retrieve_artifact(instance_key_location, job)
 
     # SSH key used to access the instance needs specific permissions.
@@ -294,14 +252,6 @@ def generate_rollback_migrations(
     ))
 
     # Fetch the migration output.
-    if not migration_info_location:
-        migration_info_location = ArtifactLocation(
-            pipeline.name,
-            deploy_stage.name,
-            constants.DEPLOY_AMI_JOB_NAME_TPL(edp),
-            constants.MIGRATION_OUTPUT_DIR_NAME,
-            is_dir=True
-        )
     tasks.retrieve_artifact(migration_info_location, job)
 
     tasks.generate_migration_rollback(

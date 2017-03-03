@@ -8,13 +8,10 @@ from enum import Enum
 ARM_PRERELEASE_STAGE = 'arm_prerelease'
 CUT_PRIVATE_RC_STAGE_NAME = 'cut_private_rc'
 CUT_PRIVATE_RC_JOB_NAME = 'cut_private_rc_job'
-DEPLOY_AMIS_STAGE_NAME = 'deploy_amis'
 DEPLOY_AMI_STAGE_NAME = 'deploy_ami'
 DEPLOY_AMI_JOB_NAME = 'deploy_ami_job'
-DEPLOY_AMI_JOB_NAME_TPL = '{.environment}_deploy_ami_job'.format
 RUN_MIGRATIONS_STAGE_NAME = 'apply_migrations'
 RUN_MIGRATIONS_JOB_NAME = 'apply_migrations_job'
-BUILD_AMIS_STAGE_NAME = 'build_amis'
 BUILD_AMI_STAGE_NAME = 'build_ami'
 BUILD_AMI_JOB_NAME = 'build_ami_job'
 BUILD_AMI_JOB_NAME_TPL = '{.environment}_build_ami_job'.format
@@ -61,7 +58,8 @@ PUBLISH_WIKI_JOB_NAME = 'publish_wiki_job'
 
 # Pipeline names
 BRANCH_CLEANUP_PIPELINE_NAME = 'edxapp_branch_cleanup'
-PRERELEASE_EDXAPP_CUT_RC_PIPELINE_NAME = "prerelease_edxapp_private_rc"
+PRERELEASE_EDXAPP_CUT_RC_PIPELINE_NAME = 'prerelease_edxapp_private_rc'
+DEPLOYMENT_PIPELINE_NAME_TPL = '{0.environment}-{0.deployment}-{0.play}'.format
 
 # Tubular configuration
 TUBULAR_SLEEP_WAIT_TIME = '20'
@@ -98,7 +96,7 @@ VALUE_STREAM_MAP_FILENAME = 'value_stream_map.yaml'
 RELEASE_WIKI_PAGE_ID_FILENAME = 'release_page_id.yml'
 # SHA and count are used together because SHA may not always be enough to uniquely
 # identify a build.
-BUILD_LABEL_TPL = '${{{.material_name}[:7]}}-${{COUNT}}'.format
+DEPLOYMENT_PIPELINE_LABEL_TPL = '${{{.material_name}[:7]}}-${{COUNT}}'.format
 DB_MIGRATION_USER = 'migrate'
 MIGRATION_OUTPUT_DIR_NAME = 'migrations'
 PLAYBOOK_PATH_TPL = 'playbooks/edx-east/{.play}.yml'.format

@@ -292,12 +292,18 @@ tools:
       - *play-ecommerce
       - *deployment-edx
     env-variable-file:
-      - ["stage", *stage-edx]
-      - ["stage", "../gomatic-secure/gocd/vars/tools/environment-deployment-play/stage-edx-ecommerce.yml"]
+      # - ["stage", *stage-edx]
+      # - ["stage", "../gomatic-secure/gocd/vars/tools/environment-deployment-play/stage-edx-ecommerce.yml"]
+      # - ["loadtest", *loadtest-edx]
+      # - ["loadtest", "../gomatic-secure/gocd/vars/tools/environment-deployment-play/loadtest-edx-ecommerce.yml"]
+      # - ["prod", *prod-edx]
+      # - ["prod", "../gomatic-secure/gocd/vars/tools/environment-deployment-play/prod-edx-ecommerce.yml"]
+      - ["stage", *loadtest-edx]
+      - ["stage", "../gomatic-secure/gocd/vars/tools/environment-deployment-play/loadtest-edx-ecommerce.yml"]
       - ["loadtest", *loadtest-edx]
       - ["loadtest", "../gomatic-secure/gocd/vars/tools/environment-deployment-play/loadtest-edx-ecommerce.yml"]
-      - ["prod", *prod-edx]
-      - ["prod", "../gomatic-secure/gocd/vars/tools/environment-deployment-play/prod-edx-ecommerce.yml"]
+      - ["prod", *loadtest-edx]
+      - ["prod", "../gomatic-secure/gocd/vars/tools/environment-deployment-play/loadtest-edx-ecommerce.yml"]
     enabled: True
 
   - script: edxpipelines/pipelines/cd_ecommerce.py
@@ -325,12 +331,18 @@ tools:
       - *play-credentials
       - *deployment-edx
     env-variable-file:
-      - ["stage", *stage-edx]
-      - ["stage", "../gomatic-secure/gocd/vars/tools/environment-deployment-play/stage-edx-credentials.yml"]
+      # - ["stage", *stage-edx]
+      # - ["stage", "../gomatic-secure/gocd/vars/tools/environment-deployment-play/stage-edx-credentials.yml"]
+      # - ["loadtest", *loadtest-edx]
+      # - ["loadtest", "../gomatic-secure/gocd/vars/tools/environment-deployment-play/loadtest-edx-credentials.yml"]
+      # - ["prod", *prod-edx]
+      # - ["prod", "../gomatic-secure/gocd/vars/tools/environment-deployment-play/prod-edx-credentials.yml"]
+      - ["stage", *loadtest-edx]
+      - ["stage", "../gomatic-secure/gocd/vars/tools/environment-deployment-play/loadtest-edx-credentials.yml"]
       - ["loadtest", *loadtest-edx]
       - ["loadtest", "../gomatic-secure/gocd/vars/tools/environment-deployment-play/loadtest-edx-credentials.yml"]
-      - ["prod", *prod-edx]
-      - ["prod", "../gomatic-secure/gocd/vars/tools/environment-deployment-play/prod-edx-credentials.yml"]
+      - ["prod", *loadtest-edx]
+      - ["prod", "../gomatic-secure/gocd/vars/tools/environment-deployment-play/loadtest-edx-credentials.yml"]
     enabled: True
 
   - script: edxpipelines/pipelines/cd_credentials.py
@@ -358,12 +370,18 @@ tools:
       - *play-discovery
       - *deployment-edx
     env-variable-file:
-      - ["stage", *stage-edx]
-      - ["stage", "../gomatic-secure/gocd/vars/tools/environment-deployment-play/stage-edx-discovery.yml"]
+      # - ["stage", *stage-edx]
+      # - ["stage", "../gomatic-secure/gocd/vars/tools/environment-deployment-play/stage-edx-discovery.yml"]
+      # - ["loadtest", *loadtest-edx]
+      # - ["loadtest", "../gomatic-secure/gocd/vars/tools/environment-deployment-play/loadtest-edx-discovery.yml"]
+      # - ["prod", *prod-edx]
+      # - ["prod", "../gomatic-secure/gocd/vars/tools/environment-deployment-play/prod-edx-discovery.yml"]
+      - ["stage", *loadtest-edx]
+      - ["stage", "../gomatic-secure/gocd/vars/tools/environment-deployment-play/loadtest-edx-discovery.yml"]
       - ["loadtest", *loadtest-edx]
       - ["loadtest", "../gomatic-secure/gocd/vars/tools/environment-deployment-play/loadtest-edx-discovery.yml"]
-      - ["prod", *prod-edx]
-      - ["prod", "../gomatic-secure/gocd/vars/tools/environment-deployment-play/prod-edx-discovery.yml"]
+      - ["prod", *loadtest-edx]
+      - ["prod", "../gomatic-secure/gocd/vars/tools/environment-deployment-play/loadtest-edx-discovery.yml"]
     enabled: True
 
   - script: edxpipelines/pipelines/cd_discovery.py
