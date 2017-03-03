@@ -587,7 +587,12 @@ def generate_check_migration_duration(job,
     ))
 
 
-def generate_rollback_asg(job, deployment_artifact_path, asgard_api_endpoints, asgard_token):
+def generate_rollback_asg(job,
+                          deployment_artifact_path,
+                          asgard_api_endpoints,
+                          asgard_token,
+                          aws_access_key_id,
+                          aws_secret_access_key):
     """
     Generates a task used to roll back an ASG.
 
@@ -597,12 +602,16 @@ def generate_rollback_asg(job, deployment_artifact_path, asgard_api_endpoints, a
             about the previous deployment.
         asgard_api_endpoints (str): Endpoint used to connect to Asgard.
         asgard_token (str): Token used to connect to Asgard.
+        aws_access_key_id (str): Access key used to connect to AWS.
+        aws_secret_access_key (str): Secret key used to connect to AWS.
     """
     job.ensure_environment_variables({
         'ASGARD_API_ENDPOINTS': asgard_api_endpoints,
     })
     job.ensure_encrypted_environment_variables({
         'ASGARD_API_TOKEN': asgard_token,
+        'AWS_ACCESS_KEY_ID': aws_access_key_id,
+        'AWS_SECRET_ACCESS_KEY': aws_secret_access_key,
     })
 
     rollback_artifact_path = path_to_artifact(constants.ROLLBACK_AMI_OUT_FILENAME)

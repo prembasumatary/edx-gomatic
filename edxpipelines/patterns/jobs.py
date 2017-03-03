@@ -196,6 +196,8 @@ def generate_rollback_asgs(stage, deployment_artifact_location, config):
         deployment_artifact_path,
         config['asgard_api_endpoints'],
         config['asgard_token'],
+        config['aws_access_key_id'],
+        config['aws_secret_access_key'],
     )
 
     return job
