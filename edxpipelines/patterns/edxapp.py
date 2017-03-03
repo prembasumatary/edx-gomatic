@@ -83,6 +83,7 @@ def prerelease_materials(edxapp_group, config):
 
     cut_rc_stage = cut_rc.ensure_stage(constants.CUT_PRIVATE_RC_STAGE_NAME)
     cut_rc_job = cut_rc_stage.ensure_job(constants.CUT_PRIVATE_RC_JOB_NAME)
+    tasks.generate_package_install(cut_rc_job, 'tubular')
     private_releases.generate_create_private_release_candidate(
         cut_rc_job, config['git_token'],
         ('edx', 'edx-platform'),
@@ -109,14 +110,17 @@ def prerelease_materials(edxapp_group, config):
         cut_rc.ensure_material(material(ignore_patterns=[]))
         pipeline.ensure_material(material(ignore_patterns=[]))
 
-    pipeline.ensure_material(TUBULAR())
+    cut_rc.ensure_material(TUBULAR())
     cut_rc.ensure_material(EDX_PLATFORM(material_name='edx-platform'))
+
+    pipeline.ensure_material(TUBULAR())
     pipeline.ensure_material(EDX_PLATFORM())
     pipeline.ensure_material(EDX_PLATFORM_PRIVATE())
     pipeline.ensure_material(cut_rc_material)
 
     stage = pipeline.ensure_stage(constants.PRERELEASE_MATERIALS_STAGE_NAME)
     job = stage.ensure_job(constants.PRERELEASE_MATERIALS_JOB_NAME)
+    tasks.generate_package_install(job, 'tubular')
 
     # This prevents the commit being released from being lost when the new
     # release-candidate is cut. However, this will require a janitor job to
