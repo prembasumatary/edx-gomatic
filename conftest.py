@@ -2,6 +2,8 @@
 Module to add configuration used by various tests.
 """
 
+from edxpipelines.tests.utilities import ContextSet
+
 
 def pytest_addoption(parser):
     """
@@ -40,4 +42,14 @@ def pytest_assertrepr_compare(op, left, right):
             ] + [
                 '    {!r}'.format(item)
                 for item in left
+            ]
+
+    if isinstance(left, ContextSet):
+        if op == '==' and not right:
+            return [
+                '{left.__class__.__name__}(...) is not empty'.format(left=left),
+                'Unexpected items in the lefthand set:',
+            ] + [
+                '    {!r} (from {})'.format(item, context)
+                for (item, context) in left.iteritems()
             ]

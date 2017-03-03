@@ -8,7 +8,9 @@ import os.path
 import os
 import re
 
+from enum import Enum
 from edxpipelines.utils import ArtifactLocation
+from edxpipelines.tests.utilities import ContextSet
 import pytest
 
 # pylint: disable=invalid-name
@@ -17,6 +19,40 @@ KNOWN_FAILING_PIPELINES = [
     'edxpipelines/pipelines/api_deploy.py',
     'edxpipelines/pipelines/rollback_asgs.py'
 ]
+
+
+class GoCDContext(namedtuple('GoCDContext', ['pipeline', 'stage', 'job'])):
+    """
+    A tuple that prints out as pipeline::stage::job, for nicer message formatting.
+    """
+    def __str__(self):
+        return '::'.join(element.get('name') for element in self if element is not None)
+
+# Set default values for the GoCDContext constructor
+GoCDContext.__new__.__defaults__ = (None, None)
+
+
+class Context(Enum):
+    """All available contexts to iterate with iterate_contexts."""
+    PIPELINE = 'pipeline'
+    STAGE = 'stage'
+    JOB = 'job'
+
+
+def iterate_contexts(script_result, context_type=Context.JOB):
+    """
+    Yield filled-in GoCDContext objects for each ``context_type`` in script_result.
+    """
+    for pipeline in script_result.iter('pipeline'):
+        if context_type == Context.PIPELINE:
+            yield GoCDContext(pipeline)
+        else:
+            for stage in pipeline.iter('stage'):
+                if context_type == Context.STAGE:
+                    yield GoCDContext(pipeline, stage)
+                elif context_type == Context.JOB:
+                    for job in stage.iter('job'):
+                        yield GoCDContext(pipeline, stage, job)
 
 
 def test_upstream_artifacts(script_result, script_name):
@@ -297,14 +333,25 @@ def global_environment_variables():
 
 def environment_variables_provided_by(element):
     """
-    Yield all environment variables provided by ``element``.
+    Yield all environment variable elements provided by ``element``.
 
     Argument:
         element (Element): The element for a pipeline, stage or job
     """
     for env_vars in element.findall('environmentvariables'):
         for variable in env_vars.findall('variable'):
-            yield variable.get('name')
+            yield variable
+
+
+def environment_variable_names_provided_by(element):
+    """
+    Yield all environment variable names provided by ``element``.
+
+    Argument:
+        element (Element): The element for a pipeline, stage or job
+    """
+    for variable in environment_variables_provided_by(element):
+        yield variable.get('name')
 
 
 def test_environment_variables_defined(script_result, script_name):
@@ -336,9 +383,9 @@ def test_environment_variables_defined(script_result, script_name):
         for stage in pipeline.findall('stage')
         for job in stage.iter('job')
         for var in itertools.chain(
-            environment_variables_provided_by(pipeline),
-            environment_variables_provided_by(stage),
-            environment_variables_provided_by(job),
+            environment_variable_names_provided_by(pipeline),
+            environment_variable_names_provided_by(stage),
+            environment_variable_names_provided_by(job),
             (
                 var
                 for git_material in pipeline.iter('git')
@@ -416,11 +463,54 @@ def test_defined_roles(script_result):
         for role in security.iter('role')
     )
 
-    roles_on_groups = set(
-        role.text
-        for pipeline_group in script_result.iter('pipelines')
-        for authorization in pipeline_group.iter('authorization')
-        for role in authorization.iter('role')
+    roles_on_groups = ContextSet(
+        "roles_on_groups",
+        (
+            (role.text, "{}::{}".format(pipeline_group.get('name'), authorization))
+            for pipeline_group in script_result.iter('pipelines')
+            for authorization in pipeline_group.iter('authorization')
+            for role in authorization.iter('role')
+        )
     )
 
     assert roles_on_groups <= available_roles
+
+
+def test_environment_variable_consistancy(script_result):
+    unsecure_vars = ContextSet("unsecure")
+    encrypted_secure_vars = ContextSet("encrypted")
+    unencrypted_secure_vars = ContextSet("unencrypted")
+
+    def bin_variable(element, context):
+        """
+        Add ``element`` to one of the ContextSets for variable types.
+        """
+        if element.get('secure') != 'true':
+            unsecure_vars.add(element.get('name'), context)
+        elif element[0].tag == 'encryptedValue':
+            encrypted_secure_vars.add(element.get('name'), context)
+        else:
+            unencrypted_secure_vars.add(element.get('name'), context)
+
+    for context_type in Context:
+        for context in iterate_contexts(script_result, context_type):
+            for var in environment_variables_provided_by(getattr(context, context_type.value)):
+                bin_variable(var, context)
+
+    assert unsecure_vars & encrypted_secure_vars == set()
+    assert unsecure_vars & unencrypted_secure_vars == set()
+    assert encrypted_secure_vars & unencrypted_secure_vars == set()
+
+
+def test_valid_format_encrypted_vars(script_result):
+    invalid_encrypted_vars = ContextSet(
+        "invalid_encrypted_vars",
+        (
+            (var.get('name'), context)
+            for context in iterate_contexts(script_result)
+            for var in context.job.iter('variable')
+            if var[0].tag == 'encryptedValue' and (var[0].text is None or not var[0].text.strip())
+        )
+    )
+
+    assert invalid_encrypted_vars == set()
