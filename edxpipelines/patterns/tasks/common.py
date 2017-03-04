@@ -676,7 +676,7 @@ def generate_migration_rollback(
 
     command = ' '.join(
         [
-            'for migration_input_file in ../{migration_artifact_path}/*_migration_plan.yml do',
+            'for migration_input_file in ../{migration_artifact_path}/*_migration_plan.yml; do',
             'export ANSIBLE_HOST_KEY_CHECKING=False;',
             'export ANSIBLE_SSH_ARGS="-o ControlMaster=auto -o ControlPersist=30m";',
             'PRIVATE_KEY=`/bin/pwd`/../{artifact_path}/key.pem;',
