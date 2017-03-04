@@ -703,7 +703,7 @@ def generate_migration_rollback(
     if sub_application_name is not None:
         command += ' -e SUB_APPLICATION_NAME={sub_application_name} '.format(sub_application_name=sub_application_name)
 
-    command += ' playbooks/continuous_delivery/rollback_migrations.yml done || exit'
+    command += ' playbooks/continuous_delivery/rollback_migrations.yml; done || exit'
 
     return job.add_task(
         ExecTask(
