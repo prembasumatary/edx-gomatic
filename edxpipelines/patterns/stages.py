@@ -649,9 +649,9 @@ def generate_rollback_migrations(pipeline,
         application_path=application_path,
         db_migration_user=constants.DB_MIGRATION_USER,
         db_migration_pass=db_migration_pass,
+        migration_info_location=migration_info_location,
         inventory_location=inventory_location,
         instance_key_location=instance_key_location,
-        migration_info_location=migration_info_location,
         sub_application_name=sub_application_name,
     )
 

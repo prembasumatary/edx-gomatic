@@ -342,15 +342,6 @@ def generate_service_deployment_pipelines(configurator, config, env_configs, bas
         constants.DEPLOYMENT_PIPELINE_NAME_TPL(loadtest_edp)
     )
 
-    # Map pipelines to their EDPs. This is useful later on when we need to find
-    # an EDP given a pipeline.
-    pipeline_edp_map = {
-        stage_pipeline: stage_edp,
-        prod_pipeline: prod_edp,
-        loadtest_pipeline: loadtest_edp,
-    }
-
-    # Ensure materials for each pipeline.
     configuration_secure_material = materials.deployment_secure(
         base_edp.deployment,
         destination_directory='configuration-secure'
@@ -366,127 +357,100 @@ def generate_service_deployment_pipelines(configurator, config, env_configs, bas
         configuration_internal_material,
     ]
 
-    # The stage and prod pipelines share most materials. The only difference
-    # material-wise is the app material branch they poll for changes.
-    for pipeline in (stage_pipeline, loadtest_pipeline):
-        for material in common_materials:
-            pipeline.ensure_material(material)
+    # Map EDPs to the pipelines that build their AMIs and the pipelines that deploy them.
+    edp_pipeline_map = [
+        (stage_edp, stage_pipeline, stage_pipeline),
+        (prod_edp, stage_pipeline, prod_pipeline),
+        (loadtest_edp, loadtest_pipeline, loadtest_pipeline),
+    ]
 
-    # master_app_material = partial_app_material(branch='master')
-    master_app_material = partial_app_material(branch='renzo/pipeline-test')
-    stage_pipeline.ensure_material(master_app_material)
-    stage_pipeline.set_label_template(constants.DEPLOYMENT_PIPELINE_LABEL_TPL(master_app_material))
+    for edp, build_pipeline, deploy_pipeline in edp_pipeline_map:
+        env_config = env_configs[edp.environment]
 
-    # loadtest_app_material = partial_app_material(branch='loadtest')
-    loadtest_app_material = partial_app_material(branch='renzo/pipeline-loadtest')
-    loadtest_pipeline.ensure_material(loadtest_app_material)
-    loadtest_pipeline.set_label_template(constants.DEPLOYMENT_PIPELINE_LABEL_TPL(loadtest_app_material))
-
-    # The prod pipeline only requires successful completion of the stage pipeline's
-    # AMI build stage, from which it will retrieve an AMI artifact.
-    prod_pipeline.ensure_material(
-        PipelineMaterial(
-            stage_pipeline.name,
-            constants.BUILD_AMI_STAGE_NAME,
-            material_name=stage_pipeline.name
+        app_material = partial_app_material(
+            # branch='loadtest' if edp == loadtest_edp else 'master'
+            branch='renzo/pipeline-loadtest' if edp == loadtest_edp else 'renzo/pipeline-test'
         )
-    )
 
-    # Pipelines return their label when referenced by name. We share the label
-    # set for the stage pipeline with the prod pipeline.
-    prod_pipeline.set_label_template('${{{}}}'.format(stage_pipeline.name))
+        if edp in (stage_edp, loadtest_edp):
+            for material in common_materials + [app_material]:
+                # Most ensure_* methods are idempotent. ensure_material() seems
+                # to be an exception: calling it repeatedly for the same pipeline
+                # with the same materials results in duplicate materials.
+                build_pipeline.ensure_material(material)
+                build_pipeline.set_label_template(constants.DEPLOYMENT_PIPELINE_LABEL_TPL(app_material))
 
-    # Create each pipeline's first stage. For the stage and loadtest pipelines,
-    # this is the AMI build stage.
-    stage_build_stage = stage_pipeline.ensure_stage(constants.BUILD_AMI_STAGE_NAME)
-    loadtest_build_stage = loadtest_pipeline.ensure_stage(constants.BUILD_AMI_STAGE_NAME)
+        if edp == prod_edp:
+            # The prod pipeline only requires successful completion of the stage
+            # pipeline's AMI build stage, from which it will retrieve an AMI artifact.
+            deploy_pipeline.ensure_material(
+                PipelineMaterial(
+                    build_pipeline.name,
+                    constants.BUILD_AMI_STAGE_NAME,
+                    material_name=build_pipeline.name
+                )
+            )
 
-    app_version_var = '$GO_REVISION_{}'.format(master_app_material.material_name.upper())
-    overrides = {
-        'app_version': app_version_var,
-        '{}_VERSION'.format(base_edp.play.upper()): app_version_var,
-    }
+            # Pipelines return their label when referenced by name. We share the
+            # label set for the stage pipeline with the prod pipeline.
+            deploy_pipeline.set_label_template('${{{}}}'.format(build_pipeline.name))
 
-    # Map EDPs to the stages that build their AMIs.
-    build_stage_map = {
-        stage_edp: stage_build_stage,
-        prod_edp: stage_build_stage,
-        loadtest_edp: loadtest_build_stage,
-    }
+            # The prod pipeline's first stage is a no-op 'armed stage' that will
+            # be followed by a deploy stage requiring manual approval.
+            stages.generate_armed_stage(deploy_pipeline, constants.ARMED_STAGE_NAME)
 
-    for edp, stage in build_stage_map.items():
+        app_version_var = '$GO_REVISION_{}'.format(app_material.material_name.upper())
+        overrides = {
+            'app_version': app_version_var,
+            '{}_VERSION'.format(base_edp.play.upper()): app_version_var,
+        }
+
+        build_stage = build_pipeline.ensure_stage(constants.BUILD_AMI_STAGE_NAME)
         jobs.generate_build_ami(
-            stage,
+            build_stage,
             edp,
-            master_app_material.url,
+            app_material.url,
             configuration_secure_material,
             configuration_internal_material,
             constants.PLAYBOOK_PATH_TPL(edp),
-            env_configs[edp.environment],
+            env_config,
             **overrides
         )
 
-    # The prod pipeline's first stage is a no-op 'armed stage' that will be
-    # followed by a deploy stage requiring manual approval.
-    stages.generate_armed_stage(prod_pipeline, constants.ARMED_STAGE_NAME)
+        # The next stage in all three pipelines deploys an AMI built in an upstream stage.
+        deploy_stage = deploy_pipeline.ensure_stage(constants.DEPLOY_AMI_STAGE_NAME)
 
-    # The next stage in all three pipelines deploys an AMI built in an upstream stage.
-    stage_deploy_stage = stage_pipeline.ensure_stage(constants.DEPLOY_AMI_STAGE_NAME)
-    prod_deploy_stage = prod_pipeline.ensure_stage(constants.DEPLOY_AMI_STAGE_NAME)
-    loadtest_deploy_stage = loadtest_pipeline.ensure_stage(constants.DEPLOY_AMI_STAGE_NAME)
+        if edp == prod_edp:
+            # We don't want the prod pipeline to deploy automatically (yet).
+            deploy_stage.set_has_manual_approval()
 
-    # We don't want the prod pipeline to deploy automatically (yet).
-    prod_deploy_stage.set_has_manual_approval()
-
-    # Map deploy stages to the pipelines which contain their AMI artifacts.
-    ami_source_map = [
-        (stage_edp, stage_deploy_stage, stage_pipeline),
-        (prod_edp, prod_deploy_stage, stage_pipeline),
-        (loadtest_edp, loadtest_deploy_stage, loadtest_pipeline),
-    ]
-
-    for edp, stage, source_pipeline in ami_source_map:
         ami_artifact_location = ArtifactLocation(
-            source_pipeline.name,
+            build_pipeline.name,
             constants.BUILD_AMI_STAGE_NAME,
             constants.BUILD_AMI_JOB_NAME_TPL(edp),
             constants.BUILD_AMI_FILENAME
         )
+        jobs.generate_deploy_ami(deploy_stage, ami_artifact_location, edp, env_config)
 
-        jobs.generate_deploy_ami(stage, ami_artifact_location, edp, env_configs[edp.environment])
-
-    # The final two stages in each pipeline roll back the ASG/AMI deployed and
-    # any migrations applied by the upstream deploy stage.
-    for pipeline, edp in pipeline_edp_map.items():
-        rollback_asgs_stage = pipeline.ensure_stage(constants.ROLLBACK_ASGS_STAGE_NAME)
-        rollback_migrations_stage = pipeline.ensure_stage(constants.ROLLBACK_MIGRATIONS_STAGE_NAME)
+        # The final two stages in each pipeline roll back the ASG/AMI deployed and
+        # any migrations applied by the upstream deploy stage.
+        rollback_asgs_stage = deploy_pipeline.ensure_stage(constants.ROLLBACK_ASGS_STAGE_NAME)
+        rollback_migrations_stage = deploy_pipeline.ensure_stage(constants.ROLLBACK_MIGRATIONS_STAGE_NAME)
 
         # Rollback stages always require manual approval from the operator.
         rollback_asgs_stage.set_has_manual_approval()
         rollback_migrations_stage.set_has_manual_approval()
 
         deployment_artifact_location = ArtifactLocation(
-            pipeline.name,
+            deploy_pipeline.name,
             constants.DEPLOY_AMI_STAGE_NAME,
             constants.DEPLOY_AMI_JOB_NAME,
             constants.DEPLOY_AMI_OUT_FILENAME
         )
         jobs.generate_rollback_asgs(rollback_asgs_stage, deployment_artifact_location, config)
 
-        inventory_location = ArtifactLocation(
-            constants.DEPLOYMENT_PIPELINE_NAME_TPL(edp),
-            constants.DEPLOY_AMI_STAGE_NAME,
-            constants.DEPLOY_AMI_JOB_NAME,
-            constants.ANSIBLE_INVENTORY_FILENAME
-        )
-        instance_key_location = ArtifactLocation(
-            constants.DEPLOYMENT_PIPELINE_NAME_TPL(edp),
-            constants.DEPLOY_AMI_STAGE_NAME,
-            constants.DEPLOY_AMI_JOB_NAME,
-            constants.KEY_PEM_FILENAME
-        )
         migration_info_location = ArtifactLocation(
-            constants.DEPLOYMENT_PIPELINE_NAME_TPL(edp),
+            deploy_pipeline.name,
             constants.DEPLOY_AMI_STAGE_NAME,
             constants.DEPLOY_AMI_JOB_NAME,
             constants.MIGRATION_OUTPUT_DIR_NAME,
@@ -498,8 +462,8 @@ def generate_service_deployment_pipelines(configurator, config, env_configs, bas
             edp.play,
             '/edx/app/{}'.format(edp.play),
             constants.DB_MIGRATION_USER,
-            env_configs[edp.environment]['db_migration_pass'],
-            inventory_location,
-            instance_key_location,
+            env_config['db_migration_pass'],
             migration_info_location,
+            ami_artifact_location=ami_artifact_location,
+            env_config=env_config,
         )

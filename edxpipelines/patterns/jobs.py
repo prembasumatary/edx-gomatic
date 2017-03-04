@@ -210,9 +210,11 @@ def generate_rollback_migrations(
         application_path,
         db_migration_user,
         db_migration_pass,
-        inventory_location,
-        instance_key_location,
         migration_info_location,
+        inventory_location=None,
+        instance_key_location=None,
+        ami_artifact_location=None,
+        env_config=None,
         sub_application_name=None
 ):
     """
@@ -220,12 +222,15 @@ def generate_rollback_migrations(
 
     Args:
         stage (gomatic.gocd.pipelines.Stage): Stage this job will be part of
+        migration_info_location (edxpipelines.utils.ArtifactLocation): Location of
+            the migration output to roll back
         inventory_location (edxpipelines.utils.ArtifactLocation): Location of the
             ansible inventory
         instance_key_location (edxpipelines.utils.ArtifactLocation): Location of
             the key used to ssh in to the instance
-        migration_info_location (edxpipelines.utils.ArtifactLocation): Location of
-            the migration output to roll back
+        ami_artifact_location (edxpipelines.utils.ArtifactLocation): AMI to use when
+            launching instance used to roll back migrations.
+        env_config (dict): Environment-specific secure config.
         sub_application_name (str): additional command to be passed to the migrate app {cms|lms}
 
     Returns:
@@ -241,11 +246,29 @@ def generate_rollback_migrations(
     tasks.generate_requirements_install(job, 'configuration')
     tasks.generate_target_directory(job)
 
-    # Fetch the Ansible inventory to use in reaching the EC2 instance.
-    tasks.retrieve_artifact(inventory_location, job)
+    is_instance_launch_required = ami_artifact_location and env_config
 
-    # Fetch the SSH key to use in reaching the EC2 instance.
-    tasks.retrieve_artifact(instance_key_location, job)
+    if is_instance_launch_required:
+        # Retrieve the AMI ID from the upstream build stage.
+        tasks.retrieve_artifact(ami_artifact_location, job)
+        variable_override_path = path_to_artifact(ami_artifact_location.file_name)
+
+        tasks.generate_launch_instance(
+            job,
+            aws_access_key_id=env_config['aws_access_key_id'],
+            aws_secret_access_key=env_config['aws_secret_access_key'],
+            ec2_vpc_subnet_id=env_config['ec2_vpc_subnet_id'],
+            ec2_security_group_id=env_config['ec2_security_group_id'],
+            ec2_instance_profile_name=env_config['ec2_instance_profile_name'],
+            variable_override_path=variable_override_path,
+        )
+    else:
+        # The instance was launched elsewhere. Fetch the Ansible inventory to
+        # use in reaching the EC2 instance.
+        tasks.retrieve_artifact(inventory_location, job)
+
+        # Fetch the SSH key to use in reaching the EC2 instance.
+        tasks.retrieve_artifact(instance_key_location, job)
 
     # SSH key used to access the instance needs specific permissions.
     job.ensure_task(tasks.bash_task(
@@ -265,5 +288,9 @@ def generate_rollback_migrations(
         db_migration_pass=db_migration_pass,
         sub_application_name=sub_application_name,
     )
+
+    # If an instance was launched as part of this job, clean it up.
+    if is_instance_launch_required:
+        tasks.generate_ami_cleanup(job, env_config['hipchat_token'], runif='any')
 
     return job
