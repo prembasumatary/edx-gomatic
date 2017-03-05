@@ -671,32 +671,28 @@ def generate_migration_rollback(
         db_migration_user,
         db_migration_pass,
         sub_application_name=None,
-        runif="passed"
+        runif='passed'
 ):
     """
-    Generates GoCD task that runs migrations via an Ansible script.
+    Generates GoCD task that will rollback migrations via an Ansible script.
 
     Assumes:
         - The play will be run using the continuous delivery Ansible config constants.ANSIBLE_CONTINUOUS_DELIVERY_CONFIG
 
     Args:
-        job (gomatic.job.Job): the gomatic job to which the run migrations task will be added
-        sub_application_name (str): additional command to be passed to the migrate app {cms|lms}
-        runif (str): one of ['passed', 'failed', 'any'] Default: passed
+        job (gomatic.job.Job): Job to which this task belongs.
+        application_user (str): System level user that will rollback the migrations.
+        application_name (str): Short name of the application.
+        application_path (str): Installation path of the application on the target machine.
+        db_migration_user (str): Database user that will rollback the migrations.
+        db_migration_pass (str): Password for the database user given previously.
+        sub_application_name (str): Additional command to be passed to the migrate app {cms|lms}
+        runif (str): One of ['passed', 'failed', 'any'].
 
     Returns:
         The newly created task (gomatic.gocd.tasks.ExecTask)
 
     """
-
-    migration_artifact_path = '{}/rollback/migrations'.format(constants.ARTIFACT_PATH)
-    generate_target_directory(job, migration_artifact_path)
-    job.ensure_artifacts(
-        set(
-            [BuildArtifact(migration_artifact_path)]
-        )
-    )
-
     job.ensure_environment_variables(
         {
             'APPLICATION_USER': application_user,
@@ -711,48 +707,48 @@ def generate_migration_rollback(
         }
     )
 
-    command = ' '.join(
-        [
-            'for migration_input_file in ../{migration_artifact_path}/*_migration_plan.yml; do',
-            'export ANSIBLE_HOST_KEY_CHECKING=False;',
-            'export ANSIBLE_SSH_ARGS="-o ControlMaster=auto -o ControlPersist=30m";',
-            'PRIVATE_KEY=`/bin/pwd`/../{artifact_path}/key.pem;',
-            'ansible-playbook',
-            '-vvvv',
-            '-i ../{artifact_path}/ansible_inventory',
-            '--private-key=$PRIVATE_KEY',
-            '--module-path=playbooks/library',
-            '--user=ubuntu',
-            '-e APPLICATION_PATH=$APPLICATION_PATH',
-            '-e APPLICATION_NAME=$APPLICATION_NAME',
-            '-e APPLICATION_USER=$APPLICATION_USER',
-            '-e ARTIFACT_PATH=`/bin/pwd`/../{artifact_path}/migrations',
-            '-e DB_MIGRATION_USER=$DB_MIGRATION_USER',
-            '-e DB_MIGRATION_PASS=$DB_MIGRATION_PASS',
-            '-e ../{artifact_path}/${{migration_input_file}}'
-        ]
+    rollback_output_dir_path = path_to_artifact('rollback/migrations')
+    generate_target_directory(job, rollback_output_dir_path)
+
+    job.ensure_artifacts(
+        set([BuildArtifact(rollback_output_dir_path)])
     )
 
-    command = command.format(
-        artifact_path=constants.ARTIFACT_PATH,
-        migration_artifact_path=migration_artifact_path
-    )
-    if sub_application_name is not None:
-        command += ' -e SUB_APPLICATION_NAME={sub_application_name} '.format(sub_application_name=sub_application_name)
+    command = [
+        'for migration_plan in ../{rollback_input_dir_path}/*migration_plan.yml; do'
+        'export ANSIBLE_HOST_KEY_CHECKING=False;',
+        'export ANSIBLE_SSH_ARGS="-o ControlMaster=auto -o ControlPersist=30m";',
+        'PRIVATE_KEY=`/bin/pwd`/../{key_pem_path}',
+        'ansible-playbook',
+        '-vvvv',
+        '-i ../{inventory_path}',
+        '--private-key=$PRIVATE_KEY',
+        '--module-path=playbooks/library',
+        '--user=ubuntu',
+        '-e APPLICATION_PATH=$APPLICATION_PATH',
+        '-e APPLICATION_NAME=$APPLICATION_NAME',
+        '-e APPLICATION_USER=$APPLICATION_USER',
+        '-e ARTIFACT_PATH=`/bin/pwd`/../{rollback_output_dir_path}',
+        '-e DB_MIGRATION_USER=$DB_MIGRATION_USER',
+        '-e DB_MIGRATION_PASS=$DB_MIGRATION_PASS',
+        '-e ../{rollback_input_dir_path}/${{migration_plan}}',
+    ]
 
-    command += ' playbooks/continuous_delivery/rollback_migrations.yml; done || exit'
+    if sub_application_name:
+        command.append('-e SUB_APPLICATION_NAME={sub_application_name}')
 
-    return job.add_task(
-        ExecTask(
-            [
-                '/bin/bash',
-                '-c',
-                command
-            ],
-            working_dir=constants.PUBLIC_CONFIGURATION_DIR,
-            runif=runif
-        )
-    )
+    command.append('playbooks/continuous_delivery/rollback_migrations.yml; done || exit')
+
+    return job.ensure_task(bash_task(
+        ' '.join(command),
+        working_dir=constants.PUBLIC_CONFIGURATION_DIR,
+        runif=runif,
+        rollback_input_dir_path=path_to_artifact(constants.MIGRATION_OUTPUT_DIR_NAME),
+        key_pem_path=path_to_artifact(constants.KEY_PEM_FILENAME),
+        inventory_path=path_to_artifact(constants.ANSIBLE_INVENTORY_FILENAME),
+        rollback_output_dir_path=rollback_output_dir_path,
+        sub_application_name=sub_application_name,
+    ))
 
 
 def format_RSA_key(job, output_path, key):
