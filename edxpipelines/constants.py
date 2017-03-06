@@ -94,6 +94,7 @@ MIGRATION_RESULT_FILENAME = 'default_migration_result.yml'
 BASE_VALUE_STREAM_MAP_URL = 'https://gocd.tools.edx.org/go/pipelines/value_stream_map'
 VALUE_STREAM_MAP_FILENAME = 'value_stream_map.yaml'
 RELEASE_WIKI_PAGE_ID_FILENAME = 'release_page_id.yml'
+PRIVATE_RC_FILENAME = 'private_rc.yaml'
 # SHA and count are used together because SHA may not always be enough to uniquely
 # identify a build.
 DEPLOYMENT_PIPELINE_LABEL_TPL = '${{{.material_name}[:7]}}-${{COUNT}}'.format

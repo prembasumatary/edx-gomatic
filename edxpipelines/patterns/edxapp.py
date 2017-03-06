@@ -123,6 +123,15 @@ def prerelease_materials(edxapp_group, config):
     job = stage.ensure_job(constants.PRERELEASE_MATERIALS_JOB_NAME)
     tasks.generate_package_install(job, 'tubular')
 
+    private_rc_artifact = utils.ArtifactLocation(
+        cut_rc.name,
+        cut_rc_stage.name,
+        cut_rc_job.name,
+        constants.PRIVATE_RC_FILENAME
+    )
+
+    private_releases.generate_private_rc_assertion(job, private_rc_artifact)
+
     # This prevents the commit being released from being lost when the new
     # release-candidate is cut. However, this will require a janitor job to
     # deal with any releases that are never completed.
