@@ -4,7 +4,7 @@ Task patterns for private releases.
 
 from gomatic import BuildArtifact
 
-from .common import tubular_task, bash_task, retrieve_artifact
+from .common import tubular_task, bash_task, retrieve_artifact, generate_target_directory
 from ... import constants
 
 
@@ -45,6 +45,8 @@ def generate_create_private_release_candidate(
         'GIT_COMMITTER_NAME': 'edx-pipeline-bot',
         'GIT_COMMITTER_EMAIL': 'admin+edx-pipeline-bot@edx.org',
     })
+
+    generate_target_directory(job)
 
     artifact_path = '{}/{}'.format(
         constants.ARTIFACT_PATH,
