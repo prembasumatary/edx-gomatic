@@ -193,22 +193,24 @@ def generate_requirements_install(job, working_dir, runif="passed"):
     ))
 
 
-def generate_package_install(job, working_dir, runif="passed", pip="pip3"):
+def generate_package_install(job, package_dir, working_dir=None, runif="passed", pip="pip3"):
     """
     Generates a command that runs:
     'sudo pip install -r requirements.txt'
 
     Args:
         job (gomatic.job.Job): the gomatic job which to add install requirements
-        working_dir (str): the directory gocd should run the install command from
-        runif (str): one of ['passed', 'failed', 'any'] Default: passed
+        package_dir (str): the directory to be installed
+        working_dir (str): the directory to run the installation from (optional)
+        runif (str): one of ['passed', 'failed', 'any'] (Default: passed)
+        pip (str): The name of the pip binary to install with (Default: pip3)
 
     Returns:
         The newly created task (gomatic.gocd.tasks.ExecTask)
 
     """
     return job.add_task(bash_task(
-        'sudo {} install --upgrade .'.format(pip),
+        'sudo {} install --upgrade {}'.format(pip, package_dir),
         working_dir=working_dir,
         runif=runif,
     ))
