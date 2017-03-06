@@ -1,7 +1,11 @@
 """
 Task patterns for private releases.
 """
-from .common import tubular_task
+
+from gomatic import BuildArtifact
+
+from .common import tubular_task, bash_task, retrieve_artifact
+from ... import constants
 
 
 def generate_create_private_release_candidate(
@@ -42,6 +46,11 @@ def generate_create_private_release_candidate(
         'GIT_COMMITTER_EMAIL': 'admin+edx-pipeline-bot@edx.org',
     })
 
+    artifact_path = '{}/{}'.format(
+        constants.ARTIFACT_PATH,
+        constants.PRIVATE_RC_FILENAME
+    )
+
     job.ensure_task(tubular_task(
         'merge-approved-prs', [
             '--token', '$GIT_TOKEN',
@@ -50,7 +59,24 @@ def generate_create_private_release_candidate(
             '--source-repo', source_repo[0], source_repo[1],
             '--source-base-branch', source_base_branch,
             '--target-branch', target_branch,
-            '--source-branch', source_branch
+            '--source-branch', source_branch,
+            '--out-file', artifact_path,
         ],
         working_dir=None
+    ))
+
+    job.ensure_artifacts(set([BuildArtifact(artifact_path)]))
+
+
+def generate_private_rc_assertion(job, private_rc_artifact):
+    """
+    A task that fails if the checked out revision of edx-platform-private isn't
+    the tip of the branch created and logged in private_rc_artifact.
+    """
+    retrieve_artifact(private_rc_artifact, job)
+
+    job.ensure_task(bash_task(
+        '''grep --quiet "merge_sha: $GO_REVISION_EDX_PLATFORM_PRIVATE" {artifact_path}/{filename}''',
+        artifact_path=constants.ARTIFACT_PATH,
+        filename=private_rc_artifact.file_name,
     ))
