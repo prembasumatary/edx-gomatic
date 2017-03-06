@@ -59,7 +59,7 @@ PUBLISH_WIKI_JOB_NAME = 'publish_wiki_job'
 # Pipeline names
 BRANCH_CLEANUP_PIPELINE_NAME = 'edxapp_branch_cleanup'
 PRERELEASE_EDXAPP_CUT_RC_PIPELINE_NAME = 'prerelease_edxapp_private_rc'
-DEPLOYMENT_PIPELINE_NAME_TPL = '{0.environment}-{0.deployment}-{0.play}-v2'.format
+DEPLOYMENT_PIPELINE_NAME_TPL = '{0.environment}-{0.deployment}-{0.play}'.format
 
 # Tubular configuration
 TUBULAR_SLEEP_WAIT_TIME = '20'

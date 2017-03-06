@@ -366,11 +366,7 @@ def generate_service_deployment_pipelines(configurator, config, env_configs, bas
 
     for edp, build_pipeline, deploy_pipeline in edp_pipeline_map:
         env_config = env_configs[edp.environment]
-
-        app_material = partial_app_material(
-            # branch='loadtest' if edp == loadtest_edp else 'master'
-            branch='renzo/pipeline-loadtest' if edp == loadtest_edp else 'renzo/pipeline-test'
-        )
+        app_material = partial_app_material(branch='loadtest' if edp == loadtest_edp else 'master')
 
         if edp in (stage_edp, loadtest_edp):
             for material in common_materials + [app_material]:
@@ -379,8 +375,7 @@ def generate_service_deployment_pipelines(configurator, config, env_configs, bas
                 # with the same materials results in duplicate materials.
                 build_pipeline.ensure_material(material)
                 build_pipeline.set_label_template(constants.DEPLOYMENT_PIPELINE_LABEL_TPL(app_material))
-
-        if edp == prod_edp:
+        else:
             # The prod pipeline only requires successful completion of the stage
             # pipeline's AMI build stage, from which it will retrieve an AMI artifact.
             deploy_pipeline.ensure_material(
