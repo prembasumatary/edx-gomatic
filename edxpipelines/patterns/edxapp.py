@@ -38,6 +38,7 @@ def make_release_candidate(edxapp_group, config):
     pipeline.ensure_material(TUBULAR())
     stage = pipeline.ensure_stage(constants.MAKE_RELEASE_CANDIDATE_STAGE_NAME)
     job = stage.ensure_job(constants.MAKE_RELEASE_CANDIDATE_JOB_NAME)
+    tasks.generate_package_install(job, 'tubular')
 
     tasks.generate_merge_branch(
         pipeline,
