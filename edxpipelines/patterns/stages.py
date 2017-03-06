@@ -710,6 +710,59 @@ def generate_terminate_instance(pipeline,
     return stage
 
 
+def generate_cleanup_dangling_instances(pipeline,
+                                        aws_access_key_id,
+                                        aws_secret_access_key,
+                                        name_match_pattern,
+                                        max_run_hours,
+                                        skip_if_tag,
+                                        ec2_region=constants.EC2_REGION,
+                                        runif='any',
+                                        manual_approval=False):
+    """
+    Generate the stage that terminates all ec2 instances runnning for longer than a specified time.
+
+    Args:
+        pipeline (gomatic.Pipeline): Pipeline to which to add the run migrations stage.
+        aws_access_key_id (str): The AWS access key ID
+        aws_secret_access_key (str): The AWS secret access key
+        name_match_pattern (str): pattern to match the name of the instances that should be terminated
+        max_run_hours (int): number of hourse that should pass before terminating matching instances
+        skip_if_tag (str): if this tag exists on an instance, it will not be terminated
+        ec2_region (str): the EC2 region to connect
+        runif (str): one of ['passed', 'failed', 'any'] Default: any - controls when the
+            stage's terminate task is triggered in the pipeline
+        manual_approval (bool): Should this stage require manual approval?
+
+    Returns:
+        gomatic.Stage
+
+    """
+    pipeline.ensure_encrypted_environment_variables(
+        {
+            'AWS_ACCESS_KEY_ID': aws_access_key_id,
+            'AWS_SECRET_ACCESS_KEY': aws_secret_access_key,
+        }
+    )
+
+    stage = pipeline.ensure_stage(constants.INSTANCE_JANITOR_STAGE_NAME)
+    if manual_approval:
+        stage.set_has_manual_approval()
+
+    # Fetch the instance info to use in reaching the EC2 instance.
+    job = stage.ensure_job(constants.INSTANCE_JANITOR_JOB_NAME)
+    tasks.generate_package_install(job, 'tubular')
+
+    tasks.generate_janitor_instance_cleanup(job,
+                                            name_match_pattern,
+                                            max_run_hours,
+                                            skip_if_tag,
+                                            ec2_region,
+                                            runif=runif)
+
+    return stage
+
+
 def generate_rollback_asg_stage(
         pipeline,
         asgard_api_endpoints,

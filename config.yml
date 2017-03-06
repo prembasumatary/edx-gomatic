@@ -51,6 +51,27 @@ tools:
       - *deployment-mckinsey
       - "../gomatic-secure/gocd/vars/tools/asg-cleanup-mckinsey.yml"
     enabled: True
+
+  #Instance cleanup for edx
+  - script: edxpipelines/pipelines/instance_cleanup.py
+    variable_file:
+      - *tools-admin
+      - *deployment-edx
+    enabled: True
+
+  #Instance cleanup for edge
+  - script: edxpipelines/pipelines/instance_cleanup.py
+    variable_file:
+      - *tools-admin
+      - *deployment-edge
+    enabled: True
+
+  #Instance cleanup for McKinsey
+  - script: edxpipelines/pipelines/instance_cleanup.py
+    variable_file:
+      - *tools-admin
+      - *deployment-mckinsey
+    enabled: True
   # End of 'Janitors' pipeline group
 
   - script: edxpipelines/pipelines/build_edxapp_ami.py

@@ -454,6 +454,40 @@ def generate_ami_cleanup(job, hipchat_token, hipchat_room=constants.HIPCHAT_ROOM
     ))
 
 
+def generate_janitor_instance_cleanup(job,
+                                      name_match_pattern,
+                                      max_run_hours,
+                                      skip_if_tag,
+                                      ec2_region=constants.EC2_REGION,
+                                      runif='passed'):
+    """
+    Use in conjunction with patterns.generate_launch_instance this will cleanup the EC2 instances and associated actions
+
+    Args:
+        job (gomatic.job.Job): the gomatic job which to add the launch instance task
+        name_match_pattern (str): pattern to match the name of the instances that should be terminated
+        max_run_hours (int): number of hourse that should pass before terminating matching instances
+        skip_if_tag (str): if this tag exists on an instance, it will not be terminated
+        ec2_region (str): the EC2 region to connect
+        runif (str): one of ['passed', 'failed', 'any'] Default: passed
+
+    Returns:
+        The newly created task (gomatic.gocd.tasks.ExecTask)
+
+    """
+    return job.add_task(tubular_task(
+        script='cleanup_instances.py',
+        arguments=[
+            '--region {}'.format(ec2_region),
+            '--max_run_hours {}'.format(max_run_hours),
+            '--name_filter "{}"'.format(name_match_pattern),
+            '--skip_if_tag "{}"'.format(skip_if_tag)
+            ],
+        runif=runif
+        )
+    )
+
+
 def generate_run_migrations(
         job,
         application_user,
