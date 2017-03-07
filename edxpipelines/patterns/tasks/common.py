@@ -731,7 +731,7 @@ def generate_migration_rollback(
         '-e ARTIFACT_PATH=`/bin/pwd`/../{rollback_output_dir_path}',
         '-e DB_MIGRATION_USER=$DB_MIGRATION_USER',
         '-e DB_MIGRATION_PASS=$DB_MIGRATION_PASS',
-        '-e ../{rollback_input_dir_path}/${{migration_plan}}',
+        '-e ${{migration_plan}}',
     ]
 
     if sub_application_name:
