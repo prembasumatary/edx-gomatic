@@ -475,15 +475,16 @@ def generate_janitor_instance_cleanup(job,
         The newly created task (gomatic.gocd.tasks.ExecTask)
 
     """
-    return job.add_task(tubular_task(
-        script='cleanup_instances.py',
-        arguments=[
-            '--region {}'.format(ec2_region),
-            '--max_run_hours {}'.format(max_run_hours),
-            '--name_filter "{}"'.format(name_match_pattern),
-            '--skip_if_tag "{}"'.format(skip_if_tag)
+    return job.add_task(
+        tubular_task(
+            script='cleanup_instances.py',
+            arguments=[
+                '--region {}'.format(ec2_region),
+                '--max_run_hours {}'.format(max_run_hours),
+                '--name_filter "{}"'.format(name_match_pattern),
+                '--skip_if_tag "{}"'.format(skip_if_tag)
             ],
-        runif=runif
+            runif=runif
         )
     )
 
