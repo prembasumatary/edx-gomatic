@@ -276,9 +276,6 @@ def generate_rollback_migrations(
         key_pem_path=path_to_artifact(constants.KEY_PEM_FILENAME)
     ))
 
-    # Fetch the migration output.
-    tasks.retrieve_artifact(migration_info_location, job)
-
     tasks.generate_migration_rollback(
         job=job,
         application_user=application_user,
@@ -287,6 +284,7 @@ def generate_rollback_migrations(
         db_migration_user=db_migration_user,
         db_migration_pass=db_migration_pass,
         sub_application_name=sub_application_name,
+        migration_info_location=migration_info_location,
     )
 
     # If an instance was launched as part of this job, clean it up.

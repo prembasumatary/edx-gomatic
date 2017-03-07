@@ -635,17 +635,25 @@ def generate_migration_rollback(
         application_path,
         db_migration_user,
         db_migration_pass,
+        migration_info_location,
         sub_application_name=None,
         runif="passed"
 ):
     """
-    Generates GoCD task that runs migrations via an Ansible script.
+    Generates GoCD task that will rollback migrations via an Ansible script.
 
     Assumes:
         - The play will be run using the continuous delivery Ansible config constants.ANSIBLE_CONTINUOUS_DELIVERY_CONFIG
 
     Args:
         job (gomatic.job.Job): the gomatic job to which the run migrations task will be added
+        application_user (str): system level user that will rollback the migration
+        application_name (str): short name of the application
+        application_path (str): installation path of the application on the target machine
+        db_migration_user (str): database user that will rollback the migration
+        db_migration_pass (str): database user password that will rollback the migration
+        migration_info_location (edxpipelines.utils.ArtifactLocation): location of the migration info
+            that is used to rollback the database.
         sub_application_name (str): additional command to be passed to the migrate app {cms|lms}
         runif (str): one of ['passed', 'failed', 'any'] Default: passed
 
@@ -653,6 +661,9 @@ def generate_migration_rollback(
         The newly created task (gomatic.gocd.tasks.ExecTask)
 
     """
+    # Fetch the migration output.
+    retrieve_artifact(migration_info_location, job)
+    migration_input_path = '{}/{}'.format(constants.ARTIFACT_PATH, migration_info_location.file_name)
 
     migration_artifact_path = '{}/rollback/migrations'.format(constants.ARTIFACT_PATH)
     generate_target_directory(job, migration_artifact_path)
@@ -678,7 +689,7 @@ def generate_migration_rollback(
 
     command = ' '.join(
         [
-            'for migration_input_file in ../{migration_artifact_path}/*_migration_plan.yml; do',
+            'for migration_input_file in ../{migration_input_path}/*_migration_plan.yml; do',
             'export ANSIBLE_HOST_KEY_CHECKING=False;',
             'export ANSIBLE_SSH_ARGS="-o ControlMaster=auto -o ControlPersist=30m";',
             'PRIVATE_KEY=`/bin/pwd`/../{artifact_path}/key.pem;',
@@ -700,7 +711,7 @@ def generate_migration_rollback(
 
     command = command.format(
         artifact_path=constants.ARTIFACT_PATH,
-        migration_artifact_path=migration_artifact_path
+        migration_input_path=migration_input_path
     )
     if sub_application_name is not None:
         command += ' -e SUB_APPLICATION_NAME={sub_application_name} '.format(sub_application_name=sub_application_name)
