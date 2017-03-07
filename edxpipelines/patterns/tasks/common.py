@@ -210,7 +210,7 @@ def generate_package_install(job, package_dir, working_dir=None, runif="passed",
 
     """
     return job.add_task(bash_task(
-        'sudo {} install --upgrade {}'.format(pip, package_dir),
+        'sudo {} install --upgrade ./{}'.format(pip, package_dir),
         working_dir=working_dir,
         runif=runif,
     ))
