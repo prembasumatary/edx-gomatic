@@ -379,13 +379,16 @@ def generate_service_deployment_pipelines(
         env_config = env_configs[edp.environment]
         app_material = partial_app_material(branch='loadtest' if edp == loadtest_edp else 'master')
 
+        for material in common_materials:
+            # All pipelines need access to tubular and configuration repos.
+            deploy_pipeline.ensure_material(material)
+
         if edp in (stage_edp, loadtest_edp):
-            for material in common_materials + [app_material]:
-                # Most ensure_* methods are idempotent. ensure_material() seems
-                # to be an exception: calling it repeatedly for the same pipeline
-                # with the same materials results in duplicate materials.
-                build_pipeline.ensure_material(material)
-                build_pipeline.set_label_template(constants.DEPLOYMENT_PIPELINE_LABEL_TPL(app_material))
+            # Most ensure_* methods are idempotent. ensure_material() seems
+            # to be an exception: calling it repeatedly for the same pipeline
+            # with the same materials results in duplicate materials.
+            build_pipeline.ensure_material(app_material)
+            build_pipeline.set_label_template(constants.DEPLOYMENT_PIPELINE_LABEL_TPL(app_material))
         else:
             # The prod pipeline only requires successful completion of the stage
             # pipeline's AMI build stage, from which it will retrieve an AMI artifact.
