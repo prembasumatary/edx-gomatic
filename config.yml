@@ -341,23 +341,19 @@ tools:
       - ["prod", "../gomatic-secure/gocd/vars/tools/environment-deployment-play/prod-edx-discovery.yml"]
     enabled: True
 
-  # E-Commerce Worker
+  # E-Commerce Worker (ecomworker)
   - script: edxpipelines/pipelines/cd_ecomworker.py
     variable_file:
       - *tools-admin
-      - "../gomatic-secure/gocd/vars/tools/environment-deployment-play/stage-edx-ecomworker.yml"
-      - *stage-edx
       - *play-ecomworker
       - *deployment-edx
-    enabled: True
-
-  - script: edxpipelines/pipelines/cd_ecomworker.py
-    variable_file:
-      - *tools-admin
-      - "../gomatic-secure/gocd/vars/tools/environment-deployment-play/loadtest-edx-ecomworker.yml"
-      - *loadtest-edx
-      - *play-ecomworker
-      - *deployment-edx
+    env-variable-file:
+      - ["stage", *stage-edx]
+      - ["stage", "../gomatic-secure/gocd/vars/tools/environment-deployment-play/stage-edx-ecomworker.yml"]
+      - ["loadtest", *loadtest-edx]
+      - ["loadtest", "../gomatic-secure/gocd/vars/tools/environment-deployment-play/loadtest-edx-ecomworker.yml"]
+      - ["prod", *prod-edx]
+      - ["prod", "../gomatic-secure/gocd/vars/tools/environment-deployment-play/prod-edx-ecomworker.yml"]
     enabled: True
 
 sandbox:

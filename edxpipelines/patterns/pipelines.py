@@ -74,6 +74,8 @@ def generate_basic_multistage_pipeline(
         **kwargs
 ):
     """
+    DEPRECATED. Use generate_service_deployment_pipelines().
+
     This pattern generates a pipeline that is suitable for the majority of edX's independently-deployable applications
     (IDAs).
 
@@ -274,7 +276,14 @@ def generate_basic_multistage_pipeline(
     )
 
 
-def generate_service_deployment_pipelines(configurator, config, env_configs, base_edp, partial_app_material):
+def generate_service_deployment_pipelines(
+        configurator,
+        config,
+        env_configs,
+        base_edp,
+        partial_app_material,
+        has_migrations=True,
+):
     """
     Generates pipelines used to build and deploy a service to stage, prod, and
     loadtest environments. The generated pipelines only support a single deployment
@@ -313,6 +322,8 @@ def generate_service_deployment_pipelines(configurator, config, env_configs, bas
             applied (curried) material representing the source of the app to be
             deployed. The material's branch will be replaced depending on the pipeline
             being generated.
+        has_migrations (bool): Whether to generate Gomatic for applying and
+            rolling back migrations.
     """
     # Replace any existing pipeline group with a fresh one.
     configurator.ensure_removal_of_pipeline_group(base_edp.play)
@@ -425,16 +436,20 @@ def generate_service_deployment_pipelines(configurator, config, env_configs, bas
             constants.BUILD_AMI_JOB_NAME_TPL(edp),
             constants.BUILD_AMI_FILENAME
         )
-        jobs.generate_deploy_ami(deploy_stage, ami_artifact_location, edp, env_config)
+        jobs.generate_deploy_ami(
+            deploy_stage,
+            ami_artifact_location,
+            edp,
+            env_config,
+            has_migrations=has_migrations
+        )
 
-        # The final two stages in each pipeline roll back the ASG/AMI deployed and
-        # any migrations applied by the upstream deploy stage.
+        # The next stage in the pipeline rolls back the ASG/AMI deployed by the
+        # upstream deploy stage.
         rollback_asgs_stage = deploy_pipeline.ensure_stage(constants.ROLLBACK_ASGS_STAGE_NAME)
-        rollback_migrations_stage = deploy_pipeline.ensure_stage(constants.ROLLBACK_MIGRATIONS_STAGE_NAME)
 
         # Rollback stages always require manual approval from the operator.
         rollback_asgs_stage.set_has_manual_approval()
-        rollback_migrations_stage.set_has_manual_approval()
 
         deployment_artifact_location = ArtifactLocation(
             deploy_pipeline.name,
@@ -444,21 +459,29 @@ def generate_service_deployment_pipelines(configurator, config, env_configs, bas
         )
         jobs.generate_rollback_asgs(rollback_asgs_stage, deployment_artifact_location, config)
 
-        migration_info_location = ArtifactLocation(
-            deploy_pipeline.name,
-            constants.DEPLOY_AMI_STAGE_NAME,
-            constants.DEPLOY_AMI_JOB_NAME,
-            constants.MIGRATION_OUTPUT_DIR_NAME,
-            is_dir=True
-        )
-        jobs.generate_rollback_migrations(
-            rollback_migrations_stage,
-            edp.play,
-            edp.play,
-            '/edx/app/{}'.format(edp.play),
-            constants.DB_MIGRATION_USER,
-            env_config['db_migration_pass'],
-            migration_info_location,
-            ami_artifact_location=ami_artifact_location,
-            env_config=env_config,
-        )
+        if has_migrations:
+            # If the service has migrations, add an additional stage for rolling
+            # back any migrations applied by the upstream deploy stage.
+            rollback_migrations_stage = deploy_pipeline.ensure_stage(constants.ROLLBACK_MIGRATIONS_STAGE_NAME)
+
+            # Rollback stages always require manual approval from the operator.
+            rollback_migrations_stage.set_has_manual_approval()
+
+            migration_info_location = ArtifactLocation(
+                deploy_pipeline.name,
+                constants.DEPLOY_AMI_STAGE_NAME,
+                constants.DEPLOY_AMI_JOB_NAME,
+                constants.MIGRATION_OUTPUT_DIR_NAME,
+                is_dir=True
+            )
+            jobs.generate_rollback_migrations(
+                rollback_migrations_stage,
+                edp.play,
+                edp.play,
+                '/edx/app/{}'.format(edp.play),
+                constants.DB_MIGRATION_USER,
+                env_config['db_migration_pass'],
+                migration_info_location,
+                ami_artifact_location=ami_artifact_location,
+                env_config=env_config,
+            )

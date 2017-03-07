@@ -107,7 +107,7 @@ def generate_build_ami(stage,
     return job
 
 
-def generate_deploy_ami(stage, ami_artifact_location, edp, env_config):
+def generate_deploy_ami(stage, ami_artifact_location, edp, env_config, has_migrations=True):
     """
     Generates a job for deploying an AMI. Migrations are applied as part of this job.
 
@@ -118,6 +118,7 @@ def generate_deploy_ami(stage, ami_artifact_location, edp, env_config):
         edp (edxpipelines.utils.EDP): Tuple indicating environment, deployment, and play
             to which the AMI belongs.
         env_config (dict): Environment-specific secure config.
+        has_migrations (bool): Whether to generate Gomatic for applying migrations.
 
     Returns:
         gomatic.gocd.pipelines.Job
@@ -132,30 +133,33 @@ def generate_deploy_ami(stage, ami_artifact_location, edp, env_config):
     tasks.retrieve_artifact(ami_artifact_location, job)
     variable_override_path = path_to_artifact(ami_artifact_location.file_name)
 
-    tasks.generate_launch_instance(
-        job,
-        aws_access_key_id=env_config['aws_access_key_id'],
-        aws_secret_access_key=env_config['aws_secret_access_key'],
-        ec2_vpc_subnet_id=env_config['ec2_vpc_subnet_id'],
-        ec2_security_group_id=env_config['ec2_security_group_id'],
-        ec2_instance_profile_name=env_config['ec2_instance_profile_name'],
-        variable_override_path=variable_override_path,
-    )
+    if has_migrations:
+        tasks.generate_launch_instance(
+            job,
+            aws_access_key_id=env_config['aws_access_key_id'],
+            aws_secret_access_key=env_config['aws_secret_access_key'],
+            ec2_vpc_subnet_id=env_config['ec2_vpc_subnet_id'],
+            ec2_security_group_id=env_config['ec2_security_group_id'],
+            ec2_instance_profile_name=env_config['ec2_instance_profile_name'],
+            variable_override_path=variable_override_path,
+        )
 
-    # SSH key used to access the instance needs specific permissions.
-    job.ensure_task(tasks.bash_task(
-        'chmod 600 {key_pem_path}',
-        key_pem_path=path_to_artifact(constants.KEY_PEM_FILENAME)
-    ))
+        # SSH key used to access the instance needs specific permissions.
+        job.ensure_task(tasks.bash_task(
+            'chmod 600 {key_pem_path}',
+            key_pem_path=path_to_artifact(constants.KEY_PEM_FILENAME)
+        ))
 
-    tasks.generate_run_migrations(
-        job,
-        application_user=edp.play,
-        application_name=edp.play,
-        application_path='/edx/app/{}'.format(edp.play),
-        db_migration_user=constants.DB_MIGRATION_USER,
-        db_migration_pass=env_config['db_migration_pass'],
-    )
+        tasks.generate_run_migrations(
+            job,
+            application_user=edp.play,
+            application_name=edp.play,
+            application_path='/edx/app/{}'.format(edp.play),
+            db_migration_user=constants.DB_MIGRATION_USER,
+            db_migration_pass=env_config['db_migration_pass'],
+        )
+
+        tasks.generate_ami_cleanup(job, env_config['hipchat_token'], runif='any')
 
     tasks.generate_deploy_ami(
         job,
@@ -163,8 +167,6 @@ def generate_deploy_ami(stage, ami_artifact_location, edp, env_config):
         env_config['asgard_api_endpoints'],
         env_config['asgard_token'],
     )
-
-    tasks.generate_ami_cleanup(job, env_config['hipchat_token'], runif='any')
 
     return job
 
