@@ -49,6 +49,7 @@ def make_release_candidate(edxapp_group, config):
         "origin/{}".format(edx_platform_master.branch),
         EDX_PLATFORM().branch,
         fast_forward_only=False,
+        reference_repo='edx-platform',
     )
 
     # These two options together make sure that the pipeline only triggers
@@ -93,6 +94,7 @@ def prerelease_materials(edxapp_group, config):
         ('edx', 'edx-platform-private'),
         'security-release',
         EDX_PLATFORM_PRIVATE().branch,
+        target_reference_repo='edx-platform-private',
     )
 
     cut_rc_material = PipelineMaterial(
@@ -741,7 +743,8 @@ def merge_back_branches(edxapp_deploy_group, pipeline_name, deploy_artifact, con
         head_sha='$GO_REVISION_EDX_PLATFORM',
         token=config['github_token'],
         fast_forward_only=True,
-        manual_approval=False
+        manual_approval=False,
+        reference_repo='edx-platform',
     )
 
     # Create a single stage in the pipeline which will:

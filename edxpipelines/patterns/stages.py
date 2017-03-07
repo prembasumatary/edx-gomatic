@@ -1256,7 +1256,8 @@ def generate_merge_branch_and_tag(pipeline,
                                   head_sha,
                                   token,
                                   fast_forward_only,
-                                  manual_approval):
+                                  manual_approval,
+                                  reference_repo=None):
     """
     Generates a stage that is used to:
     - Merge a Git source branch into a target branch, optionally ensuring that the merge is a fast-forward merge.
@@ -1292,7 +1293,8 @@ def generate_merge_branch_and_tag(pipeline,
         repo,
         head_sha,
         target_branch,
-        fast_forward_only
+        fast_forward_only,
+        reference_repo=reference_repo,
     )
 
     # Generate a job/task which tags the head commit of the source branch.
