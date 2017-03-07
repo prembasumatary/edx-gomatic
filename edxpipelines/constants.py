@@ -55,6 +55,8 @@ CHECK_PR_TESTS_AND_MERGE_JOB_NAME = 'check_pr_tests_and_merge_job'
 BUILD_VALUE_STREAM_MAP_URL_STAGE_NAME = 'build_value_stream_map_url'
 BUILD_VALUE_STREAM_MAP_URL_JOB_NAME = 'build_value_stream_map_url_job'
 PUBLISH_WIKI_JOB_NAME = 'publish_wiki_job'
+INSTANCE_JANITOR_STAGE_NAME = 'janitor_instances'
+INSTANCE_JANITOR_JOB_NAME = 'janitor_instances_job'
 
 # Pipeline names
 BRANCH_CLEANUP_PIPELINE_NAME = 'edxapp_branch_cleanup'
