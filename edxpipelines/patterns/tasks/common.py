@@ -662,7 +662,6 @@ def generate_migration_rollback(
 
     """
     # Fetch the migration output.
-    retrieve_artifact(migration_info_location, job)
     migration_input_path = '{}/{}'.format(constants.ARTIFACT_PATH, migration_info_location.file_name)
 
     migration_artifact_path = '{}/rollback/migrations'.format(constants.ARTIFACT_PATH)

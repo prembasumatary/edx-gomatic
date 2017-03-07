@@ -276,6 +276,8 @@ def generate_rollback_migrations(
         key_pem_path=path_to_artifact(constants.KEY_PEM_FILENAME)
     ))
 
+    tasks.retrieve_artifact(migration_info_location, job)
+
     tasks.generate_migration_rollback(
         job=job,
         application_user=application_user,
