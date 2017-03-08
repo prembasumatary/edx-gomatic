@@ -13,8 +13,7 @@ sys.path.append(path.dirname(path.dirname(path.dirname(path.abspath(__file__))))
 
 # pylint: disable=wrong-import-position
 from edxpipelines import utils
-from edxpipelines.patterns import stages
-from edxpipelines.patterns import tasks
+from edxpipelines.patterns import stages, jobs, tasks
 from edxpipelines.patterns.tasks import private_releases
 from edxpipelines import constants
 from edxpipelines.materials import (
@@ -448,7 +447,7 @@ def manual_verification(edxapp_deploy_group):
     pipeline = edxapp_deploy_group.ensure_replacement_of_pipeline("manual_verification_edxapp_prod_early_ami_build")
 
     for material in (
-            TUBULAR, CONFIGURATION, EDX_PLATFORM, EDX_SECURE, EDGE_SECURE,
+            TUBULAR, CONFIGURATION, EDX_PLATFORM, EDX_PLATFORM_PRIVATE, EDX_SECURE, EDGE_SECURE,
             EDX_MICROSITE, EDX_INTERNAL, EDGE_INTERNAL
     ):
         pipeline.ensure_material(material())
@@ -645,7 +644,7 @@ def rollback_database(build_pipeline, deploy_pipeline):
         Add database rollback stages to ``pipeline``.
         """
         for material in (
-                TUBULAR, CONFIGURATION, EDX_PLATFORM, EDX_SECURE, EDGE_SECURE,
+                TUBULAR, CONFIGURATION, EDX_PLATFORM, EDX_PLATFORM_PRIVATE, EDX_SECURE, EDGE_SECURE,
                 EDX_MICROSITE, EDX_INTERNAL, EDGE_INTERNAL,
         ):
             pipeline.ensure_material(material())
@@ -725,7 +724,7 @@ def merge_back_branches(edxapp_deploy_group, pipeline_name, deploy_artifact, con
     pipeline = edxapp_deploy_group.ensure_replacement_of_pipeline(pipeline_name)
 
     for material in (
-            TUBULAR, CONFIGURATION, EDX_PLATFORM, EDX_SECURE, EDGE_SECURE,
+            TUBULAR, CONFIGURATION, EDX_PLATFORM, EDX_PLATFORM_PRIVATE, EDX_SECURE, EDGE_SECURE,
             EDX_MICROSITE, EDX_INTERNAL, EDGE_INTERNAL
     ):
         pipeline.ensure_material(material())
@@ -733,18 +732,35 @@ def merge_back_branches(edxapp_deploy_group, pipeline_name, deploy_artifact, con
     # Create a single stage in the pipeline which will:
     #   - merge the RC branch into the release branch
     #   - tag the release branch
-    stages.generate_merge_branch_and_tag(
+
+    git_stage = pipeline.ensure_stage(constants.GIT_MERGE_RC_BRANCH_STAGE_NAME)
+
+    jobs.generate_merge_release_candidate(
         pipeline,
-        constants.GIT_MERGE_RC_BRANCH_STAGE_NAME,
-        deploy_artifact,
-        org=config['github_org'],
-        repo=config['github_repo'],
-        target_branch=config['release_branch'],
-        head_sha='$GO_REVISION_EDX_PLATFORM',
+        git_stage,
         token=config['github_token'],
+        org='edx',
+        repo='edx-platform',
+        target_branch='release',
+        head_sha='$GO_REVISION_EDX_PLATFORM',
         fast_forward_only=True,
-        manual_approval=False,
         reference_repo='edx-platform',
+    )
+    jobs.generate_tag_commit(
+        git_stage,
+        'edx-platform',
+        deploy_artifact=deploy_artifact,
+        org='edx',
+        repo='edx-platform',
+        head_sha='$GO_REVISION_EDX_PLATFORM',
+    )
+    jobs.generate_tag_commit(
+        git_stage,
+        'edx-platform-private',
+        deploy_artifact=deploy_artifact,
+        org='edx',
+        repo='edx-platform-private',
+        head_sha='$GO_REVISION_EDX_PLATFORM_PRIVATE',
     )
 
     # Create a single stage in the pipeline which will:

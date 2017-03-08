@@ -296,3 +296,74 @@ def generate_rollback_migrations(
         tasks.generate_ami_cleanup(job, env_config['hipchat_token'], runif='any')
 
     return job
+
+
+def generate_merge_release_candidate(
+        pipeline, stage, token, org, repo, target_branch, head_sha,
+        fast_forward_only, reference_repo=None,
+):
+    """
+    Generates a job that is used to merge a Git source branch into a target branch,
+    optionally ensuring that the merge is a fast-forward merge.
+
+    Args:
+        pipeline (gomatic.Pipeline): The pipeline containing ``stage``.
+        stage (gomatic.Stage): The stage to add the job to
+        org (str): Name of the github organization that holds the repository (e.g. edx)
+        repo (str): Name of repository (e.g edx-platform)
+        target_branch (str): Name of the branch into which to merge the source branch
+        head_sha (str): commit SHA or environment variable holding the SHA to tag as the release
+        token (str): the github token used to create all these things. Will be an env_var 'GIT_TOKEN'
+        fast_forward_only (bool): If True, force a fast-forward merge or fail.
+
+    Returns:
+        gomatic.Job
+    """
+    merge_branch_job = stage.ensure_job(constants.GIT_MERGE_RC_BRANCH_JOB_NAME)
+    tasks.generate_package_install(merge_branch_job, 'tubular')
+    tasks.generate_target_directory(merge_branch_job)
+    tasks.generate_merge_branch(
+        pipeline,
+        merge_branch_job,
+        token,
+        org,
+        repo,
+        head_sha,
+        target_branch,
+        fast_forward_only,
+        reference_repo=reference_repo,
+    )
+    return merge_branch_job
+
+
+def generate_tag_commit(stage, tag_id, deploy_artifact, org, repo, head_sha):
+    """
+    Generates a stage that is used to tag a release SHA.
+
+    Args:
+        stage (gomatic.Stage): The stage to add the job to
+        tag_id (str): A name to use to disambiguate instances of the tagging job
+        deploy_artifact (ArtifactLocation): Location of deployment artifact file
+        org (str): Name of the github organization that holds the repository (e.g. edx)
+        repo (str): Name of repository (e.g edx-platform)
+        head_sha (str): commit SHA or environment variable holding the SHA to tag as the release
+
+    Returns:
+        gomatic.Job
+    """
+    # Generate a job/task which tags the head commit of the source branch.
+    # Instruct the task to auto-generate tag name/message by not sending them in.
+    tag_job = stage.ensure_job(constants.GIT_TAG_SHA_JOB_NAME_TPL(tag_id))
+    tasks.generate_package_install(tag_job, 'tubular')
+
+    if deploy_artifact:
+        # Fetch the AMI-deployment artifact to extract deployment time.
+        tasks.retrieve_artifact(deploy_artifact, tag_job, constants.ARTIFACT_PATH)
+
+    tasks.generate_tag_commit(
+        tag_job,
+        org,
+        repo,
+        commit_sha=head_sha,
+        deploy_artifact_filename=deploy_artifact.file_name if deploy_artifact else None
+    )
