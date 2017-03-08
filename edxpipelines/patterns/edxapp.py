@@ -115,7 +115,7 @@ def prerelease_materials(edxapp_group, config):
     cut_rc.ensure_material(EDX_PLATFORM(material_name='edx-platform', ignore_patterns=[]))
 
     pipeline.ensure_material(TUBULAR())
-    pipeline.ensure_material(EDX_PLATFORM(ignore_patterns=[]))
+    pipeline.ensure_material(EDX_PLATFORM())
     pipeline.ensure_material(EDX_PLATFORM_PRIVATE(ignore_patterns=[]))
     pipeline.ensure_material(cut_rc_material)
 
