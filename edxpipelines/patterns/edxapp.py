@@ -48,7 +48,7 @@ def make_release_candidate(edxapp_group, config):
         'edx-platform',
         "origin/{}".format(edx_platform_master.branch),
         EDX_PLATFORM().branch,
-        fast_forward_only=False,
+        fast_forward_only=True,
         reference_repo='edx-platform',
     )
 
