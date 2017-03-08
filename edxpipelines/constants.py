@@ -58,10 +58,24 @@ PUBLISH_WIKI_JOB_NAME = 'publish_wiki_job'
 INSTANCE_JANITOR_STAGE_NAME = 'janitor_instances'
 INSTANCE_JANITOR_JOB_NAME = 'janitor_instances_job'
 
+# Pipeline group names
+ORA2_PIPELINE_GROUP_NAME = 'ORA2'
+
 # Pipeline names
 BRANCH_CLEANUP_PIPELINE_NAME = 'edxapp_branch_cleanup'
 PRERELEASE_EDXAPP_CUT_RC_PIPELINE_NAME = 'prerelease_edxapp_private_rc'
 DEPLOYMENT_PIPELINE_NAME_TPL = '{0.environment}-{0.deployment}-{0.play}'.format
+BUILD_ORA2_SANDBOX_PIPELINE_NAME = 'build_ora2_sandbox'
+
+# ORA2 configuration
+ORA2_JENKINS_URL = 'https://tools-edx-jenkins.edx.org'
+ORA2_JENKINS_USER_NAME = 'edx-pipeline-bot'
+CREATE_ORA2_SANDBOX_STAGE_NAME = 'run_create_sandbox'
+CREATE_ORA2_SANDBOX_JOB_NAME = 'run_create_sandbox_job'
+CREATE_ORA2_SANDBOX_JENKINS_JOB_NAME = 'CreateSandbox'
+SET_ORA2_VERSION_STAGE_NAME = 'run_set_ora2_version'
+SET_ORA2_VERSION_JOB_NAME = 'run_set_ora2_version_job'
+SET_ORA2_VERSION_JENKINS_JOB_NAME = 'SetOra2VersionOnSandbox'
 
 # Tubular configuration
 TUBULAR_SLEEP_WAIT_TIME = '20'
