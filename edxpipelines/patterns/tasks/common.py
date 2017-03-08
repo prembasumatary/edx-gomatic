@@ -1296,7 +1296,7 @@ def generate_create_pr(job,
 
 def generate_merge_branch(
         pipeline, job, token, org, repo, source_branch, target_branch,
-        fast_forward_only, runif='passed'
+        fast_forward_only, reference_repo=None, runif='passed'
 ):
     """
     Args:
@@ -1308,6 +1308,7 @@ def generate_merge_branch(
         source_branch (str): Name of the branch to merge into the target branch
         target_branch (str): Name of the branch into which to merge the source branch
         fast_forward_only (bool): If True, force a fast-forward merge or fail.
+        reference_repo (str): Path to a reference repo to speed up clone times.
         runif (str): one of ['passed', 'failed', 'any'] Default: passed
 
     Returns:
@@ -1335,6 +1336,9 @@ def generate_merge_branch(
     ]
     if fast_forward_only:
         cmd_args.append('--fast_forward_only')
+
+    if reference_repo:
+        cmd_args.extend(['--reference-repo', reference_repo])
 
     generate_target_directory(job)
 

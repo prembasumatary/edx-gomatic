@@ -10,7 +10,7 @@ from ... import constants
 
 def generate_create_private_release_candidate(
         job, git_token, source_repo, source_base_branch, source_branch, target_repo,
-        target_base_branch, target_branch
+        target_base_branch, target_branch, target_reference_repo=None,
 ):
     """
     Add a task that creates a new release-candidate by merging a set of approved
@@ -31,6 +31,8 @@ def generate_create_private_release_candidate(
             in order to be included in the merge.
         target_branch: A branch name. This is the branch that will be created by the
             merge (and will be force-pushed into target_repo).
+        target_reference_repo: A path to an existing local checkout of the target_repo
+            that can be used to speed up fresh clones.
     """
     # Gomatic forgot to expose ensure_unencrypted_secure_environment_variables,
     # so we have to reach behind the mangled name to get it ourselves.
@@ -53,17 +55,23 @@ def generate_create_private_release_candidate(
         constants.PRIVATE_RC_FILENAME
     )
 
+    args = [
+        '--token', '$GIT_TOKEN',
+        '--target-repo', target_repo[0], target_repo[1],
+        '--target-base-branch', target_base_branch,
+        '--source-repo', source_repo[0], source_repo[1],
+        '--source-base-branch', source_base_branch,
+        '--target-branch', target_branch,
+        '--source-branch', source_branch,
+        '--out-file', artifact_path,
+    ]
+
+    if target_reference_repo:
+        args.extend(['--target-reference-repo', target_reference_repo])
+
     job.ensure_task(tubular_task(
-        'merge-approved-prs', [
-            '--token', '$GIT_TOKEN',
-            '--target-repo', target_repo[0], target_repo[1],
-            '--target-base-branch', target_base_branch,
-            '--source-repo', source_repo[0], source_repo[1],
-            '--source-base-branch', source_base_branch,
-            '--target-branch', target_branch,
-            '--source-branch', source_branch,
-            '--out-file', artifact_path,
-        ],
+        'merge-approved-prs',
+        args,
         working_dir=None
     ))
 
