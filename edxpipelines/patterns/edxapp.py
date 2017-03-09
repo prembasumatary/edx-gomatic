@@ -24,6 +24,11 @@ from edxpipelines.materials import (
 
 EDXAPP_SUBAPPS = ['cms', 'lms']
 
+# This pipeline contains the manual stage that gates a production deploy.
+# That stage is automatically advanced by a separate release-advancing pipeline
+# to trigger a production deployment.
+EDXAPP_MANUAL_PIPELINE_NAME = "manual_verification_edxapp_prod_early_ami_build"
+
 
 def make_release_candidate(edxapp_group, config):
     """
@@ -54,6 +59,35 @@ def make_release_candidate(edxapp_group, config):
     # These two options together make sure that the pipeline only triggers
     # from the timer trigger.
     pipeline.set_timer('0 0/5 15-18 ? * MON-FRI', only_on_changes=True)
+    stage.set_has_manual_approval()
+
+    return pipeline
+
+
+def release_advancer(edxapp_group, config):
+    """
+    Variables needed for this pipeline:
+    - gocd_username
+    - gocd_password
+    - gocd_url
+    - hipchat_token
+    """
+    pipeline = edxapp_group.ensure_replacement_of_pipeline("edxapp_release_advancer")
+    pipeline.set_label_template('${COUNT}')
+
+    pipeline.ensure_material(TUBULAR(material_name='tubular'))
+
+    stage = stages.generate_find_and_advance_release(
+        pipeline,
+        EDXAPP_MANUAL_PIPELINE_NAME,
+        constants.MANUAL_VERIFICATION_STAGE_NAME,
+        config['gocd_username'],
+        config['gocd_password'],
+        config['gocd_url'],
+        config['hipchat_token']
+    )
+
+    # For now, only trigger this pipeline manually. Later, it'll trigger on a cron.
     stage.set_has_manual_approval()
 
     return pipeline
@@ -444,7 +478,7 @@ def manual_verification(edxapp_deploy_group):
     materials: A list of dictionaries of the materials used in this pipeline
     upstream_pipelines: a list of dictionaries of the upstream pipelines that feed in to the manual verification
     """
-    pipeline = edxapp_deploy_group.ensure_replacement_of_pipeline("manual_verification_edxapp_prod_early_ami_build")
+    pipeline = edxapp_deploy_group.ensure_replacement_of_pipeline(EDXAPP_MANUAL_PIPELINE_NAME)
 
     for material in (
             TUBULAR, CONFIGURATION, EDX_PLATFORM, EDX_PLATFORM_PRIVATE, EDX_SECURE, EDGE_SECURE,

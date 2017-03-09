@@ -216,6 +216,73 @@ def generate_package_install(job, package_dir, working_dir=None, runif="passed",
     ))
 
 
+def generate_hipchat_message(job, message, channels, color=None, runif="passed"):
+    """
+    Generates a task used to send a HipChat message.
+
+    Args:
+        job (gomatic.job.Job): the gomatic job which to add install requirements
+        message (str): message to send - can contain env vars
+        channels (list(str)): HipChat channel names to which the message is submitted
+        color (str): optional color used for message, i.e. "green", "red"
+        runif (str): one of ['passed', 'failed', 'any'] Default: passed
+
+    Returns:
+        The newly created task (gomatic.gocd.tasks.ExecTask)
+    """
+    cmd_args = [
+        '--auth_token', '${HIPCHAT_TOKEN}',
+        '--message', '"{}"'.format(message),
+    ]
+    for channel in channels:
+        cmd_args.extend(['--channel', channel])
+    if color:
+        cmd_args.extend(['--color', color])
+    return job.add_task(tubular_task(
+        'submit_hipchat_msg.py',
+        cmd_args,
+        runif=runif
+    ))
+
+
+def generate_find_and_advance_release(
+        job, pipeline_name, stage_name, hipchat_room, relative_dt=None, out_file=None, runif="passed"
+):
+    """
+    Generates a task which finds and advances the correct release pipeline.
+
+    Args:
+        job (gomatic.job.Job): the gomatic job which to add the task
+        pipeline_name (str): Name of pipeline which will be advanced.
+        stage_name (str): Name of pipeline stage which will be advanced.
+        hipchat_room (str): Name of HipChat room to send an advancement message.
+        relative_dt (str): ISO 8601-formatted datetime, if using a time other than now.
+        out_file (str): Path to file which will store the task result.
+        runif (str): one of ['passed', 'failed', 'any'] Default: passed
+
+    Returns:
+        The newly created task (gomatic.gocd.tasks.ExecTask)
+    """
+    cmd_args = [
+        '--gocd_user', '$GOCD_USER',
+        '--gocd_password', '$GOCD_PASSWORD',
+        '--gocd_url', '$GOCD_URL',
+        '--hipchat_token', '$HIPCHAT_TOKEN',
+        '--hipchat_room', hipchat_room,
+        '--pipeline', pipeline_name,
+        '--stage', stage_name,
+    ]
+    if relative_dt:
+        cmd_args.extend(['--relative_dt', relative_dt])
+    if out_file:
+        cmd_args.extend(['--out_file', out_file])
+    return job.add_task(tubular_task(
+        'find_and_advance_pipeline.py',
+        cmd_args,
+        runif=runif
+    ))
+
+
 def generate_launch_instance(
         job, aws_access_key_id, aws_secret_access_key,
         ec2_vpc_subnet_id, ec2_security_group_id, ec2_instance_profile_name,
