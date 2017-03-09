@@ -19,7 +19,7 @@ from edxpipelines.utils import EDP
 
 def install_pipelines(configurator, config, env_configs):
     """
-    Generates a pipeline used to deploy the discovery service to stage, loadtest, and prod.
+    Generates pipelines used to deploy the discovery service to stage, loadtest, and prod.
     """
     edp = EDP(None, 'edx', 'discovery')
 
