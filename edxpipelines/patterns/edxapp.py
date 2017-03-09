@@ -110,7 +110,7 @@ def prerelease_materials(edxapp_group, config):
             EDX_MICROSITE, EDX_INTERNAL, EDGE_INTERNAL,
     ):
         cut_rc.ensure_material(material(ignore_patterns=[]))
-        pipeline.ensure_material(material(ignore_patterns=[]))
+        pipeline.ensure_material(material())
 
     cut_rc.ensure_material(TUBULAR())
     cut_rc.ensure_material(EDX_PLATFORM(material_name='edx-platform', ignore_patterns=[]))
