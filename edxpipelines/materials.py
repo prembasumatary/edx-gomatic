@@ -21,7 +21,8 @@ def deployment_secure(deployment, branch='master', polling=True, destination_dir
         branch=branch,
         polling=polling,
         destination_directory=destination_directory or '{}-secure'.format(deployment),
-        ignore_patterns=ignore_patterns or ['**/*']
+        ignore_patterns=ignore_patterns or ['**/*'],
+        shallow=True,
     )
 
 
@@ -40,7 +41,8 @@ def deployment_internal(deployment, branch='master', polling=True, destination_d
         branch=branch,
         polling=polling,
         destination_directory=destination_directory or '{}-internal'.format(deployment),
-        ignore_patterns=ignore_patterns or ['**/*']
+        ignore_patterns=ignore_patterns or ['**/*'],
+        shallow=True,
     )
 
 
@@ -51,6 +53,7 @@ TUBULAR = partial(
     polling=True,
     destination_directory="tubular",
     ignore_patterns=['**/*'],
+    shallow=True,
 )
 
 CONFIGURATION = partial(
@@ -60,6 +63,7 @@ CONFIGURATION = partial(
     polling=True,
     destination_directory="configuration",
     ignore_patterns=['**/*'],
+    shallow=True,
 )
 
 EDX_PLATFORM = partial(
@@ -69,6 +73,7 @@ EDX_PLATFORM = partial(
     polling=True,
     destination_directory="edx-platform",
     ignore_patterns=['**/*'],
+    shallow=True,
 )
 
 EDX_PLATFORM_PRIVATE = partial(
@@ -78,6 +83,7 @@ EDX_PLATFORM_PRIVATE = partial(
     polling=True,
     destination_directory="edx-platform-private",
     ignore_patterns=['**/*'],
+    shallow=True,
 )
 
 EDX_SECURE = partial(deployment_secure, 'edx')
@@ -91,6 +97,7 @@ EDX_MICROSITE = partial(
     polling=True,
     destination_directory="edx-microsite",
     ignore_patterns=['**/*'],
+    shallow=True,
 )
 
 EDX_INTERNAL = partial(deployment_internal, 'edx')
