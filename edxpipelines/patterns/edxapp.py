@@ -174,6 +174,10 @@ def prerelease_materials(edxapp_group, config):
         pipeline, job, config['git_token'], 'edx', 'edx-platform',
         target_branch="release-candidate-$GO_PIPELINE_COUNTER",
         sha='$GO_REVISION_EDX_PLATFORM')
+    tasks.generate_create_branch(
+        pipeline, job, config['git_token'], 'edx', 'edx-platform-private',
+        target_branch="release-candidate-$GO_PIPELINE_COUNTER",
+        sha='$GO_REVISION_EDX_PLATFORM_PRIVATE')
 
     return pipeline
 
