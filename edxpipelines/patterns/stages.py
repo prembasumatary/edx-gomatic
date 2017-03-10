@@ -1447,6 +1447,7 @@ def generate_find_and_advance_release(
     """
     stage = pipeline.ensure_stage(constants.RELEASE_ADVANCER_STAGE_NAME)
     job = stage.ensure_job(constants.RELEASE_ADVANCER_JOB_NAME)
+    tasks.generate_package_install(job, 'tubular')
 
     pipeline.ensure_environment_variables(
         {
