@@ -129,6 +129,10 @@ def prerelease_materials(edxapp_group, config):
         EDX_PLATFORM_PRIVATE().branch,
         target_reference_repo='edx-platform-private',
     )
+    # Delay completing this job to give GoCD time to figure out that the edx-platform-private
+    # material is updated, so that it doesn't trigger the downstream pipeline without that
+    # changed material.
+    cut_rc_job.add_task(tasks.bash_task("sleep 60s"))
 
     cut_rc_material = PipelineMaterial(
         cut_rc.name,
