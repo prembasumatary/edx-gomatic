@@ -268,7 +268,7 @@ def generate_find_and_advance_release(
         '--gocd_password', '$GOCD_PASSWORD',
         '--gocd_url', '$GOCD_URL',
         '--hipchat_token', '$HIPCHAT_TOKEN',
-        '--hipchat_room', hipchat_room,
+        '--hipchat_channel', hipchat_room,
         '--pipeline', pipeline_name,
         '--stage', stage_name,
     ]
