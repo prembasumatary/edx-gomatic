@@ -82,7 +82,7 @@ def install_pipelines(configurator, config, env_configs):
         edxapp_group,
         [
             edxapp.generate_build_stages(
-                app_repo=EDX_PLATFORM().url,
+                app_repo=EDX_PLATFORM_PRIVATE().url,
                 edp=STAGE_EDX_EDXAPP,
                 theme_url=EDX_MICROSITE().url,
                 configuration_secure_repo=EDX_SECURE().url,
@@ -102,7 +102,7 @@ def install_pipelines(configurator, config, env_configs):
         edxapp_deploy_group,
         [
             edxapp.generate_build_stages(
-                app_repo=EDX_PLATFORM().url,
+                app_repo=EDX_PLATFORM_PRIVATE().url,
                 edp=PROD_EDX_EDXAPP,
                 theme_url=EDX_MICROSITE().url,
                 configuration_secure_repo=EDX_SECURE().url,
@@ -122,7 +122,7 @@ def install_pipelines(configurator, config, env_configs):
         edxapp_deploy_group,
         [
             edxapp.generate_build_stages(
-                app_repo=EDX_PLATFORM().url,
+                app_repo=EDX_PLATFORM_PRIVATE().url,
                 edp=PROD_EDGE_EDXAPP,
                 theme_url=EDX_MICROSITE().url,
                 configuration_secure_repo=EDGE_SECURE().url,
