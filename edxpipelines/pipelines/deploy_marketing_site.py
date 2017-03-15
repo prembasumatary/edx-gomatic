@@ -184,8 +184,8 @@ def install_pipelines(configurator, config, env_configs):  # pylint: disable=unu
     clear_prod_caches_stage = pipeline.ensure_stage(constants.CLEAR_PROD_CACHES_STAGE_NAME)
     clear_prod_caches_job = clear_prod_caches_stage.ensure_job(constants.CLEAR_PROD_CACHES_JOB_NAME)
 
-    tasks.fetch_edx_mktg(clear_prod_caches_job, 'edx-mktg')
     tasks.generate_package_install(clear_prod_caches_job, 'tubular')
+    tasks.fetch_edx_mktg(clear_prod_caches_job, 'edx-mktg')
     tasks.format_RSA_key(
         clear_prod_caches_job,
         '../edx-mktg/docroot/acquia_github_key.pem',
