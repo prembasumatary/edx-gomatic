@@ -83,7 +83,7 @@ def release_advancer(edxapp_group, config):
         constants.MANUAL_VERIFICATION_STAGE_NAME,
         config['gocd_username'],
         config['gocd_password'],
-        config['gocd_url'],
+        'https://{}'.format(config['gocd_url']),
         config['hipchat_token']
     )
 
