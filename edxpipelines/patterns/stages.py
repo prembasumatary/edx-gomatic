@@ -124,6 +124,7 @@ def generate_launch_instance(
         ec2_instance_type=constants.EC2_INSTANCE_TYPE,
         ec2_timeout=constants.EC2_LAUNCH_INSTANCE_TIMEOUT,
         ec2_ebs_volume_size=constants.EC2_EBS_VOLUME_SIZE,
+        delete_ebs_on_terminate=False,
         base_ami_id_artifact=None
 ):
     """
@@ -148,6 +149,7 @@ def generate_launch_instance(
         ec2_instance_type (str):
         ec2_timeout (str):
         ec2_ebs_volume_size (str):
+        delete_ebs_on_terminate (bool): Should the attached EBS volumes be deleted upon instance termination?
         base_ami_id_artifact (edxpipelines.utils.ArtifactLocation): overrides the base_ami_id and will force
                                                                        the task to run with the AMI built up stream.
 
@@ -180,6 +182,7 @@ def generate_launch_instance(
         ec2_instance_type=ec2_instance_type,
         ec2_timeout=ec2_timeout,
         ec2_ebs_volume_size=ec2_ebs_volume_size,
+        delete_ebs_on_terminate=delete_ebs_on_terminate,
         variable_override_path='{}/{}'.format(
             constants.ARTIFACT_PATH, base_ami_id_artifact.file_name
         ) if base_ami_id_artifact else None,

@@ -274,6 +274,7 @@ def launch_and_terminate_subset_pipeline(
         config['ec2_instance_profile_name'],
         base_ami_id,
         base_ami_id_artifact=ami_artifact,
+        delete_ebs_on_terminate=edp.environment == 'stage',
         manual_approval=not auto_run
     )
 

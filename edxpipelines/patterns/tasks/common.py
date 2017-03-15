@@ -289,8 +289,8 @@ def generate_launch_instance(
         base_ami_id=None, ec2_region=constants.EC2_REGION, ec2_instance_type=constants.EC2_INSTANCE_TYPE,
         ec2_timeout=constants.EC2_LAUNCH_INSTANCE_TIMEOUT,
         ec2_ebs_volume_size=constants.EC2_EBS_VOLUME_SIZE,
-        variable_override_path=None, hipchat_token='',
-        hipchat_room=constants.HIPCHAT_ROOM, runif="passed"
+        variable_override_path=None, delete_ebs_on_terminate=False,
+        hipchat_token='', hipchat_room=constants.HIPCHAT_ROOM, runif="passed"
 ):
     """
     Generate the launch AMI job. This ansible script generates 3 artifacts:
@@ -338,6 +338,7 @@ def generate_launch_instance(
         ('ec2_instance_profile_name', '$EC2_INSTANCE_PROFILE_NAME'),
         ('ebs_volume_size', '$EBS_VOLUME_SIZE'),
         ('ec2_timeout', '900'),
+        ('delete_ebs_volumes_on_termination', delete_ebs_on_terminate),
     ]
 
     if hipchat_token:
