@@ -235,7 +235,7 @@ def generate_hipchat_message(job, message, channels, color=None, runif="passed")
         '--message', '"{}"'.format(message),
     ]
     for channel in channels:
-        cmd_args.extend(['--channel', channel])
+        cmd_args.extend(['--channel', '"{}"'.format(channel)])
     if color:
         cmd_args.extend(['--color', color])
     return job.add_task(tubular_task(
@@ -268,7 +268,7 @@ def generate_find_and_advance_release(
         '--gocd_password', '$GOCD_PASSWORD',
         '--gocd_url', '$GOCD_URL',
         '--hipchat_token', '$HIPCHAT_TOKEN',
-        '--hipchat_channel', hipchat_room,
+        '--hipchat_channel', '"{}"'.format(hipchat_room),
         '--pipeline', pipeline_name,
         '--stage', stage_name,
     ]
