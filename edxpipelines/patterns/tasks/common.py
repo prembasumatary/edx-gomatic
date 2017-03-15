@@ -1737,7 +1737,7 @@ def generate_release_wiki_page(
     ]
 
     if input_artifact:
-        input_wiki_id_folder = '{}/{}'.format(constants.ARTIFACT_PATH, input_artifact.pipeline)
+        input_wiki_id_folder = '{}/{}_{}'.format(constants.ARTIFACT_PATH, input_artifact.pipeline, input_artifact.job)
         arguments.extend([
             '--in-file',
             '{}/{}'.format(input_wiki_id_folder, input_artifact.file_name),
@@ -1754,7 +1754,7 @@ def generate_release_wiki_page(
     for base, new in ami_pairs:
         compare_option = ['--compare']
         for artifact in (base, new):
-            output_dir = '{}/{}'.format(constants.ARTIFACT_PATH, artifact.pipeline)
+            output_dir = '{}/{}_{}'.format(constants.ARTIFACT_PATH, artifact.pipeline, artifact.job)
             compare_option.append("{}/{}".format(output_dir, artifact.file_name))
             retrieve_artifact(artifact, job, output_dir)
         arguments.extend(compare_option)
@@ -1767,8 +1767,10 @@ def generate_release_wiki_page(
 
 
 def generate_base_ami_selection(
-        job, aws_access_key_id, aws_secret_access_key,
-        play=None, deployment=None, edx_environment=None,
+        job,
+        aws_access_key_id,
+        aws_secret_access_key,
+        edp=None,
         base_ami_id=None
 ):
     """
@@ -1776,11 +1778,10 @@ def generate_base_ami_selection(
         ami_override.yml    - YAML file that contains information about which base AMI to use in building AMI
 
     Args:
+        job (gomatic.Job):
         aws_access_key_id (str): AWS key ID for auth
         aws_secret_access_key (str): AWS secret key for auth
-        play (str): Pipeline's play.
-        deployment (str): Pipeline's deployment.
-        edx_environment (str): Pipeline's environment.
+        edp (edxpipelines.utils.EDP): the EDP for this job
         base_ami_id (str): the ami-id used to launch the instance, or None to use the provided EDP
     """
     job.ensure_encrypted_environment_variables(
@@ -1792,9 +1793,6 @@ def generate_base_ami_selection(
 
     job.ensure_environment_variables(
         {
-            'PLAY': play,
-            'DEPLOYMENT': deployment,
-            'EDX_ENVIRONMENT': edx_environment,
             'BASE_AMI_ID': base_ami_id,
             'BASE_AMI_ID_OVERRIDE': 'yes' if base_ami_id is not None else 'no',
         }
@@ -1812,9 +1810,9 @@ def generate_base_ami_selection(
             if [[ $BASE_AMI_ID_OVERRIDE != 'yes' ]];
                 then echo "Finding base AMI ID from active ELB/ASG in EDP.";
                 {ami_script}
-                    --environment $EDX_ENVIRONMENT
-                    --deployment $DEPLOYMENT
-                    --play $PLAY
+                    --environment {edp.environment}
+                    --deployment {edp.deployment}
+                    --play {edp.play}
                     --out_file {override_artifact};
             elif [[ -n $BASE_AMI_ID ]];
                 then echo "Using specified base AMI ID of '$BASE_AMI_ID'";
@@ -1826,6 +1824,7 @@ def generate_base_ami_selection(
         ami_script='retrieve_base_ami.py',
         empty_dict='{}',
         override_artifact='../' + base_ami_override_artifact,
+        edp=edp,
         working_dir="tubular",
         runif="passed"
     ))

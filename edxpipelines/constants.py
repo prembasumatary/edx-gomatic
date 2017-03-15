@@ -38,6 +38,7 @@ PRERELEASE_MATERIALS_STAGE_NAME = 'prerelease_materials'
 PRERELEASE_MATERIALS_JOB_NAME = 'prerelease_materials_job'
 BASE_AMI_SELECTION_STAGE_NAME = 'select_base_ami'
 BASE_AMI_SELECTION_JOB_NAME = 'select_base_ami_job'
+BASE_AMI_SELECTION_EDP_JOB_NAME = 'select_base_ami_{0.environment}_{0.deployment}_{0.play}_job'.format
 GIT_SETUP_STAGE_NAME = 'create_branch_and_pr'
 GIT_SETUP_JOB_NAME = 'create_branch_and_pr_job'
 GIT_CREATE_BRANCH_JOB_NAME = 'create_branch_job'

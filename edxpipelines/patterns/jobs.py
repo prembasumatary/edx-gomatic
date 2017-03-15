@@ -55,9 +55,7 @@ def generate_build_ami(stage,
         job,
         env_config['aws_access_key_id'],
         env_config['aws_secret_access_key'],
-        edx_environment=edp.environment,
-        deployment=edp.deployment,
-        play=edp.play,
+        edp=edp
     )
 
     # Launch a new instance on which to build the AMI.

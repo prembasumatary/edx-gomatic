@@ -22,6 +22,9 @@ from edxpipelines.materials import (
 )
 
 
+STAGE_EDX_EDXAPP = utils.EDP('stage', 'edx', 'edxapp')
+PROD_EDX_EDXAPP = utils.EDP('prod', 'edx', 'edxapp')
+PROD_EDGE_EDXAPP = utils.EDP('prod', 'edge', 'edxapp')
 EDXAPP_SUBAPPS = ['cms', 'lms']
 
 # This pipeline contains the manual stage that gates a production deploy.
@@ -93,8 +96,20 @@ def release_advancer(edxapp_group, config):
     return pipeline
 
 
-def prerelease_materials(edxapp_group, config):
+def prerelease_materials(edxapp_group, config, stage_config, prod_edx_config, prod_edge_config):
     """
+    Generate the prerelease materials pipeline
+
+    Args:
+        edxapp_group (gomatic.PipelineGroup): Pipeline group this new pipeline will be attached.
+        config (dict): the general configuration for this pipeline
+        stage_config (dict): the stage_edx_edxapp configuration for this pipeline
+        prod_edx_config (dict): the prod_edx_edxapp configuration for this pipeline
+        prod_edge_config (dict): the prod_edge_edxapp configuration for this pipeline
+
+    Returns:
+        gomatic.Pipeline
+
     Variables needed for this pipeline:
     - gocd_username
     - gocd_password
@@ -183,6 +198,22 @@ def prerelease_materials(edxapp_group, config):
         target_branch="release-candidate-$GO_PIPELINE_COUNTER",
         sha='$GO_REVISION_EDX_PLATFORM_PRIVATE')
 
+    # Move the AMI selection jobs here in a single stage.
+    stage = pipeline.ensure_stage(constants.BASE_AMI_SELECTION_STAGE_NAME)
+    for edp, localized_config in (
+            (STAGE_EDX_EDXAPP, stage_config),
+            (PROD_EDX_EDXAPP, prod_edx_config),
+            (PROD_EDGE_EDXAPP, prod_edge_config)
+    ):
+        job = stage.ensure_job(constants.BASE_AMI_SELECTION_EDP_JOB_NAME(edp))
+        tasks.generate_base_ami_selection(
+            job,
+            localized_config['aws_access_key_id'],
+            localized_config['aws_secret_access_key'],
+            edp,
+            config.get('base_ami_id')
+        )
+
     return pipeline
 
 
@@ -190,7 +221,6 @@ def launch_and_terminate_subset_pipeline(
         pipeline_group,
         stage_builders,
         config,
-        edp,
         pipeline_name,
         ami_artifact=None,
         auto_run=False,
@@ -204,7 +234,6 @@ def launch_and_terminate_subset_pipeline(
             between instance launch and cleanup
         ami_artifact (ArtifactLocation): The ami to use to launch the
             instances on. If None, select that ami based on the supplied ``edp``.
-        edp (EDP): The environment-deployment-play that identifies the AMI
         config (dict): the configuration dictionary
         pipeline_name (str): name of the pipeline
         auto_run (bool): Should this pipeline auto execute?
@@ -232,21 +261,6 @@ def launch_and_terminate_subset_pipeline(
     # We always need to launch the AMI, independent deploys are done with a different pipeline
     # if the pipeline has a migrate stage, but no building stages, look up the build information from the
     # upstream pipeline.
-    if ami_artifact is None:
-        stages.generate_base_ami_selection(
-            pipeline,
-            config['aws_access_key_id'],
-            config['aws_secret_access_key'],
-            edp,
-            base_ami_id
-        )
-        ami_artifact = utils.ArtifactLocation(
-            pipeline.name,
-            constants.BASE_AMI_SELECTION_STAGE_NAME,
-            constants.BASE_AMI_SELECTION_JOB_NAME,
-            constants.BASE_AMI_OVERRIDE_FILENAME,
-        )
-
     if pre_launch_builders:
         for builder in pre_launch_builders:
             builder(pipeline, config)
@@ -392,11 +406,36 @@ def generate_migrate_stages(pipeline, config):
 
 
 def generate_deploy_stages(
-        pipeline_name_build, prod_build_pipelines, stage_deploy_pipeline,
+        pipeline_name_build, ami_pairs, stage_deploy_pipeline, base_ami_artifact,
         auto_deploy_ami=False
 ):
     """
     Create a builder function that adds deployment stages to a pipeline.
+
+    Args:
+        pipeline_name_build (str): name of the pipeline that built the AMI
+        ami_pairs (list<tuple>): A list of tuples. The first item in the tuple should be Artifact location of the
+            base_ami ID that was running before deployment and the ArtifactLocation of the newly deployed AMI ID
+            e.g. (ArtifactLocation
+                    (pipeline='prerelease_edxapp_materials_latest',
+                     stage='select_base_ami', job='select_base_ami_prod_edx_job',
+                     file_name='ami_override.yml',
+                     is_dir=False
+                    ),
+                  ArtifactLocation
+                    (pipeline='PROD_edx_edxapp_B',
+                     stage='build_ami',
+                     job='build_ami_job',
+                     file_name='ami.yml',
+                     is_dir=False
+                    )
+                 )
+        stage_deploy_pipeline (gomatic.Pipeline):
+        base_ami_artifact (edxpipelines.utils.ArtifactLocation): Location of the Base AMI selection artifact.
+        auto_deploy_ami (bool): should this pipeline automatically deploy the AMI
+
+    Returns:
+        callable: pipeline builder
     """
     def builder(pipeline, config):
         """
@@ -427,17 +466,10 @@ def generate_deploy_stages(
             manual_approval=not auto_deploy_ami
         )
 
-        base_ami_file_location = utils.ArtifactLocation(
-            pipeline_name_build,
-            constants.BASE_AMI_SELECTION_STAGE_NAME,
-            constants.BASE_AMI_SELECTION_JOB_NAME,
-            constants.BASE_AMI_OVERRIDE_FILENAME
-        )
-
         pipeline.ensure_unencrypted_secure_environment_variables({'GITHUB_TOKEN': config['github_token']})
         stages.generate_deployment_messages(
             pipeline,
-            prod_build_pipelines,
+            ami_pairs,
             stage_deploy_pipeline,
             'edx',
             'edx-platform',
@@ -447,7 +479,7 @@ def generate_deploy_stages(
             config['jira_user'],
             config['jira_password'],
             config['github_token'],
-            base_ami_artifact=base_ami_file_location,
+            base_ami_artifact=base_ami_artifact,
             ami_tag_app='edx_platform',
         )
         return pipeline
@@ -574,15 +606,34 @@ def generate_e2e_test_stage(pipeline, config):
 
 
 def rollback_asgs(
-        edxapp_deploy_group, pipeline_name, build_pipeline,
+        edxapp_deploy_group, pipeline_name,
         deploy_pipeline, config,
-        prod_build_pipelines, stage_deploy_pipeline,
+        ami_pairs, stage_deploy_pipeline, base_ami_artifact
 ):
     """
     Arguments:
         edxapp_deploy_group (gomatic.PipelineGroup): The group in which to create this pipeline
         pipeline_name (str): The name of this pipeline
         deploy_pipeline (gomatic.Pipeline): The pipeline to retrieve the ami_deploy_info.yml artifact from
+        config (dict): the configuraiton dictionary
+        ami_pairs (list<tuple>): A list of tuples. The first item in the tuple should be Artifact location of the
+            base_ami ID that was running before deployment and the ArtifactLocation of the newly deployed AMI ID
+            e.g. (ArtifactLocation
+                    (pipeline='prerelease_edxapp_materials_latest',
+                     stage='select_base_ami', job='select_base_ami_prod_edx_job',
+                     file_name='ami_override.yml',
+                     is_dir=False
+                    ),
+                  ArtifactLocation
+                    (pipeline='PROD_edx_edxapp_B',
+                     stage='build_ami',
+                     job='build_ami_job',
+                     file_name='ami.yml',
+                     is_dir=False
+                    )
+                 )
+        stage_deploy_pipeline (gomatic.Pipeline): The edxapp staging deployment pipeline
+        base_ami_artifact (edxpipelines.utils.ArtifactLocation): ArtifactLocation of the base AMI selection
 
     Configuration Required:
         tubular_sleep_wait_time
@@ -626,18 +677,11 @@ def rollback_asgs(
     # Since we only want this stage to rollback via manual approval, ensure that it is set on this stage.
     rollback_stage.set_has_manual_approval()
 
-    base_ami_file_location = utils.ArtifactLocation(
-        build_pipeline.name,
-        constants.BASE_AMI_SELECTION_STAGE_NAME,
-        constants.BASE_AMI_SELECTION_JOB_NAME,
-        constants.BASE_AMI_OVERRIDE_FILENAME
-    )
-
     # Message PRs being rolled back
     pipeline.ensure_unencrypted_secure_environment_variables({'GITHUB_TOKEN': config['github_token']})
     stages.generate_deployment_messages(
         pipeline,
-        prod_build_pipelines,
+        ami_pairs,
         stage_deploy_pipeline,
         'edx',
         'edx-platform',
@@ -647,7 +691,7 @@ def rollback_asgs(
         config['jira_user'],
         config['jira_password'],
         config['github_token'],
-        base_ami_artifact=base_ami_file_location,
+        base_ami_artifact=base_ami_artifact,
         ami_tag_app='edx_platform',
     )
 
