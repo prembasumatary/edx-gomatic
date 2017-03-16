@@ -1430,6 +1430,9 @@ def generate_find_and_advance_release(
     job = stage.ensure_job(constants.RELEASE_ADVANCER_JOB_NAME)
     tasks.generate_package_install(job, 'tubular')
 
+    # Add task to generate the directory where the artifact file will be written.
+    tasks.generate_target_directory(job)
+
     pipeline.ensure_environment_variables(
         {
             'GOCD_USER': gocd_user,
