@@ -5,7 +5,7 @@ Script to install pipelines that can deploy the edx-mktg site.
 import sys
 from os import path
 
-from gomatic import GitMaterial, BuildArtifact, ExecTask, FetchArtifactFile, FetchArtifactTask
+from gomatic import BuildArtifact, ExecTask, FetchArtifactFile, FetchArtifactTask
 
 # Used to import edxpipelines files - since the module is not installed.
 sys.path.append(path.dirname(path.dirname(path.dirname(path.abspath(__file__)))))
@@ -26,7 +26,6 @@ def install_pipelines(configurator, config, env_configs):  # pylint: disable=unu
         .ensure_replacement_of_pipeline(constants.DEPLOY_MARKETING_PIPELINE_NAME) \
         .ensure_material(TUBULAR()) \
         .ensure_material(EDX_MKTG())
-
 
     pipeline.ensure_environment_variables(
         {

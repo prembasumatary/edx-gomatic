@@ -5,7 +5,7 @@ Script to install pipelines that can rollback the prod edx-mktg site.
 import sys
 from os import path
 
-from gomatic import GitMaterial, PipelineMaterial, FetchArtifactFile, FetchArtifactTask
+from gomatic import PipelineMaterial, FetchArtifactFile, FetchArtifactTask
 
 # Used to import edxpipelines files - since the module is not installed.
 sys.path.append(path.dirname(path.dirname(path.dirname(path.abspath(__file__)))))
