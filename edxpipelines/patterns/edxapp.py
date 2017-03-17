@@ -221,6 +221,7 @@ def launch_and_terminate_subset_pipeline(
         pipeline_group,
         stage_builders,
         config,
+        edp,
         pipeline_name,
         ami_artifact=None,
         auto_run=False,
@@ -232,10 +233,10 @@ def launch_and_terminate_subset_pipeline(
         pipeline_group (gomatic.PipelineGroup): The group in which to create this pipeline
         stage_builders (list): a list of methods that will create pipeline stages used
             between instance launch and cleanup
-        ami_artifact (ArtifactLocation): The ami to use to launch the
-            instances on. If None, select that ami based on the supplied ``edp``.
         config (dict): the configuration dictionary
+        edp (EDP): The environment-deployment-play that identifies the AMI
         pipeline_name (str): name of the pipeline
+        ami_artifact (ArtifactLocation): The ami to use to launch the instances on.
         auto_run (bool): Should this pipeline auto execute?
         post_cleanup_builders (list): a list of methods that will create pipeline stages used
             after the cleanup has run
