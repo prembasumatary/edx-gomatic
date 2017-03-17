@@ -184,12 +184,10 @@ def generate_basic_multistage_pipeline(
         pipeline,
         edp=edp,
         app_repo=app_repo,
-        configuration_secure_repo=config['configuration_secure_repo'],
         aws_access_key_id=config['aws_access_key_id'],
         aws_secret_access_key=config['aws_secret_access_key'],
         hipchat_token=hipchat_token,
         hipchat_room=hipchat_room,
-        configuration_secure_version='$GO_REVISION_CONFIGURATION_SECURE',
         version_tags={
             'configuration': (config['configuration_url'], '$GO_REVISION_CONFIGURATION'),
             'configuration_secure': (config['configuration_secure_repo'], '$GO_REVISION_CONFIGURATION_SECURE'),

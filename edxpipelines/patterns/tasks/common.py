@@ -385,9 +385,8 @@ def generate_launch_instance(
 
 def generate_create_ami(
         job, play, deployment, edx_environment,
-        app_repo, configuration_secure_repo, aws_access_key_id,
+        app_repo, aws_access_key_id,
         aws_secret_access_key, launch_info_path,
-        configuration_repo=constants.PUBLIC_CONFIGURATION_REPO_URL,
         ami_creation_timeout='3600', ami_wait='yes', cache_id='',
         artifact_path=constants.ARTIFACT_PATH, hipchat_token='',
         hipchat_room=constants.HIPCHAT_ROOM,
@@ -435,9 +434,6 @@ def generate_create_ami(
         ('deployment', deployment),
         ('edx_environment', edx_environment),
         ('app_repo', app_repo),
-        ('configuration_repo', configuration_repo),
-        ('configuration_version', '$GO_REVISION_CONFIGURATION'),
-        ('configuration_secure_repo', configuration_secure_repo),
         ('cache_id', '$GO_PIPELINE_COUNTER'),
         ('ec2_region', ec2_region),
         ('artifact_path', '`/bin/pwd`/../{}'.format(artifact_path)),
