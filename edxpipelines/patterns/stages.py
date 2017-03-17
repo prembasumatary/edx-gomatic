@@ -1421,7 +1421,13 @@ def generate_find_and_advance_release(
 
     Args:
         pipeline (gomatic.Pipeline):
-        stage_name (str): Name of the stage.
+        advance_pipeline_name (str): Name of pipeline to advance.
+        advance_pipeline_stage_name (str): Name of stage within pipeline to advance.
+        gocd_user (str): GoCD username
+        gocd_password (str): GoCD user's password
+        gocd_url (str): URL of the GoCD instance
+        hipchat_token (str): Auth token for HipChat posting.
+        hipchat_room (str): HipChat room to use for posting.
 
     Returns:
         gomatic.Stage
@@ -1433,12 +1439,6 @@ def generate_find_and_advance_release(
     # Add task to generate the directory where the artifact file will be written.
     tasks.generate_target_directory(job)
 
-    pipeline.ensure_environment_variables(
-        {
-            'GOCD_USER': gocd_user,
-            'GOCD_URL': gocd_url
-        }
-    )
     pipeline.ensure_unencrypted_secure_environment_variables(
         {
             'GOCD_PASSWORD': gocd_password
@@ -1449,18 +1449,15 @@ def generate_find_and_advance_release(
             'HIPCHAT_TOKEN': hipchat_token,
         }
     )
-    artifact_path = '{}/{}'.format(
-        constants.ARTIFACT_PATH,
-        constants.FIND_ADVANCE_PIPELINE_OUT_FILENAME
-    )
-    job.ensure_artifacts(set([BuildArtifact(artifact_path)]))
 
     tasks.generate_find_and_advance_release(
         job,
+        gocd_user,
+        gocd_url,
         advance_pipeline_name,
         advance_pipeline_stage_name,
         hipchat_room,
-        out_file=artifact_path
+        out_file=constants.FIND_ADVANCE_PIPELINE_OUT_FILENAME
     )
 
     return stage
