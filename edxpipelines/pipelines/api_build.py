@@ -91,7 +91,7 @@ def install_pipelines(configurator, config, env_configs):  # pylint: disable=unu
             [
                 '/bin/bash',
                 '-c',
-                'wget ${{SWAGGER_CODEGEN_JAR}} -O {swagger_jar}'.format(swagger_jar=SWAGGER_JAR)
+                'curl ${{SWAGGER_CODEGEN_JAR}} -o {swagger_jar}'.format(swagger_jar=SWAGGER_JAR)
             ]
         )
     )
