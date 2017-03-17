@@ -1614,7 +1614,7 @@ def trigger_jenkins_build(
     ]
     command.extend(
         '--param {} {}'.format(name, value)
-        for name, value in jenkins_params.items()
+        for name, value in sorted(jenkins_params.items())
     )
 
     return job.add_task(tubular_task(
