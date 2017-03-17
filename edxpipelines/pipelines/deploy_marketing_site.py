@@ -5,7 +5,7 @@ Script to install pipelines that can deploy the edx-mktg site.
 import sys
 from os import path
 
-from gomatic import GitMaterial, BuildArtifact, ExecTask, FetchArtifactFile, FetchArtifactTask
+from gomatic import BuildArtifact, ExecTask, FetchArtifactFile, FetchArtifactTask
 
 # Used to import edxpipelines files - since the module is not installed.
 sys.path.append(path.dirname(path.dirname(path.dirname(path.abspath(__file__)))))
@@ -14,6 +14,7 @@ sys.path.append(path.dirname(path.dirname(path.dirname(path.abspath(__file__))))
 from edxpipelines import constants
 from edxpipelines.patterns import tasks
 from edxpipelines.pipelines.script import pipeline_script
+from edxpipelines.materials import (TUBULAR, EDX_MKTG)
 
 
 def install_pipelines(configurator, config, env_configs):  # pylint: disable=unused-argument
@@ -23,12 +24,8 @@ def install_pipelines(configurator, config, env_configs):  # pylint: disable=unu
     pipeline = configurator \
         .ensure_pipeline_group(constants.DRUPAL_PIPELINE_GROUP_NAME) \
         .ensure_replacement_of_pipeline(constants.DEPLOY_MARKETING_PIPELINE_NAME) \
-        .set_git_material(GitMaterial(
-            'https://github.com/edx/tubular',
-            polling=True,
-            destination_directory='tubular',
-            ignore_patterns=constants.MATERIAL_IGNORE_ALL_REGEX
-        ))
+        .ensure_material(TUBULAR()) \
+        .ensure_material(EDX_MKTG())
 
     pipeline.ensure_environment_variables(
         {
@@ -39,7 +36,6 @@ def install_pipelines(configurator, config, env_configs):  # pylint: disable=unu
     pipeline.ensure_encrypted_environment_variables(
         {
             'PRIVATE_GITHUB_KEY': config['github_private_key'],
-            'PRIVATE_MARKETING_REPOSITORY_URL': config['mktg_repository_url'],
             'PRIVATE_ACQUIA_REMOTE': config['acquia_remote_url'],
             'PRIVATE_ACQUIA_USERNAME': config['acquia_username'],
             'PRIVATE_ACQUIA_PASSWORD': config['acquia_password'],
@@ -72,7 +68,6 @@ def install_pipelines(configurator, config, env_configs):  # pylint: disable=unu
 
     tasks.generate_package_install(push_to_acquia_job, 'tubular')
     tasks.generate_target_directory(push_to_acquia_job)
-    tasks.fetch_edx_mktg(push_to_acquia_job, 'edx-mktg')
 
     # Create a tag from MARKETING_REPOSITORY_VERSION branch of marketing repo
     push_to_acquia_job.add_task(
@@ -149,7 +144,6 @@ def install_pipelines(configurator, config, env_configs):  # pylint: disable=unu
     clear_stage_caches_stage = pipeline.ensure_stage(constants.CLEAR_STAGE_CACHES_STAGE_NAME)
     clear_stage_caches_job = clear_stage_caches_stage.ensure_job(constants.CLEAR_STAGE_CACHES_JOB_NAME)
 
-    tasks.fetch_edx_mktg(clear_stage_caches_job, 'edx-mktg')
     tasks.generate_package_install(clear_stage_caches_job, 'tubular')
     tasks.format_RSA_key(
         clear_stage_caches_job,
@@ -184,7 +178,6 @@ def install_pipelines(configurator, config, env_configs):  # pylint: disable=unu
     clear_prod_caches_stage = pipeline.ensure_stage(constants.CLEAR_PROD_CACHES_STAGE_NAME)
     clear_prod_caches_job = clear_prod_caches_stage.ensure_job(constants.CLEAR_PROD_CACHES_JOB_NAME)
 
-    tasks.fetch_edx_mktg(clear_prod_caches_job, 'edx-mktg')
     tasks.generate_package_install(clear_prod_caches_job, 'tubular')
     tasks.format_RSA_key(
         clear_prod_caches_job,

@@ -106,12 +106,26 @@ tools:
 
   ## end of deploy pipeline group
 
+  ## start Marketing Pipelines
   - script: edxpipelines/pipelines/deploy_marketing_site.py
     variable_file:
       - *tools-admin
       - "../gomatic-secure/gocd/vars/tools/deploy_drupal.yml"
-    enabled: False
+    enabled: True
 
+  - script: edxpipelines/pipelines/rollback_stage_marketing_site.py
+    variable_file:
+      - *tools-admin
+      - "../gomatic-secure/gocd/vars/tools/deploy_drupal.yml"
+    enabled: True
+
+  - script: edxpipelines/pipelines/rollback_prod_marketing_site.py
+    variable_file:
+      - *tools-admin
+      - "../gomatic-secure/gocd/vars/tools/deploy_drupal.yml"
+    enabled: True
+
+  ## end Marketing Pipelines
 
   ## START OF EDXAPP WHICH BUILDS PROD/EDGE AMIS in PARALLEL WITH STAGE DEPLOYMENT
   # Starts the build of prod AMIs earlier in pipeline.

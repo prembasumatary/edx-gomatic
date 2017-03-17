@@ -844,43 +844,6 @@ def format_RSA_key(job, output_path, key):
     ))
 
 
-def _fetch_secure_repo(job, secure_dir, secure_repo_envvar, secure_version_envvar, secure_repo_name, runif="passed"):
-    """
-    Setup a secure repo for use in providing secrets.
-
-    Args:
-        job (gomatic.job.Job): the gomatic job to which the task will be added
-        secure_dir (str): name of dir containing the edx-ops/configuration-secure repo
-        secure_repo_envvar (str): HTTPS-based link to secure repo on GitHub
-        secure_version_envvar (str): GitHub ref identifying version of secure repo to use
-        secure_repo_name (str): name of secure repo, e.g. "configuration-secure"
-        runif (str): one of ['passed', 'failed', 'any'] Default: passed
-
-    Returns:
-        The newly created task (gomatic.gocd.tasks.ExecTask)
-
-    """
-    return job.add_task(bash_task(
-        """\
-            touch github_key.pem &&
-            chmod 600 github_key.pem &&
-            format_rsa_key.py --key "$PRIVATE_GITHUB_KEY" --output-file github_key.pem &&
-            GIT_SSH_COMMAND='/usr/bin/ssh -o StrictHostKeyChecking=no -i github_key.pem'
-            /usr/bin/git clone ${secure_repo_envvar} {secure_dir} &&
-            cd {secure_dir} &&
-            /usr/bin/git checkout ${secure_version_envvar} &&
-            [ -d ../{artifact_path}/ ] && echo "Target Directory Exists" || mkdir ../{artifact_path}/ &&
-            /usr/bin/git rev-parse HEAD > ../{artifact_path}/{secure_repo_name}_sha
-        """,
-        secure_dir=secure_dir,
-        secure_repo_envvar=secure_repo_envvar,
-        secure_version_envvar=secure_version_envvar,
-        secure_repo_name=secure_repo_name,
-        artifact_path=constants.ARTIFACT_PATH,
-        runif=runif,
-    ))
-
-
 def generate_target_directory(job, directory_name=constants.ARTIFACT_PATH, runif="passed"):
     """
     Add a task to ``job`` that creates the specified directory ``directory_name``.
@@ -895,31 +858,6 @@ def generate_target_directory(job, directory_name=constants.ARTIFACT_PATH, runif
         dir_name=directory_name,
         runif=runif,
     ))
-
-
-def fetch_edx_mktg(job, secure_dir, runif="passed"):
-    """
-    Setup the edx-mktg repo for use with Drupal deployment.
-
-    Stage using this task must have the following environment variables:
-        PRIVATE_MARKETING_REPOSITORY_URL
-        MARKETING_REPOSITORY_VERSION
-
-    Args:
-        job (gomatic.job.Job): the gomatic job to which the task will be added
-        secure_dir (str): name of dir containing the edx/edx-mktg repo
-        runif (str): one of ['passed', 'failed', 'any'] Default: passed
-
-    Returns:
-        The newly created task (gomatic.gocd.tasks.ExecTask)
-    """
-    return _fetch_secure_repo(
-        job, secure_dir,
-        "PRIVATE_MARKETING_REPOSITORY_URL",
-        "MARKETING_REPOSITORY_VERSION",
-        "edx-mktg",
-        runif=runif,
-    )
 
 
 def generate_run_app_playbook(

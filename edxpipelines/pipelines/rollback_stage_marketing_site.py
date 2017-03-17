@@ -5,7 +5,7 @@ Script to install pipelines that can rollback the stage edx-mktg site.
 import sys
 from os import path
 
-from gomatic import GitMaterial, PipelineMaterial, FetchArtifactFile, FetchArtifactTask
+from gomatic import PipelineMaterial, FetchArtifactFile, FetchArtifactTask
 
 # Used to import edxpipelines files - since the module is not installed.
 sys.path.append(path.dirname(path.dirname(path.dirname(path.abspath(__file__)))))
@@ -14,6 +14,7 @@ sys.path.append(path.dirname(path.dirname(path.dirname(path.abspath(__file__))))
 from edxpipelines import constants
 from edxpipelines.patterns import tasks
 from edxpipelines.pipelines.script import pipeline_script
+from edxpipelines.materials import (TUBULAR, EDX_MKTG)
 
 
 def install_pipelines(configurator, config, env_configs):  # pylint: disable=unused-argument
@@ -23,12 +24,8 @@ def install_pipelines(configurator, config, env_configs):  # pylint: disable=unu
     pipeline = configurator \
         .ensure_pipeline_group(constants.DRUPAL_PIPELINE_GROUP_NAME) \
         .ensure_replacement_of_pipeline('rollback-stage-marketing-site') \
-        .set_git_material(GitMaterial(
-            'https://github.com/edx/tubular',
-            polling=True,
-            destination_directory='tubular',
-            ignore_patterns=constants.MATERIAL_IGNORE_ALL_REGEX
-        )) \
+        .ensure_material(TUBULAR()) \
+        .ensure_material(EDX_MKTG()) \
         .ensure_material(PipelineMaterial(constants.DEPLOY_MARKETING_PIPELINE_NAME, constants.FETCH_TAG_STAGE_NAME))
 
     pipeline.ensure_environment_variables(
@@ -40,7 +37,6 @@ def install_pipelines(configurator, config, env_configs):  # pylint: disable=unu
     pipeline.ensure_encrypted_environment_variables(
         {
             'PRIVATE_GITHUB_KEY': config['github_private_key'],
-            'PRIVATE_MARKETING_REPOSITORY_URL': config['mktg_repository_url'],
             'PRIVATE_ACQUIA_USERNAME': config['acquia_username'],
             'PRIVATE_ACQUIA_PASSWORD': config['acquia_password'],
             'PRIVATE_ACQUIA_GITHUB_KEY': config['acquia_github_key'],
@@ -73,7 +69,6 @@ def install_pipelines(configurator, config, env_configs):  # pylint: disable=unu
     clear_stage_caches_stage = pipeline.ensure_stage(constants.CLEAR_STAGE_CACHES_STAGE_NAME)
     clear_stage_caches_job = clear_stage_caches_stage.ensure_job(constants.CLEAR_STAGE_CACHES_JOB_NAME)
 
-    tasks.fetch_edx_mktg(clear_stage_caches_job, 'edx-mktg')
     tasks.generate_package_install(clear_stage_caches_job, 'tubular')
     tasks.format_RSA_key(
         clear_stage_caches_job,

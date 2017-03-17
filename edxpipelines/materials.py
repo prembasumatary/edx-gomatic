@@ -96,3 +96,12 @@ EDX_MICROSITE = partial(
 EDX_INTERNAL = partial(deployment_internal, 'edx')
 
 EDGE_INTERNAL = partial(deployment_internal, 'edge')
+
+EDX_MKTG = partial(
+    GitMaterial,
+    url="git@github.com:edx/edx-mktg.git",
+    branch="master",
+    polling=True,
+    destination_directory="edx-mktg",
+    ignore_patterns=['**/*'],
+)
