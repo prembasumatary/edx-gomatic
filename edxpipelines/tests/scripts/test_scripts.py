@@ -17,7 +17,9 @@ import pytest
 
 KNOWN_FAILING_PIPELINES = [
     'edxpipelines/pipelines/api_deploy.py',
-    'edxpipelines/pipelines/rollback_asgs.py'
+    'edxpipelines/pipelines/rollback_asgs.py',
+    'edxpipelines/pipelines/rollback_prod_marketing_site.py',
+    'edxpipelines/pipelines/rollback_stage_marketing_site.py',
 ]
 
 
@@ -146,7 +148,7 @@ def find_available_stages(script_result, target_pipeline, target_stage):
 
 
 def test_upstream_stages_for_artifacts(script_result, script_name):
-    if script_name in ['edxpipelines/pipelines/api_deploy.py', 'edxpipelines/pipelines/rollback_asgs.py']:
+    if script_name in KNOWN_FAILING_PIPELINES:
         pytest.xfail("{} is known to be non-independent".format(script_name))
 
     RequiredStage = namedtuple('RequiredStage', [
@@ -292,7 +294,7 @@ def environment_variables_for_task(task):
         yield '{}'.format(index)
 
     # Find all places where we explicitly set bash variables
-    for match in re.finditer(r'(^|;)\s*(export )?(?P<var>\w+)=', command, flags=re.IGNORECASE | re.MULTILINE):
+    for match in re.finditer(r'(^|;|&&|\|\|)\s*(export )?(?P<var>\w+)=', command, flags=re.IGNORECASE | re.MULTILINE):
         yield match.group('var')
 
     # Find all bash for-loops
