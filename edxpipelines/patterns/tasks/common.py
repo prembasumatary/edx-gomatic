@@ -1,7 +1,9 @@
 """
 Common gomatic task patterns.
 """
+import json
 import re
+from subprocess import list2cmdline
 import textwrap
 
 from gomatic import ExecTask, BuildArtifact, FetchArtifactFile, FetchArtifactDir, FetchArtifactTask
@@ -44,7 +46,7 @@ def ansible_task(
 
     if inventory is None:
         inventory = [
-            '-i', '"localhost,"',
+            '-i', 'localhost,',
             '-c', 'local',
         ]
     else:
@@ -52,7 +54,7 @@ def ansible_task(
             "-i", inventory
         ]
 
-    command = prefix + [
+    command = [
         'ansible-playbook',
     ]
     if verbosity > 0:
@@ -63,10 +65,12 @@ def ansible_task(
 
     for variable in variables:
         if isinstance(variable, basestring):
-            command.append(' -e @../{} '.format(variable))
+            command.extend(('-e', '@../{}'.format(variable)))
+        elif isinstance(variable, dict):
+            command.extend(('-e', json.dumps(variable)))
         else:
             name, value = variable
-            command.append('-e {}={}'.format(name, value))
+            command.extend(('-e', '{}={}'.format(name, value)))
 
     command.append(playbook)
 
@@ -74,7 +78,7 @@ def ansible_task(
         [
             '/bin/bash',
             '-c',
-            ' '.join(command)
+            ' '.join(prefix + [list2cmdline(command)]),
         ],
         working_dir=working_dir,
         runif=runif
@@ -330,7 +334,7 @@ def generate_launch_instance(
         }
     )
     variables = [
-        ('artifact_path', '`/bin/pwd`/../{} '.format(constants.ARTIFACT_PATH)),
+        ('artifact_path', '`/bin/pwd`/../{}'.format(constants.ARTIFACT_PATH)),
         ('base_ami_id', '$BASE_AMI_ID'),
         ('ec2_vpc_subnet_id', '$EC2_VPC_SUBNET_ID'),
         ('ec2_security_group_id', '$EC2_SECURITY_GROUP_ID'),
@@ -353,7 +357,7 @@ def generate_launch_instance(
         )
         variables.extend([
             ('hipchat_token', '$HIPCHAT_TOKEN'),
-            ('hipchat_room', '"$HIPCHAT_ROOM"'),
+            ('hipchat_room', '$HIPCHAT_ROOM'),
         ])
 
     # fetch the artifacts if there are any
@@ -442,7 +446,7 @@ def generate_create_ami(
         ('ec2_region', '$EC2_REGION'),
         ('artifact_path', '`/bin/pwd`/../{}'.format(constants.ARTIFACT_PATH)),
         ('hipchat_token', '$HIPCHAT_TOKEN'),
-        ('hipchat_room', '"$HIPCHAT_ROOM"'),
+        ('hipchat_room', '$HIPCHAT_ROOM'),
         ('ami_wait', '$AMI_WAIT'),
         ('no_reboot', '$NO_REBOOT'),
         ('extra_name_identifier', '$GO_PIPELINE_COUNTER'),
@@ -513,7 +517,7 @@ def generate_ami_cleanup(job, hipchat_token, hipchat_room=constants.HIPCHAT_ROOM
             '{}/launch_info.yml'.format(constants.ARTIFACT_PATH),
             ('ec2_region', '$EC2_REGION'),
             ('hipchat_token', '$HIPCHAT_TOKEN'),
-            ('hipchat_room', '"$HIPCHAT_ROOM"'),
+            ('hipchat_room', '$HIPCHAT_ROOM'),
         ],
         extra_options=['--module-path=playbooks/library'],
         playbook='playbooks/continuous_delivery/cleanup.yml',
@@ -630,7 +634,7 @@ def generate_run_migrations(
                 path_to_artifact(constants.KEY_PEM_FILENAME, artifact_path=launch_artifacts_base_path)
             ),
         ],
-        inventory='../{} '.format(
+        inventory='../{}'.format(
             path_to_artifact(constants.ANSIBLE_INVENTORY_FILENAME, artifact_path=launch_artifacts_base_path)
         ),
         extra_options=[
@@ -999,7 +1003,7 @@ def generate_run_app_playbook(
             '--user=ubuntu',
             '--module-path=playbooks/library',
         ],
-        inventory='../{}/ansible_inventory '.format(launch_artifacts_base_path),
+        inventory='../{}/ansible_inventory'.format(launch_artifacts_base_path),
         variables=[
             '{}/launch_info.yml'.format(launch_artifacts_base_path),
             '{}/ansible/vars/${{DEPLOYMENT}}.yml'.format(configuration_internal_dir),
@@ -1170,7 +1174,7 @@ def generate_refresh_metadata(job, runif='passed'):
             ('APPLICATION_NAME', '$APPLICATION_NAME'),
             ('APPLICATION_USER', '$APPLICATION_USER'),
             ('HIPCHAT_TOKEN', '$HIPCHAT_TOKEN'),
-            ('HIPCHAT_ROOM', '"$HIPCHAT_ROOM"'),
+            ('HIPCHAT_ROOM', '$HIPCHAT_ROOM'),
         ],
         playbook='discovery_refresh_metadata.yml',
         working_dir='configuration/playbooks/continuous_delivery/',
@@ -1206,7 +1210,7 @@ def generate_update_index(job, runif='passed'):
             ('APPLICATION_NAME', '$APPLICATION_NAME'),
             ('APPLICATION_USER', '$APPLICATION_USER'),
             ('HIPCHAT_TOKEN', '$HIPCHAT_TOKEN'),
-            ('HIPCHAT_ROOM', '"$HIPCHAT_ROOM"'),
+            ('HIPCHAT_ROOM', '$HIPCHAT_ROOM'),
         ],
         playbook='haystack_update_index.yml',
         working_dir='configuration/playbooks/continuous_delivery/',
