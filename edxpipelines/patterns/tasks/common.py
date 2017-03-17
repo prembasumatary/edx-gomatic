@@ -246,27 +246,30 @@ def generate_hipchat_message(job, message, channels, color=None, runif="passed")
 
 
 def generate_find_and_advance_release(
-        job, pipeline_name, stage_name, hipchat_room, relative_dt=None, out_file=None, runif="passed"
+        job, gocd_user, gocd_url, pipeline_name, stage_name,
+        hipchat_room, relative_dt=None, out_file=None, runif="passed"
 ):
     """
     Generates a task which finds and advances the correct release pipeline.
 
     Args:
         job (gomatic.job.Job): the gomatic job which to add the task
+        gocd_user (str): GoCD username
+        gocd_url (str): URL of the GoCD instance
         pipeline_name (str): Name of pipeline which will be advanced.
         stage_name (str): Name of pipeline stage which will be advanced.
         hipchat_room (str): Name of HipChat room to send an advancement message.
         relative_dt (str): ISO 8601-formatted datetime, if using a time other than now.
-        out_file (str): Path to file which will store the task result.
+        out_file (str): Name of file which will store the task result.
         runif (str): one of ['passed', 'failed', 'any'] Default: passed
 
     Returns:
         The newly created task (gomatic.gocd.tasks.ExecTask)
     """
     cmd_args = [
-        '--gocd_user', '$GOCD_USER',
+        '--gocd_user', gocd_user,
         '--gocd_password', '$GOCD_PASSWORD',
-        '--gocd_url', '$GOCD_URL',
+        '--gocd_url', gocd_url,
         '--hipchat_token', '$HIPCHAT_TOKEN',
         '--hipchat_channel', hipchat_room,
         '--pipeline', pipeline_name,
@@ -275,7 +278,9 @@ def generate_find_and_advance_release(
     if relative_dt:
         cmd_args.extend(['--relative_dt', relative_dt])
     if out_file:
-        cmd_args.extend(['--out_file', out_file])
+        artifact_path = '{}/{}'.format(constants.ARTIFACT_PATH, out_file)
+        job.ensure_artifacts(set([BuildArtifact(artifact_path)]))
+        cmd_args.extend(['--out_file', '../{}'.format(artifact_path)])
     return job.add_task(tubular_task(
         'find_and_advance_pipeline.py',
         cmd_args,
