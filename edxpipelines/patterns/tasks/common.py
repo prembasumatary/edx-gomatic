@@ -386,7 +386,7 @@ def generate_create_ami(
         ami_creation_timeout='3600', ami_wait='yes', cache_id='',
         artifact_path=constants.ARTIFACT_PATH, hipchat_token='',
         hipchat_room=constants.HIPCHAT_ROOM,
-        runif='passed', **kwargs
+        runif='passed', version_tags=None, **kwargs
 ):
     """
     TODO: Decouple AMI building and AMI tagging in to 2 different jobs/ansible scripts
@@ -395,6 +395,8 @@ def generate_create_ami(
         job (gomatic.job.Job): the gomatic job which to add the launch instance task
         runif (str): one of ['passed', 'failed', 'any'] Default: passed
         launch_info_path (str): The path to launch_info.yml
+        version_tags (dict): An optional {app_name: (repo, version), ...} dict that
+            specifies what versions to tag the AMI with.
         **kwargs (dict):
             k,v pairs:
                 k: the name of the option to pass to ansible
@@ -451,6 +453,8 @@ def generate_create_ami(
         ('no_reboot', '$NO_REBOOT'),
         ('extra_name_identifier', '$GO_PIPELINE_COUNTER'),
     ]
+    if version_tags:
+        variables.append({'version_tags': version_tags})
     variables.extend(sorted(kwargs.items()))
 
     return job.add_task(ansible_task(

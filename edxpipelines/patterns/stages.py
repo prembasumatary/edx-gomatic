@@ -283,6 +283,7 @@ def generate_create_ami_from_instance(pipeline,
                                       hipchat_token='',
                                       hipchat_room=constants.HIPCHAT_ROOM,
                                       manual_approval=False,
+                                      version_tags=None,
                                       **kwargs):
     """
     Generates an artifact ami.yml:
@@ -304,6 +305,8 @@ def generate_create_ami_from_instance(pipeline,
         artifact_path (str):
         hipchat_room (str):
         manual_approval (bool):
+        version_tags (dict): An optional {app_name: (repo, version), ...} dict that
+            specifies what versions to tag the AMI with.
         **kwargs (dict):
             k,v pairs:
                 k: the name of the option to pass to ansible
@@ -349,6 +352,7 @@ def generate_create_ami_from_instance(pipeline,
         artifact_path=artifact_path,
         hipchat_token=hipchat_token,
         hipchat_room=hipchat_room,
+        version_tags=version_tags,
         **kwargs)
 
     return stage

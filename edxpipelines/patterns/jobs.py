@@ -25,6 +25,7 @@ def generate_build_ami(stage,
                        configuration_internal_material,
                        playbook_path,
                        env_config,
+                       version_tags=None,
                        **kwargs):
     """
     Generates a job for creating a new AMI.
@@ -40,6 +41,8 @@ def generate_build_ami(stage,
             configuration material. Destination directory expected to be 'configuration-internal'.
         playbook_path (str): Path to the Ansible playbook to run when creating the AMI.
         env_config (dict): Environment-specific secure config.
+        version_tags (dict): An optional {app_name: (repo, version), ...} dict that
+            specifies what versions to tag the AMI with.
 
     Returns:
         gomatic.gocd.pipelines.Job
@@ -97,6 +100,7 @@ def generate_build_ami(stage,
         path_to_artifact(constants.LAUNCH_INSTANCE_FILENAME),
         configuration_secure_version=constants.CONFIGURATION_SECURE_VERSION,
         hipchat_token=env_config['hipchat_token'],
+        version_tags=version_tags,
         **kwargs
     )
 
