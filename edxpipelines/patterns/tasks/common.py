@@ -391,7 +391,8 @@ def generate_create_ami(
         ami_creation_timeout='3600', ami_wait='yes', cache_id='',
         artifact_path=constants.ARTIFACT_PATH, hipchat_token='',
         hipchat_room=constants.HIPCHAT_ROOM,
-        runif='passed', version_tags=None, **kwargs
+        runif='passed', version_tags=None,
+        ec2_region=constants.EC2_REGION, **kwargs
 ):
     """
     TODO: Decouple AMI building and AMI tagging in to 2 different jobs/ansible scripts
@@ -421,19 +422,7 @@ def generate_create_ami(
 
     job.ensure_environment_variables(
         {
-            'PLAY': play,
-            'DEPLOYMENT': deployment,
-            'EDX_ENVIRONMENT': edx_environment,
-            'APP_REPO': app_repo,
-            'CONFIGURATION_REPO': configuration_repo,
-            'CONFIGURATION_SECURE_REPO': configuration_secure_repo,
-            'AMI_CREATION_TIMEOUT': ami_creation_timeout,
-            'AMI_WAIT': ami_wait,
-            'CACHE_ID': cache_id,  # gocd build number
-            'ARTIFACT_PATH': artifact_path,
-            'HIPCHAT_ROOM': hipchat_room,
             'ANSIBLE_CONFIG': constants.ANSIBLE_CONTINUOUS_DELIVERY_CONFIG,
-            'NO_REBOOT': 'no',
         }
     )
 
@@ -442,21 +431,23 @@ def generate_create_ami(
     ]))
     variables = [
         launch_info_path,
-        ('play', '$PLAY'),
-        ('deployment', '$DEPLOYMENT'),
-        ('edx_environment', '$EDX_ENVIRONMENT'),
-        ('app_repo', '$APP_REPO'),
-        ('configuration_repo', '$CONFIGURATION_REPO'),
+        ('play', play),
+        ('deployment', deployment),
+        ('edx_environment', edx_environment),
+        ('app_repo', app_repo),
+        ('configuration_repo', configuration_repo),
         ('configuration_version', '$GO_REVISION_CONFIGURATION'),
-        ('configuration_secure_repo', '$CONFIGURATION_SECURE_REPO'),
+        ('configuration_secure_repo', configuration_secure_repo),
         ('cache_id', '$GO_PIPELINE_COUNTER'),
-        ('ec2_region', '$EC2_REGION'),
-        ('artifact_path', '`/bin/pwd`/../{}'.format(constants.ARTIFACT_PATH)),
+        ('ec2_region', ec2_region),
+        ('artifact_path', '`/bin/pwd`/../{}'.format(artifact_path)),
         ('hipchat_token', '$HIPCHAT_TOKEN'),
-        ('hipchat_room', '$HIPCHAT_ROOM'),
-        ('ami_wait', '$AMI_WAIT'),
-        ('no_reboot', '$NO_REBOOT'),
+        ('hipchat_room', hipchat_room),
+        ('ami_wait', ami_wait),
+        ('no_reboot', 'no'),
+        ('ami_creation_timeout', ami_creation_timeout),
         ('extra_name_identifier', '$GO_PIPELINE_COUNTER'),
+        ('cache_id', cache_id),
     ]
     if version_tags:
         variables.append({'version_tags': version_tags})
