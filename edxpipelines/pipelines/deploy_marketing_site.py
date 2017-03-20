@@ -80,6 +80,8 @@ def install_pipelines(configurator, config, env_configs):  # pylint: disable=unu
             """\
             echo -n "release-$(date +%Y-%m-%d-%H.%M)" > ../target/{new_tag}.txt &&
             TAG_NAME=$(cat ../target/{new_tag}.txt) &&
+            /usr/bin/git config user.email "admin@edx.org" &&
+            /usr/bin/git config user.name "edx-secure" &&
             /usr/bin/git tag -a $TAG_NAME -m "Release for $(date +%B\\ %d,\\ %Y). Created by $GO_TRIGGER_USER." &&
             /usr/bin/git push origin $TAG_NAME
             """,
@@ -92,10 +94,13 @@ def install_pipelines(configurator, config, env_configs):  # pylint: disable=unu
     push_to_acquia_job.add_task(
         tasks.bash_task(
             """\
-            /usr/bin/git remote add acquia $PRIVATE_ACQUIA_REMOTE &&
-            GIT_SSH_COMMAND="/usr/bin/ssh -o StrictHostKeyChecking=no -i ../{ecom_secure}/acquia/acquia_github_key.pem
+            chmod 600 ../ecom-secure/acquia/acquia_github_key.pem &&
+            if [[ $(git remote) != *"acquia"*  ]]; then
+                /usr/bin/git remote add acquia $PRIVATE_ACQUIA_REMOTE
+            fi &&
+            GIT_SSH_COMMAND="/usr/bin/ssh -o StrictHostKeyChecking=no -i ../{ecom_secure}/acquia/acquia_github_key.pem"
             /usr/bin/git push acquia $(cat ../target/{new_tag}.txt) &&
-            echo -n "tags/" | cat - ../target/{new_tag}.txt > temp &&
+            echo -n "tags/" | cat ../target/{new_tag}.txt > temp &&
             mv temp ../target/{new_tag}.txt
             """,
             new_tag=constants.NEW_TAG_NAME,
