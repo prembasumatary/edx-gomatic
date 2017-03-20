@@ -74,7 +74,7 @@ def install_pipelines(configurator, config, env_configs):  # pylint: disable=unu
     clear_prod_caches_job.add_task(
         tasks.bash_task(
             """
-            chmod 600 ../ecom-secure/acquia/acquia_github_key.pem &&
+            chmod 600 ecom-secure/acquia/acquia_github_key.pem &&
             cp {ecom_secure}/acquia/acquia_github_key.pem {edx_mktg}/docroot/
             """,
             ecom_secure=ECOM_SECURE().destination_directory,
