@@ -322,6 +322,9 @@ def generate_build_stages(app_repo, edp, theme_url, configuration_secure_repo,
             cache_id='$GO_PIPELINE_COUNTER'
         )
 
+        configuration_secure_version = '$GO_REVISION_{}_SECURE'.format(edp.deployment.upper())
+        configuration_internal_version = '$GO_REVISION_{}_INTERNAL'.format(edp.deployment.upper())
+
         stages.generate_create_ami_from_instance(
             pipeline,
             edp=edp,
@@ -333,12 +336,20 @@ def generate_build_stages(app_repo, edp, theme_url, configuration_secure_repo,
             hipchat_token=config['hipchat_token'],
             hipchat_room='release pipeline',
             configuration_version='$GO_REVISION_CONFIGURATION',
-            configuration_secure_version='$GO_REVISION_{}_SECURE'.format(edp.deployment.upper()),
-            configuration_internal_version='$GO_REVISION_{}_SECURE'.format(edp.deployment.upper()),
+            configuration_secure_version=configuration_secure_version,
+            configuration_internal_version=configuration_internal_version,
             aws_access_key_id=config['aws_access_key_id'],
             aws_secret_access_key=config['aws_secret_access_key'],
             edxapp_theme_source_repo=theme_url,
             edxapp_theme_version='$GO_REVISION_EDX_MICROSITE',
+            version_tags={
+                'edx-platform': (EDX_PLATFORM().url, '$GO_REVISION_EDX_PLATFORM'),
+                'edx-platform-private': (EDX_PLATFORM_PRIVATE().url, '$GO_REVISION_EDX_PLATFORM_PRIVATE'),
+                'configuration': (configuration_url, '$GO_REVISION_CONFIGURATION'),
+                'configuration_secure': (configuration_secure_repo, configuration_secure_version),
+                'configuration_internal': (configuration_internal_repo, configuration_internal_version),
+                'edxapp_theme': (theme_url, '$GO_REVISION_EDX_MICROSITE'),
+            }
         )
 
         return pipeline

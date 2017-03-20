@@ -108,23 +108,34 @@ def install_pipelines(configurator, config, env_configs):  # pylint: disable=unu
         cache_id='$GO_PIPELINE_COUNTER'
     )
 
+    configuration_secure_repo = config['{}_configuration_secure_repo'.format(config['edx_deployment'])]
+    configuration_internal_repo = config['{}_configuration_internal_repo'.format(config['edx_deployment'])]
+    configuration_secure_version = '$GO_REVISION_{}_SECURE'.format(config['edx_deployment'].upper())
+    configuration_internal_version = '$GO_REVISION_{}_INTERNAL'.format(config['edx_deployment'].upper())
+
     stages.generate_create_ami_from_instance(
         pipeline,
         edp=utils.EDP(config['edx_environment'], config['edx_deployment'], config['play_name']),
         app_repo=config['app_repo'],
         app_version='$GO_REVISION_EDX_PLATFORM',
-        configuration_secure_repo=config['{}_configuration_secure_repo'.format(config['edx_deployment'])],
-        configuration_internal_repo=config['{}_configuration_internal_repo'.format(config['edx_deployment'])],
+        configuration_secure_repo=configuration_secure_repo,
+        configuration_internal_repo=configuration_internal_repo,
         configuration_repo=config['configuration_url'],
         hipchat_token=config['hipchat_token'],
         hipchat_room='release pipeline',
+        configuration_secure_version=configuration_secure_version,
+        configuration_internal_version=configuration_internal_version,
         configuration_version='$GO_REVISION_CONFIGURATION',
-        configuration_secure_version='$GO_REVISION_{}_SECURE'.format(config['edx_deployment'].upper()),
-        configuration_internal_version='$GO_REVISION_{}_SECURE'.format(config['edx_deployment'].upper()),
         aws_access_key_id=config['aws_access_key_id'],
         aws_secret_access_key=config['aws_secret_access_key'],
         edxapp_theme_source_repo=config['theme_url'],
         edxapp_theme_version='$GO_REVISION_EDX_MICROSITE',
+        version_tags={
+            'configuration': (config['configuration_url'], '$GO_REVISION_CONFIGURATION'),
+            'configuration_secure': (configuration_secure_repo, configuration_secure_version),
+            'configuration_internal': (configuration_internal_repo, configuration_internal_version),
+            'edxapp_theme': (config['theme_url'], '$GO_REVISION_EDX_MICROSITE'),
+        }
     )
 
     #

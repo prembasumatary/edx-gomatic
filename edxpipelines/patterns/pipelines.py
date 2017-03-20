@@ -190,6 +190,10 @@ def generate_basic_multistage_pipeline(
         hipchat_token=hipchat_token,
         hipchat_room=hipchat_room,
         configuration_secure_version='$GO_REVISION_CONFIGURATION_SECURE',
+        version_tags={
+            'configuration': (config['configuration_url'], '$GO_REVISION_CONFIGURATION'),
+            'configuration_secure': (config['configuration_secure_repo'], '$GO_REVISION_CONFIGURATION_SECURE'),
+        },
         # remove above line and uncomment the below once materials are changed over to list.
         # configuration_secure_version='$GO_REVISION_{}_SECURE'.format(config['edx_deployment'].upper()),
         **kwargs
@@ -423,6 +427,16 @@ def generate_service_deployment_pipelines(
             configuration_internal_material,
             constants.PLAYBOOK_PATH_TPL(edp),
             env_config,
+            version_tags={
+                edp.play: (app_material.url, app_version_var),
+                'configuration': (materials.CONFIGURATION().url, '$GO_REVISION_CONFIGURATION'),
+                'configuration_secure': (
+                    configuration_secure_material.url, constants.CONFIGURATION_SECURE_VERSION
+                ),
+                'configuration_internal': (
+                    configuration_internal_material.url, constants.CONFIGURATION_INTERNAL_VERSION
+                ),
+            },
             **overrides
         )
 
