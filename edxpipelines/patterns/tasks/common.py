@@ -1443,7 +1443,9 @@ def generate_tag_commit(job,
 def generate_check_pr_tests(job,
                             org,
                             repo,
-                            input_file,
+                            input_file=None,
+                            pr_number=None,
+                            commit_sha=None,
                             runif='passed'):
     """
     Assumptions:
@@ -1463,9 +1465,16 @@ def generate_check_pr_tests(job,
     cmd_args = [
         '--org', org,
         '--repo', repo,
-        '--input_file ../{}/{}'.format(constants.ARTIFACT_PATH, input_file),
         '--token $GIT_TOKEN',
     ]
+    if input_file:
+        cmd_args.extend(
+            ('--input_file', '../{}/{}'.format(constants.ARTIFACT_PATH, input_file))
+        )
+    if pr_number:
+        cmd_args.extend(('--pr_number', pr_number))
+    if commit_sha:
+        cmd_args.extend(('--commit_hash', commit_sha))
     return job.add_task(tubular_task(
         'check_pr_tests_status.py',
         cmd_args,
@@ -1486,7 +1495,9 @@ def generate_poll_pr_tests(job,
         job (gomatic.Job): the Job to attach this stage to.
         org (str): Name of the github organization that holds the repository (e.g. edx)
         repo (str): Name of repository (e.g edx-platform)
-        input_file (str): Name of YAML file containing PR id.
+        input_file (str): Name of YAML file containing PR number.
+        pr_number (int): PR number whose tests should be checked.
+        commit_sha (str): Commit SHA whose test should be checked.
         runif (str): one of ['passed', 'failed', 'any'] Default: passed
 
     Returns:

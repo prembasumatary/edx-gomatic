@@ -259,6 +259,7 @@ def install_pipelines(configurator, config, env_configs):
 
     manual_verification = edxapp.manual_verification(
         edxapp_deploy_group,
+        config
     )
     manual_verification.set_label_template('${stage_ami_deploy}')
 

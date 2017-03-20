@@ -58,6 +58,8 @@ INSTANCE_JANITOR_STAGE_NAME = 'janitor_instances'
 INSTANCE_JANITOR_JOB_NAME = 'janitor_instances_job'
 RELEASE_ADVANCER_STAGE_NAME = 'advance_release'
 RELEASE_ADVANCER_JOB_NAME = 'advance_release_job'
+CHECK_CI_STAGE_NAME = 'check_ci'
+CHECK_CI_JOB_NAME = 'check_ci_job'
 
 # Pipeline group names
 ORA2_PIPELINE_GROUP_NAME = 'ORA2'

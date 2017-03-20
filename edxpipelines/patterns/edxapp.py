@@ -485,7 +485,7 @@ def generate_cleanup_stages(pipeline, config, launch_stage):
     return pipeline
 
 
-def manual_verification(edxapp_deploy_group):
+def manual_verification(edxapp_deploy_group, config):
     """
     Variables needed for this pipeline:
     materials: A list of dictionaries of the materials used in this pipeline
@@ -503,14 +503,28 @@ def manual_verification(edxapp_deploy_group):
     # When a pipeline such as edx stage runs this pipeline is downstream. Since the first stage is automatic
     # the git materials will be carried over from the first pipeline.
     #
-    # The second stage in this pipeline requires manual approval.
+    # The second pipeline stage checks the result of the CI testing for the commit to release in the
+    # primary code repository.
+    # The third stage in this pipeline requires manual approval.
     #
     # This allows the overall workflow to remain paused while manual verification is completed and allows the git
     # materials to stay pinned.
     #
-    # Once the second phase is approved, the workflow will continue and pipelines downstream will continue to execute
+    # Once the third phase is approved, the workflow will continue and pipelines downstream will continue to execute
     # with the same pinned materials from the upstream pipeline.
     stages.generate_armed_stage(pipeline, constants.INITIAL_VERIFICATION_STAGE_NAME)
+
+    orgs_repos = []
+    # Add all repos for which to check CI tests in this list.
+    for material in [EDX_PLATFORM]:
+        # Parse out the org, repo from each material.
+        url_split = material().url.split(':')[-1].split('/')
+        orgs_repos.append((url_split[-2], url_split[-1].replace('.git', '')))
+    stages.generate_check_ci(
+        pipeline,
+        config['github_token'],
+        orgs_repos
+    )
 
     manual_verification_stage = pipeline.ensure_stage(constants.MANUAL_VERIFICATION_STAGE_NAME)
     manual_verification_stage.set_has_manual_approval()

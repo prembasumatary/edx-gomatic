@@ -1471,3 +1471,47 @@ def generate_find_and_advance_release(
     )
 
     return stage
+
+
+def generate_check_ci(
+        pipeline,
+        token,
+        repos_to_check
+):
+    """
+    Generates a stage used to check the CI combined test status of a commit.
+    Used to gate a release on whether CI has successfully passed for the release code.
+
+    Args:
+        pipeline (gomatic.Pipeline):
+        token (str): GitHub token used to check CI.
+        repos_to_check (list(list(str, str)):
+            List of materials' paired org/repo names.
+
+    Returns:
+        gomatic.Stage
+    """
+    pipeline.ensure_unencrypted_secure_environment_variables(
+        {
+            'GIT_TOKEN': token
+        }
+    )
+    stage = pipeline.ensure_stage(constants.CHECK_CI_STAGE_NAME)
+    # Add a separate checking job for each org/repo.
+    for org, repo in repos_to_check:
+        repo_underscore = repo.replace('-', '_')
+        job = stage.ensure_job(constants.CHECK_CI_JOB_NAME + '_' + repo_underscore)
+        tasks.generate_package_install(job, 'tubular')
+
+        cmd_args = [
+            '--token', '$GIT_TOKEN',
+            '--org', org,
+            '--repo', repo,
+            '--commit_hash', '$GO_REVISION_{}'.format(repo_underscore.upper())
+        ]
+        job.add_task(tasks.tubular_task(
+            'check_pr_tests_status.py',
+            cmd_args
+        ))
+
+    return stage
