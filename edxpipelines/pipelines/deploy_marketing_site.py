@@ -5,7 +5,7 @@ Script to install pipelines that can deploy the edx-mktg site.
 import sys
 from os import path
 
-from gomatic import BuildArtifact, ExecTask, FetchArtifactFile, FetchArtifactTask
+from gomatic import BuildArtifact, FetchArtifactFile, FetchArtifactTask
 
 # Used to import edxpipelines files - since the module is not installed.
 sys.path.append(path.dirname(path.dirname(path.dirname(path.abspath(__file__)))))
@@ -14,7 +14,7 @@ sys.path.append(path.dirname(path.dirname(path.dirname(path.abspath(__file__))))
 from edxpipelines import constants
 from edxpipelines.patterns import tasks
 from edxpipelines.pipelines.script import pipeline_script
-from edxpipelines.materials import (TUBULAR, EDX_MKTG)
+from edxpipelines.materials import (TUBULAR, EDX_MKTG, ECOM_SECURE)
 
 
 def install_pipelines(configurator, config, env_configs):  # pylint: disable=unused-argument
@@ -25,7 +25,8 @@ def install_pipelines(configurator, config, env_configs):  # pylint: disable=unu
         .ensure_pipeline_group(constants.DRUPAL_PIPELINE_GROUP_NAME) \
         .ensure_replacement_of_pipeline(constants.DEPLOY_MARKETING_PIPELINE_NAME) \
         .ensure_material(TUBULAR()) \
-        .ensure_material(EDX_MKTG())
+        .ensure_material(EDX_MKTG()) \
+        .ensure_material(ECOM_SECURE())
 
     pipeline.ensure_environment_variables(
         {
@@ -71,42 +72,34 @@ def install_pipelines(configurator, config, env_configs):  # pylint: disable=unu
 
     # Create a tag from MARKETING_REPOSITORY_VERSION branch of marketing repo
     push_to_acquia_job.add_task(
-        ExecTask(
-            [
-                '/bin/bash',
-                '-c',
-                # Writing dates to a file should help with any issues dealing with a job
-                # taking place over two days (23:59:59 -> 00:00:00). Only the day can be
-                # affected since we don't use minutes or seconds.
-                # NOTE: Uses UTC
-                'echo -n "release-$(date +%Y-%m-%d-%H.%M)" > ../target/{new_tag}.txt && '
-                'TAG_NAME=$(cat ../target/{new_tag}.txt) && '
-                '/usr/bin/git config user.email "admin@edx.org" && '
-                '/usr/bin/git config user.name "edx-secure" && '
-                '/usr/bin/git tag -a $TAG_NAME -m "Release for $(date +%B\\ %d,\\ %Y). '
-                'Created by $GO_TRIGGER_USER." && '
-                'GIT_SSH_COMMAND="/usr/bin/ssh -o StrictHostKeyChecking=no -i ../github_key.pem" '
-                '/usr/bin/git push origin $TAG_NAME'.format(new_tag=constants.NEW_TAG_NAME)
-            ],
+        tasks.bash_task(
+            # Writing dates to a file should help with any issues dealing with a job
+            # taking place over two days (23:59:59 -> 00:00:00). Only the day can be
+            # affected since we don't use minutes or seconds.
+            # NOTE: Uses UTC
+            """\
+            echo -n "release-$(date +%Y-%m-%d-%H.%M)" > ../target/{new_tag}.txt &&
+            TAG_NAME=$(cat ../target/{new_tag}.txt) &&
+            /usr/bin/git tag -a $TAG_NAME -m "Release for $(date +%B\\ %d,\\ %Y). Created by $GO_TRIGGER_USER." &&
+            /usr/bin/git push origin $TAG_NAME
+            """,
+            new_tag=constants.NEW_TAG_NAME,
             working_dir='edx-mktg'
         )
     )
 
-    # Set up Acquia Github key for use in pushing tag to Acquia
-    tasks.format_RSA_key(push_to_acquia_job, '../acquia_github_key.pem', '$PRIVATE_ACQUIA_GITHUB_KEY')
-
     # Set up Acquia remote repo and push tag to Acquia. Change new tag file to contain "tags/" for deployment.
     push_to_acquia_job.add_task(
-        ExecTask(
-            [
-                '/bin/bash',
-                '-c',
-                '/usr/bin/git remote add acquia $PRIVATE_ACQUIA_REMOTE && '
-                'GIT_SSH_COMMAND="/usr/bin/ssh -o StrictHostKeyChecking=no -i ../acquia_github_key.pem" '
-                '/usr/bin/git push acquia $(cat ../target/{new_tag}.txt) && '
-                'echo -n "tags/" | cat - ../target/{new_tag}.txt > temp && mv temp '
-                '../target/{new_tag}.txt'.format(new_tag=constants.NEW_TAG_NAME)
-            ],
+        tasks.bash_task(
+            """\
+            /usr/bin/git remote add acquia $PRIVATE_ACQUIA_REMOTE &&
+            GIT_SSH_COMMAND="/usr/bin/ssh -o StrictHostKeyChecking=no -i ../{ecom_secure}/acquia/acquia_github_key.pem
+            /usr/bin/git push acquia $(cat ../target/{new_tag}.txt) &&
+            echo -n "tags/" | cat - ../target/{new_tag}.txt > temp &&
+            mv temp ../target/{new_tag}.txt
+            """,
+            new_tag=constants.NEW_TAG_NAME,
+            ecom_secure=ECOM_SECURE().destination_directory,
             working_dir='edx-mktg'
         )
     )
@@ -145,10 +138,12 @@ def install_pipelines(configurator, config, env_configs):  # pylint: disable=unu
     clear_stage_caches_job = clear_stage_caches_stage.ensure_job(constants.CLEAR_STAGE_CACHES_JOB_NAME)
 
     tasks.generate_package_install(clear_stage_caches_job, 'tubular')
-    tasks.format_RSA_key(
-        clear_stage_caches_job,
-        '../edx-mktg/docroot/acquia_github_key.pem',
-        '$PRIVATE_ACQUIA_GITHUB_KEY'
+    clear_stage_caches_job.add_task(
+        tasks.bash_task(
+            'cp {ecom_secure}/acquia/acquia_github_key.pem {edx_mktg}/docroot/',
+            ecom_secure=ECOM_SECURE().destination_directory,
+            edx_mktg=EDX_MKTG().destination_directory
+        )
     )
     tasks.generate_flush_drupal_caches(clear_stage_caches_job, constants.STAGE_ENV)
     tasks.generate_clear_varnish_cache(clear_stage_caches_job, constants.STAGE_ENV)
@@ -179,10 +174,12 @@ def install_pipelines(configurator, config, env_configs):  # pylint: disable=unu
     clear_prod_caches_job = clear_prod_caches_stage.ensure_job(constants.CLEAR_PROD_CACHES_JOB_NAME)
 
     tasks.generate_package_install(clear_prod_caches_job, 'tubular')
-    tasks.format_RSA_key(
-        clear_prod_caches_job,
-        '../edx-mktg/docroot/acquia_github_key.pem',
-        '$PRIVATE_ACQUIA_GITHUB_KEY'
+    clear_prod_caches_job.add_task(
+        tasks.bash_task(
+            'cp {ecom_secure}/acquia/acquia_github_key.pem {edx_mktg}/docroot/',
+            ecom_secure=ECOM_SECURE().destination_directory,
+            edx_mktg=EDX_MKTG().destination_directory
+        )
     )
     tasks.generate_flush_drupal_caches(clear_prod_caches_job, constants.PROD_ENV)
     tasks.generate_clear_varnish_cache(clear_prod_caches_job, constants.PROD_ENV)

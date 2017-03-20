@@ -14,7 +14,7 @@ sys.path.append(path.dirname(path.dirname(path.dirname(path.abspath(__file__))))
 from edxpipelines import constants
 from edxpipelines.patterns import tasks
 from edxpipelines.pipelines.script import pipeline_script
-from edxpipelines.materials import (TUBULAR, EDX_MKTG)
+from edxpipelines.materials import (TUBULAR, EDX_MKTG, ECOM_SECURE)
 
 
 def install_pipelines(configurator, config, env_configs):  # pylint: disable=unused-argument
@@ -26,6 +26,7 @@ def install_pipelines(configurator, config, env_configs):  # pylint: disable=unu
         .ensure_replacement_of_pipeline('rollback-stage-marketing-site') \
         .ensure_material(TUBULAR()) \
         .ensure_material(EDX_MKTG()) \
+        .ensure_material(ECOM_SECURE()) \
         .ensure_material(PipelineMaterial(constants.DEPLOY_MARKETING_PIPELINE_NAME, constants.FETCH_TAG_STAGE_NAME))
 
     pipeline.ensure_environment_variables(
@@ -70,10 +71,12 @@ def install_pipelines(configurator, config, env_configs):  # pylint: disable=unu
     clear_stage_caches_job = clear_stage_caches_stage.ensure_job(constants.CLEAR_STAGE_CACHES_JOB_NAME)
 
     tasks.generate_package_install(clear_stage_caches_job, 'tubular')
-    tasks.format_RSA_key(
-        clear_stage_caches_job,
-        '../edx-mktg/docroot/acquia_github_key.pem',
-        '$PRIVATE_ACQUIA_GITHUB_KEY'
+    clear_stage_caches_job.add_task(
+        tasks.bash_task(
+            'cp {ecom_secure}/acquia/acquia_github_key.pem {edx_mktg}/docroot/',
+            ecom_secure=ECOM_SECURE().destination_directory,
+            edx_mktg=EDX_MKTG().destination_directory
+        )
     )
     tasks.generate_flush_drupal_caches(clear_stage_caches_job, constants.STAGE_ENV)
     tasks.generate_clear_varnish_cache(clear_stage_caches_job, constants.STAGE_ENV)
