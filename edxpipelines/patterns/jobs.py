@@ -338,9 +338,14 @@ def generate_merge_release_candidate(
     return merge_branch_job
 
 
-def generate_tag_commit(stage, tag_id, deploy_artifact, org, repo, head_sha):
+def generate_tag_commit(
+        stage, tag_id, deploy_artifact, org, repo,
+        head_sha=None, head_sha_variable=None, head_sha_artifact=None
+):
     """
     Generates a stage that is used to tag a release SHA.
+
+    Either ``head_sha``, or both ``head_sha_variable`` and ``head_sha_artifact`` are required.
 
     Args:
         stage (gomatic.Stage): The stage to add the job to
@@ -348,7 +353,9 @@ def generate_tag_commit(stage, tag_id, deploy_artifact, org, repo, head_sha):
         deploy_artifact (ArtifactLocation): Location of deployment artifact file
         org (str): Name of the github organization that holds the repository (e.g. edx)
         repo (str): Name of repository (e.g edx-platform)
-        head_sha (str): commit SHA or environment variable holding the SHA to tag as the release
+        head_sha (str): commit SHA or environment variable holding the SHA to tag as the release. Optional.
+        head_sha_variable (str): The variable in head_sha_file that contains the SHA to tag. Optional.
+        head_sha_artifact (ArtifactLocation): The file containing the head_sha_variable. Optional.
 
     Returns:
         gomatic.Job
@@ -362,10 +369,15 @@ def generate_tag_commit(stage, tag_id, deploy_artifact, org, repo, head_sha):
         # Fetch the AMI-deployment artifact to extract deployment time.
         tasks.retrieve_artifact(deploy_artifact, tag_job, constants.ARTIFACT_PATH)
 
+    if head_sha_artifact:
+        tasks.retrieve_artifact(head_sha_artifact, tag_job, constants.ARTIFACT_PATH)
+
     tasks.generate_tag_commit(
         tag_job,
         org,
         repo,
         commit_sha=head_sha,
-        deploy_artifact_filename=deploy_artifact.file_name if deploy_artifact else None
+        deploy_artifact_filename=deploy_artifact.file_name if deploy_artifact else None,
+        commit_sha_variable=head_sha_variable,
+        input_file=head_sha_artifact.file_name if head_sha_artifact else None,
     )

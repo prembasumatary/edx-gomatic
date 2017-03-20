@@ -77,6 +77,13 @@ def install_pipelines(configurator, config, env_configs):
         env_configs['prod-edge']
     )
 
+    prerelease_merge_artifact = utils.ArtifactLocation(
+        prerelease_materials.name,
+        constants.PRERELEASE_MATERIALS_STAGE_NAME,
+        constants.PRERELEASE_MATERIALS_JOB_NAME,
+        constants.PRIVATE_RC_FILENAME,
+    )
+
     stage_b = edxapp.launch_and_terminate_subset_pipeline(
         edxapp_group,
         [
@@ -87,6 +94,7 @@ def install_pipelines(configurator, config, env_configs):
                 configuration_secure_repo=EDX_SECURE().url,
                 configuration_internal_repo=EDX_INTERNAL().url,
                 configuration_url=CONFIGURATION().url,
+                prerelease_merge_artifact=prerelease_merge_artifact,
             ),
         ],
         config=env_configs['stage'],
@@ -111,6 +119,7 @@ def install_pipelines(configurator, config, env_configs):
                 configuration_secure_repo=EDX_SECURE().url,
                 configuration_internal_repo=EDX_INTERNAL().url,
                 configuration_url=CONFIGURATION().url,
+                prerelease_merge_artifact=prerelease_merge_artifact,
             ),
         ],
         config=env_configs['prod-edx'],
@@ -135,6 +144,7 @@ def install_pipelines(configurator, config, env_configs):
                 configuration_secure_repo=EDGE_SECURE().url,
                 configuration_internal_repo=EDGE_INTERNAL().url,
                 configuration_url=CONFIGURATION().url,
+                prerelease_merge_artifact=prerelease_merge_artifact,
             ),
         ],
         config=env_configs['prod-edge'],
@@ -487,10 +497,18 @@ def install_pipelines(configurator, config, env_configs):
         edxapp_deploy_group,
         constants.BRANCH_CLEANUP_PIPELINE_NAME,
         deploy_artifact,
+        prerelease_merge_artifact,
         config,
     )
     merge_back.set_label_template('${{deploy_pipeline_{}}}'.format(prod_edx_md.name))
 
+    merge_back.ensure_material(
+        PipelineMaterial(
+            pipeline_name=prerelease_materials.name,
+            stage_name=constants.PRERELEASE_MATERIALS_STAGE_NAME,
+            material_name='prerelease_materials',
+        )
+    )
     # Specify the upstream deploy pipeline materials for this branch-merging pipeline.
     for deploy_pipeline in (prod_edx_md, prod_edge_md):
         merge_back.ensure_material(

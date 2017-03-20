@@ -128,14 +128,25 @@ def prerelease_materials(edxapp_group, config, stage_config, prod_edx_config, pr
     Optional variables:
     - configuration_secure_version
     """
-    cut_rc = edxapp_group.ensure_replacement_of_pipeline(constants.PRERELEASE_EDXAPP_CUT_RC_PIPELINE_NAME)
-    cut_rc.set_label_template('${edx-platform[:7]}-${COUNT}')
+    pipeline = edxapp_group.ensure_replacement_of_pipeline("prerelease_edxapp_materials_latest")
+    pipeline.set_label_template('${edx-platform[:7]}-${COUNT}')
 
-    cut_rc_stage = cut_rc.ensure_stage(constants.CUT_PRIVATE_RC_STAGE_NAME)
-    cut_rc_job = cut_rc_stage.ensure_job(constants.CUT_PRIVATE_RC_JOB_NAME)
-    tasks.generate_package_install(cut_rc_job, 'tubular')
+    for material in (
+            CONFIGURATION, EDX_SECURE, EDGE_SECURE,
+            EDX_MICROSITE, EDX_INTERNAL, EDGE_INTERNAL,
+    ):
+        pipeline.ensure_material(material())
+
+    pipeline.ensure_material(TUBULAR())
+    pipeline.ensure_material(EDX_PLATFORM(material_name='edx-platform', ignore_patterns=[]))
+
+    stage = pipeline.ensure_stage(constants.PRERELEASE_MATERIALS_STAGE_NAME)
+    job = stage.ensure_job(constants.PRERELEASE_MATERIALS_JOB_NAME)
+    tasks.generate_package_install(job, 'tubular')
+
     private_releases.generate_create_private_release_candidate(
-        cut_rc_job, config['git_token'],
+        job,
+        config['git_token'],
         ('edx', 'edx-platform'),
         'master',
         EDX_PLATFORM().branch,
@@ -144,47 +155,6 @@ def prerelease_materials(edxapp_group, config, stage_config, prod_edx_config, pr
         EDX_PLATFORM_PRIVATE().branch,
         target_reference_repo='edx-platform-private',
     )
-    # Delay completing this job to give GoCD time to figure out that the edx-platform-private
-    # material is updated, so that it doesn't trigger the downstream pipeline without that
-    # changed material.
-    cut_rc_job.add_task(tasks.bash_task("sleep 60s"))
-
-    cut_rc_material = PipelineMaterial(
-        cut_rc.name,
-        constants.CUT_PRIVATE_RC_STAGE_NAME,
-        material_name='cut_private_rc'
-    )
-
-    pipeline = edxapp_group.ensure_replacement_of_pipeline("prerelease_edxapp_materials_latest")
-    pipeline.set_label_template('${{{}}}'.format(cut_rc_material._PipelineMaterial__material_name))  # pylint: disable=no-member, protected-access
-
-    for material in (
-            CONFIGURATION, EDX_SECURE, EDGE_SECURE,
-            EDX_MICROSITE, EDX_INTERNAL, EDGE_INTERNAL,
-    ):
-        cut_rc.ensure_material(material(ignore_patterns=[]))
-        pipeline.ensure_material(material())
-
-    cut_rc.ensure_material(TUBULAR())
-    cut_rc.ensure_material(EDX_PLATFORM(material_name='edx-platform', ignore_patterns=[]))
-
-    pipeline.ensure_material(TUBULAR())
-    pipeline.ensure_material(EDX_PLATFORM())
-    pipeline.ensure_material(EDX_PLATFORM_PRIVATE(ignore_patterns=[]))
-    pipeline.ensure_material(cut_rc_material)
-
-    stage = pipeline.ensure_stage(constants.PRERELEASE_MATERIALS_STAGE_NAME)
-    job = stage.ensure_job(constants.PRERELEASE_MATERIALS_JOB_NAME)
-    tasks.generate_package_install(job, 'tubular')
-
-    private_rc_artifact = utils.ArtifactLocation(
-        cut_rc.name,
-        cut_rc_stage.name,
-        cut_rc_job.name,
-        constants.PRIVATE_RC_FILENAME
-    )
-
-    private_releases.generate_private_rc_assertion(job, private_rc_artifact)
 
     # This prevents the commit being released from being lost when the new
     # release-candidate is cut. However, this will require a janitor job to
@@ -193,10 +163,6 @@ def prerelease_materials(edxapp_group, config, stage_config, prod_edx_config, pr
         pipeline, job, config['git_token'], 'edx', 'edx-platform',
         target_branch="release-candidate-$GO_PIPELINE_COUNTER",
         sha='$GO_REVISION_EDX_PLATFORM')
-    tasks.generate_create_branch(
-        pipeline, job, config['git_token'], 'edx', 'edx-platform-private',
-        target_branch="release-candidate-$GO_PIPELINE_COUNTER",
-        sha='$GO_REVISION_EDX_PLATFORM_PRIVATE')
 
     # Move the AMI selection jobs here in a single stage.
     stage = pipeline.ensure_stage(constants.BASE_AMI_SELECTION_STAGE_NAME)
@@ -292,7 +258,7 @@ def launch_and_terminate_subset_pipeline(
 
 
 def generate_build_stages(app_repo, edp, theme_url, configuration_secure_repo,
-                          configuration_internal_repo, configuration_url):
+                          configuration_internal_repo, configuration_url, prerelease_merge_artifact):
     """
     Generate the stages needed to build an edxapp AMI.
     """
@@ -300,6 +266,7 @@ def generate_build_stages(app_repo, edp, theme_url, configuration_secure_repo,
         """
         A builder for the stages needed to build an edxapp AMI.
         """
+
         stages.generate_run_play(
             pipeline,
             'playbooks/edx-east/edxapp.yml',
@@ -310,8 +277,6 @@ def generate_build_stages(app_repo, edp, theme_url, configuration_secure_repo,
             configuration_internal_dir='{}-internal'.format(edp.deployment),
             hipchat_token=config['hipchat_token'],
             hipchat_room='release',
-            edx_platform_version='$GO_REVISION_EDX_PLATFORM',
-            edx_platform_repo='$APP_REPO',
             configuration_version='$GO_REVISION_CONFIGURATION',
             edxapp_theme_source_repo=theme_url,
             # Currently, edx-theme isn't exposed as a material. See https://openedx.atlassian.net/browse/TE-1874
@@ -319,7 +284,10 @@ def generate_build_stages(app_repo, edp, theme_url, configuration_secure_repo,
             # edxapp_theme_name='$EDXAPP_THEME_NAME',
             disable_edx_services='true',
             COMMON_TAG_EC2_INSTANCE='true',
-            cache_id='$GO_PIPELINE_COUNTER'
+            cache_id='$GO_PIPELINE_COUNTER',
+            override_artifacts=[
+                prerelease_merge_artifact,
+            ],
         )
 
         configuration_secure_version = '$GO_REVISION_{}_SECURE'.format(edp.deployment.upper())
@@ -344,7 +312,6 @@ def generate_build_stages(app_repo, edp, theme_url, configuration_secure_repo,
             edxapp_theme_version='$GO_REVISION_EDX_MICROSITE',
             version_tags={
                 'edx_platform': (EDX_PLATFORM().url, '$GO_REVISION_EDX_PLATFORM'),
-                'edx_platform_private': (EDX_PLATFORM_PRIVATE().url, '$GO_REVISION_EDX_PLATFORM_PRIVATE'),
                 'configuration': (configuration_url, '$GO_REVISION_CONFIGURATION'),
                 'configuration_secure': (configuration_secure_repo, configuration_secure_version),
                 'configuration_internal': (configuration_internal_repo, configuration_internal_version),
@@ -802,7 +769,7 @@ def rollback_database(build_pipeline, deploy_pipeline):
     return builder
 
 
-def merge_back_branches(edxapp_deploy_group, pipeline_name, deploy_artifact, config):
+def merge_back_branches(edxapp_deploy_group, pipeline_name, deploy_artifact, prerelease_merge_artifact, config):
     """
     Arguments:
         edxapp_deploy_group (gomatic.PipelineGroup): The group in which to create this pipeline
@@ -851,13 +818,15 @@ def merge_back_branches(edxapp_deploy_group, pipeline_name, deploy_artifact, con
         repo='edx-platform',
         head_sha='$GO_REVISION_EDX_PLATFORM',
     )
+
     jobs.generate_tag_commit(
         git_stage,
         'edx-platform-private',
         deploy_artifact=deploy_artifact,
         org='edx',
         repo='edx-platform-private',
-        head_sha='$GO_REVISION_EDX_PLATFORM_PRIVATE',
+        head_sha_variable='edx-platform-version',
+        head_sha_artifact=prerelease_merge_artifact,
     )
 
     # Create a single stage in the pipeline which will:

@@ -4,7 +4,7 @@ Task patterns for private releases.
 
 from gomatic import BuildArtifact
 
-from .common import tubular_task, bash_task, retrieve_artifact, generate_target_directory
+from .common import tubular_task, generate_target_directory
 from ... import constants
 
 
@@ -64,6 +64,8 @@ def generate_create_private_release_candidate(
         '--target-branch', target_branch,
         '--source-branch', source_branch,
         '--out-file', artifact_path,
+        '--sha-variable', 'edx-platform-version',
+        '--repo-variable', 'edx-platform-repo',
     ]
 
     if target_reference_repo:
@@ -76,17 +78,3 @@ def generate_create_private_release_candidate(
     ))
 
     job.ensure_artifacts(set([BuildArtifact(artifact_path)]))
-
-
-def generate_private_rc_assertion(job, private_rc_artifact):
-    """
-    A task that fails if the checked out revision of edx-platform-private isn't
-    the tip of the branch created and logged in private_rc_artifact.
-    """
-    retrieve_artifact(private_rc_artifact, job)
-
-    job.ensure_task(bash_task(
-        '''grep --quiet "merge_sha: $GO_REVISION_EDX_PLATFORM_PRIVATE" {artifact_path}/{filename}''',
-        artifact_path=constants.ARTIFACT_PATH,
-        filename=private_rc_artifact.file_name,
-    ))

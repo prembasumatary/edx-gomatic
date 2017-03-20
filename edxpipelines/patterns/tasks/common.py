@@ -867,6 +867,7 @@ def generate_run_app_playbook(
         configuration_secure_dir=constants.PRIVATE_CONFIGURATION_LOCAL_DIR,
         configuration_internal_dir=constants.INTERNAL_CONFIGURATION_LOCAL_DIR,
         runif="passed",
+        override_files=None,
         **kwargs):
     """
     Generates:
@@ -910,6 +911,9 @@ def generate_run_app_playbook(
     if not launch_artifacts_base_path:
         launch_artifacts_base_path = constants.ARTIFACT_PATH
 
+    if not override_files:
+        override_files = []
+
     # Set up the necessary environment variables.
     job.ensure_encrypted_environment_variables(
         {
@@ -948,7 +952,7 @@ def generate_run_app_playbook(
             '{}/ansible/vars/${{EDX_ENVIRONMENT}}-${{DEPLOYMENT}}.yml'.format(configuration_internal_dir),
             '{}/ansible/vars/${{DEPLOYMENT}}.yml'.format(configuration_secure_dir),
             '{}/ansible/vars/${{EDX_ENVIRONMENT}}-${{DEPLOYMENT}}.yml'.format(configuration_secure_dir),
-        ] + sorted(kwargs.items()),
+        ] + override_files + sorted(kwargs.items()),
         playbook=playbook_with_path,
         runif=runif
     ))
@@ -1396,6 +1400,7 @@ def generate_tag_commit(job,
                         repo,
                         input_file=None,
                         commit_sha=None,
+                        commit_sha_variable=None,
                         branch_name=None,
                         deploy_artifact_filename=None,
                         tag_name=None,
@@ -1449,6 +1454,9 @@ def generate_tag_commit(job,
             artifact_path=constants.ARTIFACT_PATH,
             deploy_artifact_filename=deploy_artifact_filename
         ))
+
+    if commit_sha_variable:
+        cmd_args.extend(('--commit_sha_variable', commit_sha_variable))
 
     return job.add_task(tubular_task(
         'create_tag.py',
