@@ -145,7 +145,10 @@ def install_pipelines(configurator, config, env_configs):  # pylint: disable=unu
     tasks.generate_package_install(clear_stage_caches_job, 'tubular')
     clear_stage_caches_job.add_task(
         tasks.bash_task(
-            'cp {ecom_secure}/acquia/acquia_github_key.pem {edx_mktg}/docroot/',
+            """
+            chmod 600 ecom-secure/acquia/acquia_github_key.pem &&
+            cp {ecom_secure}/acquia/acquia_github_key.pem {edx_mktg}/docroot/
+            """,
             ecom_secure=ECOM_SECURE().destination_directory,
             edx_mktg=EDX_MKTG().destination_directory
         )
@@ -181,7 +184,10 @@ def install_pipelines(configurator, config, env_configs):  # pylint: disable=unu
     tasks.generate_package_install(clear_prod_caches_job, 'tubular')
     clear_prod_caches_job.add_task(
         tasks.bash_task(
-            'cp {ecom_secure}/acquia/acquia_github_key.pem {edx_mktg}/docroot/',
+            """
+            chmod 600 ecom-secure/acquia/acquia_github_key.pem &&
+            cp {ecom_secure}/acquia/acquia_github_key.pem {edx_mktg}/docroot/
+            """,
             ecom_secure=ECOM_SECURE().destination_directory,
             edx_mktg=EDX_MKTG().destination_directory
         )
