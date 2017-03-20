@@ -105,3 +105,12 @@ EDX_MKTG = partial(
     destination_directory="edx-mktg",
     ignore_patterns=['**/*'],
 )
+
+ECOM_SECURE = partial(
+    GitMaterial,
+    url="git@github.com:edx-ops/ecom-secure",
+    branch="master",
+    polling=True,
+    destination_directory="ecom-secure",
+    ignore_patterns=['**/*'],
+)
