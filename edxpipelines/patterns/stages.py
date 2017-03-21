@@ -198,6 +198,7 @@ def generate_run_play(pipeline,
                       manual_approval=False,
                       configuration_secure_dir=constants.PRIVATE_CONFIGURATION_LOCAL_DIR,
                       configuration_internal_dir=constants.INTERNAL_CONFIGURATION_LOCAL_DIR,
+                      override_artifacts=None,
                       **kwargs):
     """
     TODO: This currently runs from the configuration/playbooks/continuous_delivery/ directory. Need to figure out how to
@@ -255,6 +256,14 @@ def generate_run_play(pipeline,
             constants.ARTIFACT_PATH
         )
 
+    override_files = []
+    if not override_artifacts:
+        override_artifacts = []
+
+    for artifact in override_artifacts:
+        tasks.retrieve_artifact(artifact, job, constants.ARTIFACT_PATH)
+        override_files.append('{}/{}'.format(constants.ARTIFACT_PATH, artifact.file_name))
+
     tasks.generate_run_app_playbook(
         job=job,
         playbook_with_path=playbook_with_path,
@@ -265,6 +274,7 @@ def generate_run_play(pipeline,
         hipchat_room=hipchat_room,
         configuration_secure_dir=configuration_secure_dir,
         configuration_internal_dir=configuration_internal_dir,
+        override_files=override_files,
         **kwargs)
     return stage
 

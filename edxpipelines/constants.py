@@ -6,8 +6,6 @@ from enum import Enum
 
 # Names for the standard stages/jobs
 ARM_PRERELEASE_STAGE = 'arm_prerelease'
-CUT_PRIVATE_RC_STAGE_NAME = 'cut_private_rc'
-CUT_PRIVATE_RC_JOB_NAME = 'cut_private_rc_job'
 DEPLOY_AMI_STAGE_NAME = 'deploy_ami'
 DEPLOY_AMI_JOB_NAME = 'deploy_ami_job'
 RUN_MIGRATIONS_STAGE_NAME = 'apply_migrations'
