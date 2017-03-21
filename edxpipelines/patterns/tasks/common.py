@@ -309,9 +309,21 @@ def generate_launch_instance(
 
     Args:
         job (gomatic.job.Job): the gomatic job which to add the launch instance task
-        runif (str): one of ['passed', 'failed', 'any'] Default: passed
+        aws_access_key_id (str): Access key used to connect to AWS.
+        aws_secret_access_key (str): Secret key used to connect to AWS.
+        ec2_vpc_subnet_id (str): EC2 VPC subnet ID
+        ec2_security_group_id (str): EC2 security group ID
+        ec2_instance_profile_name (str): Instance profile to use to launch the AMI
+        base_ami_id (str): AMI to use when launching instance.
+        ec2_region (str): EC2 region, i.e. us-east-1
+        ec2_instance_type (str): EC2 instance type to launch
+        ec2_timeout (int): Time in seconds to wait for an EC2 instance to be available
+        ec2_ebs_volume_size (int): Size in GB for the root volume
         variable_override_path (str): The path to an already-retrieved yaml file specifying
             variable overrides to use when launching the instance.
+        hipchat_token (str): Auth token to use in posting to HipChat
+        hipchat_room (str): HipChat room where posting is sent
+        runif (str): one of ['passed', 'failed', 'any'] Default: passed
 
     Returns:
         The newly created task (gomatic.gocd.tasks.ExecTask)
