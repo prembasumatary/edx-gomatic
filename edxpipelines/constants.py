@@ -79,6 +79,12 @@ CREATE_ORA2_SANDBOX_JENKINS_JOB_NAME = 'CreateSandbox'
 SET_ORA2_VERSION_STAGE_NAME = 'run_set_ora2_version'
 SET_ORA2_VERSION_JOB_NAME = 'run_set_ora2_version_job'
 SET_ORA2_VERSION_JENKINS_JOB_NAME = 'SetOra2VersionOnSandbox'
+ADD_COURSE_TO_ORA2_STAGE_NAME = 'add_course_to_ora2'
+ADD_COURSE_TO_ORA2_JOB_NAME = 'add_course_to_ora2_job'
+ADD_COURSE_TO_ORA2_JENKINS_JOB_NAME = 'add-course-to-sandbox'
+RUN_ORA2_TESTS_STAGE_NAME = 'run_ora2_tests'
+RUN_ORA2_TESTS_JOB_NAME = 'run_ora2_tests_job'
+RUN_ORA2_TESTS_JENKINS_JOB_NAME = 'run-acceptance-tests'
 
 # Tubular configuration
 TUBULAR_SLEEP_WAIT_TIME = '20'
