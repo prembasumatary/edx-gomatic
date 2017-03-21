@@ -18,7 +18,7 @@ from edxpipelines.patterns.tasks import private_releases
 from edxpipelines import constants
 from edxpipelines.materials import (
     TUBULAR, CONFIGURATION, EDX_PLATFORM, EDX_SECURE, EDGE_SECURE,
-    EDX_MICROSITE, EDX_INTERNAL, EDGE_INTERNAL, EDX_PLATFORM_PRIVATE,
+    EDX_MICROSITE, EDX_INTERNAL, EDGE_INTERNAL,
 )
 
 
@@ -152,7 +152,7 @@ def prerelease_materials(edxapp_group, config, stage_config, prod_edx_config, pr
         EDX_PLATFORM().branch,
         ('edx', 'edx-platform-private'),
         'security-release',
-        EDX_PLATFORM_PRIVATE().branch,
+        'release-candidate',
         target_reference_repo='edx-platform-private',
     )
 
@@ -491,7 +491,7 @@ def manual_verification(edxapp_deploy_group):
     pipeline = edxapp_deploy_group.ensure_replacement_of_pipeline(EDXAPP_MANUAL_PIPELINE_NAME)
 
     for material in (
-            TUBULAR, CONFIGURATION, EDX_PLATFORM, EDX_PLATFORM_PRIVATE, EDX_SECURE, EDGE_SECURE,
+            TUBULAR, CONFIGURATION, EDX_PLATFORM, EDX_SECURE, EDGE_SECURE,
             EDX_MICROSITE, EDX_INTERNAL, EDGE_INTERNAL
     ):
         pipeline.ensure_material(material())
@@ -700,7 +700,7 @@ def rollback_database(build_pipeline, deploy_pipeline):
         Add database rollback stages to ``pipeline``.
         """
         for material in (
-                TUBULAR, CONFIGURATION, EDX_PLATFORM, EDX_PLATFORM_PRIVATE, EDX_SECURE, EDGE_SECURE,
+                TUBULAR, CONFIGURATION, EDX_PLATFORM, EDX_SECURE, EDGE_SECURE,
                 EDX_MICROSITE, EDX_INTERNAL, EDGE_INTERNAL,
         ):
             pipeline.ensure_material(material())
@@ -780,7 +780,7 @@ def merge_back_branches(edxapp_deploy_group, pipeline_name, deploy_artifact, pre
     pipeline = edxapp_deploy_group.ensure_replacement_of_pipeline(pipeline_name)
 
     for material in (
-            TUBULAR, CONFIGURATION, EDX_PLATFORM, EDX_PLATFORM_PRIVATE, EDX_SECURE, EDGE_SECURE,
+            TUBULAR, CONFIGURATION, EDX_PLATFORM, EDX_SECURE, EDGE_SECURE,
             EDX_MICROSITE, EDX_INTERNAL, EDGE_INTERNAL
     ):
         pipeline.ensure_material(material())
