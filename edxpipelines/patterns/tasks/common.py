@@ -822,27 +822,6 @@ def generate_migration_rollback(
     ))
 
 
-def format_RSA_key(job, output_path, key):
-    """
-    Formats an RSA key for use in future jobs. Does not last between stages.
-    Args:
-        job (gomatic.job.Job): the gomatic job to which the task will be added
-        output_path (str): The file to output the formatted key to.
-        key (str): The RSA key to be formatted
-
-    Returns:
-        The newly created task (gomatic.gocd.tasks.ExecTask)
-    """
-    return job.add_task(tubular_task(
-        'format_rsa_key.py',
-        prefix=[
-            'touch {} &&'.format(output_path),
-            'chmod 600 {} &&'.format(output_path),
-        ],
-        arguments=['--key', '"{}"'.format(key), '--output-file', output_path],
-    ))
-
-
 def generate_target_directory(job, directory_name=constants.ARTIFACT_PATH, runif="passed"):
     """
     Add a task to ``job`` that creates the specified directory ``directory_name``.
