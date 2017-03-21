@@ -104,5 +104,47 @@ def install_pipelines(configurator, config, env_configs):  # pylint: disable=unu
         set_ora2_version_jenkins_params
     )
 
+    # Create the Ora2 Add Course to Sandbox stage, job, and task
+    jenkins_add_course_to_ora2_stage = pipeline.ensure_stage(
+        constants.ADD_COURSE_TO_ORA2_STAGE_NAME
+    )
+    jenkins_add_course_to_ora2_job = jenkins_add_course_to_ora2_stage.ensure_job(
+        constants.ADD_COURSE_TO_ORA2_JOB_NAME
+    )
+    tasks.generate_package_install(jenkins_add_course_to_ora2_job, 'tubular')
+    # Keys need to be upper case for this job to use them
+    add_course_to_ora2_jenkins_params = {
+        'SANDBOX_BASE': '$DNS_NAME',
+    }
+    tasks.trigger_jenkins_build(
+        jenkins_add_course_to_ora2_job,
+        constants.ORA2_JENKINS_URL,
+        constants.ORA2_JENKINS_USER_NAME,
+        constants.ADD_COURSE_TO_ORA2_JENKINS_JOB_NAME,
+        add_course_to_ora2_jenkins_params
+    )
+
+    # Create the Ora2 Run Tests stage, job, and task
+    jenkins_run_ora2_tests_stage = pipeline.ensure_stage(
+        constants.RUN_ORA2_TESTS_STAGE_NAME
+    )
+    jenkins_run_ora2_tests_job = jenkins_run_ora2_tests_stage.ensure_job(
+        constants.RUN_ORA2_TESTS_JOB_NAME
+    )
+    tasks.generate_package_install(jenkins_run_ora2_tests_job, 'tubular')
+    # Keys need to be upper case for this job to use them
+    run_ora2_tests_jenkins_params = {
+        'TEST_HOST': '${DNS_NAME}.sandbox.edx.org',
+        'BRANCH': '$ORA2_VERSION',
+        'SLEEP_TIME': 300
+    }
+    tasks.trigger_jenkins_build(
+        jenkins_run_ora2_tests_job,
+        constants.ORA2_JENKINS_URL,
+        constants.ORA2_JENKINS_USER_NAME,
+        constants.RUN_ORA2_TESTS_JENKINS_JOB_NAME,
+        run_ora2_tests_jenkins_params
+    )
+
 if __name__ == "__main__":
     pipeline_script(install_pipelines)
