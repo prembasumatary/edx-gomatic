@@ -162,7 +162,7 @@ def prerelease_materials(edxapp_group, config, stage_config, prod_edx_config, pr
     tasks.generate_create_branch(
         pipeline, job, config['git_token'], 'edx', 'edx-platform',
         target_branch="release-candidate-$GO_PIPELINE_COUNTER",
-        sha='$GO_REVISION_EDX_PLATFORM')
+        sha=EDX_PLATFORM().envvar_bash)
 
     # Move the AMI selection jobs here in a single stage.
     stage = pipeline.ensure_stage(constants.BASE_AMI_SELECTION_STAGE_NAME)
@@ -278,7 +278,7 @@ def generate_build_stages(app_repo, edp, theme_url, configuration_secure_repo,
             configuration_internal_dir='{}-internal'.format(edp.deployment),
             hipchat_token=config['hipchat_token'],
             hipchat_room='release',
-            configuration_version='$GO_REVISION_CONFIGURATION',
+            configuration_version=CONFIGURATION().envvar_bash,
             edxapp_theme_source_repo=theme_url,
             # Currently, edx-theme isn't exposed as a material. See https://openedx.atlassian.net/browse/TE-1874
             # edxapp_theme_version='$GO_REVISION_EDX_THEME',
@@ -300,17 +300,17 @@ def generate_build_stages(app_repo, edp, theme_url, configuration_secure_repo,
             pipeline,
             edp=edp,
             app_repo=app_repo,
-            app_version='$GO_REVISION_EDX_PLATFORM',
+            app_version=EDX_PLATFORM().envvar_bash,
             hipchat_token=config['hipchat_token'],
             hipchat_room='release pipeline',
             aws_access_key_id=config['aws_access_key_id'],
             aws_secret_access_key=config['aws_secret_access_key'],
             version_tags={
-                'edx_platform': (EDX_PLATFORM().url, '$GO_REVISION_EDX_PLATFORM'),
-                'configuration': (configuration_url, '$GO_REVISION_CONFIGURATION'),
+                'edx_platform': (EDX_PLATFORM().url, EDX_PLATFORM().envvar_bash),
+                'configuration': (configuration_url, CONFIGURATION().envvar_bash),
                 'configuration_secure': (configuration_secure_repo, configuration_secure_version),
                 'configuration_internal': (configuration_internal_repo, configuration_internal_version),
-                'edxapp_theme': (theme_url, '$GO_REVISION_EDX_MICROSITE'),
+                'edxapp_theme': (theme_url, EDX_MICROSITE().envvar_bash),
             }
         )
 
@@ -447,7 +447,7 @@ def generate_deploy_stages(
             'edx',
             'edx-platform',
             '$GITHUB_TOKEN',
-            '$GO_REVISION_EDX_PLATFORM',
+            EDX_PLATFORM().envvar_bash,
             constants.ReleaseStatus[config['edx_environment']],
             config['jira_user'],
             config['jira_password'],
@@ -514,16 +514,11 @@ def manual_verification(edxapp_deploy_group, config):
     # with the same pinned materials from the upstream pipeline.
     stages.generate_armed_stage(pipeline, constants.INITIAL_VERIFICATION_STAGE_NAME)
 
-    orgs_repos = []
-    # Add all repos for which to check CI tests in this list.
-    for material in [EDX_PLATFORM]:
-        # Parse out the org, repo from each material.
-        url_split = material().url.split(':')[-1].split('/')
-        orgs_repos.append((url_split[-2], url_split[-1].replace('.git', '')))
+    # Add all materials for which to check CI tests in this list.
     stages.generate_check_ci(
         pipeline,
         config['github_token'],
-        orgs_repos
+        [EDX_PLATFORM()]
     )
 
     manual_verification_stage = pipeline.ensure_stage(constants.MANUAL_VERIFICATION_STAGE_NAME)
@@ -673,7 +668,7 @@ def rollback_asgs(
         'edx',
         'edx-platform',
         '$GITHUB_TOKEN',
-        '$GO_REVISION_EDX_PLATFORM',
+        EDX_PLATFORM().envvar_bash,
         constants.ReleaseStatus.ROLLED_BACK,
         config['jira_user'],
         config['jira_password'],
@@ -815,7 +810,7 @@ def merge_back_branches(edxapp_deploy_group, pipeline_name, deploy_artifact, pre
         org='edx',
         repo='edx-platform',
         target_branch='release',
-        head_sha='$GO_REVISION_EDX_PLATFORM',
+        head_sha=EDX_PLATFORM().envvar_bash,
         fast_forward_only=True,
         reference_repo='edx-platform',
     )
@@ -825,7 +820,7 @@ def merge_back_branches(edxapp_deploy_group, pipeline_name, deploy_artifact, pre
         deploy_artifact=deploy_artifact,
         org='edx',
         repo='edx-platform',
-        head_sha='$GO_REVISION_EDX_PLATFORM',
+        head_sha=EDX_PLATFORM().envvar_bash,
     )
 
     jobs.generate_tag_commit(
