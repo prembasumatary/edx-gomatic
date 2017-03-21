@@ -266,7 +266,7 @@ def install_pipelines(configurator, config, env_configs):
     manual_verification.ensure_material(
         PipelineMaterial(
             pipeline_name=stage_md.name,
-            stage_name=constants.DEPLOY_AMI_STAGE_NAME,
+            stage_name=constants.MESSAGE_PR_STAGE_NAME,
             material_name='stage_ami_deploy',
         )
     )
