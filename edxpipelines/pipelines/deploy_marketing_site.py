@@ -96,7 +96,7 @@ def install_pipelines(configurator, config, env_configs):  # pylint: disable=unu
             """\
             chmod 600 ../ecom-secure/acquia/acquia_github_key.pem &&
             if [[ $(git remote) != *"acquia"*  ]]; then
-                /usr/bin/git remote add acquia $PRIVATE_ACQUIA_REMOTE
+                /usr/bin/git remote add acquia $PRIVATE_ACQUIA_REMOTE ;
             fi &&
             GIT_SSH_COMMAND="/usr/bin/ssh -o StrictHostKeyChecking=no -i ../{ecom_secure}/acquia/acquia_github_key.pem"
             /usr/bin/git push acquia $(cat ../target/{new_tag}.txt) &&
