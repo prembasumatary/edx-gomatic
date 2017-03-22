@@ -100,7 +100,7 @@ def install_pipelines(configurator, config, env_configs):  # pylint: disable=unu
             fi &&
             GIT_SSH_COMMAND="/usr/bin/ssh -o StrictHostKeyChecking=no -i ../{ecom_secure}/acquia/acquia_github_key.pem"
             /usr/bin/git push acquia $(cat ../target/{new_tag}.txt) &&
-            echo -n "tags/" | cat ../target/{new_tag}.txt > temp &&
+            echo -n "tags/" | cat - ../target/{new_tag}.txt > temp &&
             mv temp ../target/{new_tag}.txt
             """,
             new_tag=constants.NEW_TAG_NAME,
