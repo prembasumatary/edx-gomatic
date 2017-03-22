@@ -64,8 +64,8 @@ def generate_create_private_release_candidate(
         '--target-branch', target_branch,
         '--source-branch', source_branch,
         '--out-file', artifact_path,
-        '--sha-variable', 'edx_platform_version',
-        '--repo-variable', 'edx_platform_repo',
+        '--sha-variable', 'edx-platform-version',
+        '--repo-variable', 'edx-platform-repo',
     ]
 
     if target_reference_repo:
