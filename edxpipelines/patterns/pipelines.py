@@ -365,7 +365,6 @@ def generate_service_deployment_pipelines(
     )
     common_materials = [
         materials.TUBULAR(),
-        materials.CONFIGURATION(),
         configuration_secure_material,
         configuration_internal_material,
     ]
@@ -379,9 +378,12 @@ def generate_service_deployment_pipelines(
 
     for edp, build_pipeline, deploy_pipeline in edp_pipeline_map:
         env_config = env_configs[edp.environment]
+        configuration_material = materials.CONFIGURATION(
+            branch='-'.join(['loadtest', edp.play]) if edp == loadtest_edp else 'master'
+        )
         app_material = partial_app_material(branch='loadtest' if edp == loadtest_edp else 'master')
 
-        for material in common_materials:
+        for material in common_materials + [configuration_material]:
             # All pipelines need access to tubular and configuration repos.
             deploy_pipeline.ensure_material(material)
 
@@ -427,7 +429,7 @@ def generate_service_deployment_pipelines(
             env_config,
             version_tags={
                 edp.play: (app_material.url, app_version_var),
-                'configuration': (materials.CONFIGURATION().url, '$GO_REVISION_CONFIGURATION'),
+                'configuration': (configuration_material.url, '$GO_REVISION_CONFIGURATION'),
                 'configuration_secure': (
                     configuration_secure_material.url, constants.CONFIGURATION_SECURE_VERSION
                 ),
