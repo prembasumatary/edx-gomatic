@@ -309,9 +309,21 @@ def generate_launch_instance(
 
     Args:
         job (gomatic.job.Job): the gomatic job which to add the launch instance task
-        runif (str): one of ['passed', 'failed', 'any'] Default: passed
+        aws_access_key_id (str): Access key used to connect to AWS.
+        aws_secret_access_key (str): Secret key used to connect to AWS.
+        ec2_vpc_subnet_id (str): EC2 VPC subnet ID
+        ec2_security_group_id (str): EC2 security group ID
+        ec2_instance_profile_name (str): Instance profile to use to launch the AMI
+        base_ami_id (str): AMI to use when launching instance.
+        ec2_region (str): EC2 region, i.e. us-east-1
+        ec2_instance_type (str): EC2 instance type to launch
+        ec2_timeout (int): Time in seconds to wait for an EC2 instance to be available
+        ec2_ebs_volume_size (int): Size in GB for the root volume
         variable_override_path (str): The path to an already-retrieved yaml file specifying
             variable overrides to use when launching the instance.
+        hipchat_token (str): Auth token to use in posting to HipChat
+        hipchat_room (str): HipChat room where posting is sent
+        runif (str): one of ['passed', 'failed', 'any'] Default: passed
 
     Returns:
         The newly created task (gomatic.gocd.tasks.ExecTask)
@@ -1443,7 +1455,9 @@ def generate_tag_commit(job,
 def generate_check_pr_tests(job,
                             org,
                             repo,
-                            input_file,
+                            input_file=None,
+                            pr_number=None,
+                            commit_sha=None,
                             runif='passed'):
     """
     Assumptions:
@@ -1463,9 +1477,16 @@ def generate_check_pr_tests(job,
     cmd_args = [
         '--org', org,
         '--repo', repo,
-        '--input_file ../{}/{}'.format(constants.ARTIFACT_PATH, input_file),
         '--token $GIT_TOKEN',
     ]
+    if input_file:
+        cmd_args.extend(
+            ('--input_file', '../{}/{}'.format(constants.ARTIFACT_PATH, input_file))
+        )
+    if pr_number:
+        cmd_args.extend(('--pr_number', pr_number))
+    if commit_sha:
+        cmd_args.extend(('--commit_hash', commit_sha))
     return job.add_task(tubular_task(
         'check_pr_tests_status.py',
         cmd_args,
@@ -1486,7 +1507,9 @@ def generate_poll_pr_tests(job,
         job (gomatic.Job): the Job to attach this stage to.
         org (str): Name of the github organization that holds the repository (e.g. edx)
         repo (str): Name of repository (e.g edx-platform)
-        input_file (str): Name of YAML file containing PR id.
+        input_file (str): Name of YAML file containing PR number.
+        pr_number (int): PR number whose tests should be checked.
+        commit_sha (str): Commit SHA whose test should be checked.
         runif (str): one of ['passed', 'failed', 'any'] Default: passed
 
     Returns:

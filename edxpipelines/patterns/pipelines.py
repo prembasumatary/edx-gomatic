@@ -429,7 +429,7 @@ def generate_service_deployment_pipelines(
             env_config,
             version_tags={
                 edp.play: (app_material.url, app_version_var),
-                'configuration': (configuration_material.url, '$GO_REVISION_CONFIGURATION'),
+                'configuration': (configuration_material.url, configuration_material.envvar_bash),
                 'configuration_secure': (
                     configuration_secure_material.url, constants.CONFIGURATION_SECURE_VERSION
                 ),
