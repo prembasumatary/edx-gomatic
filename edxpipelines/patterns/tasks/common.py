@@ -17,7 +17,7 @@ def ansible_task(
         variables, playbook, runif='passed',
         working_dir=constants.PUBLIC_CONFIGURATION_DIR,
         inventory=None, prefix=None, extra_options=None,
-        verbosity=3,
+        verbosity=2,
 ):
     """
     Run ansible-playbook.
