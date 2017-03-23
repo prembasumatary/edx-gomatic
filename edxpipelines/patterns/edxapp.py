@@ -258,7 +258,7 @@ def launch_and_terminate_subset_pipeline(
 
 
 def generate_build_stages(app_repo, edp, theme_url, configuration_secure_repo,
-                          configuration_internal_repo, configuration_url, prerelease_merge_artifact):
+                          configuration_internal_repo, configuration_url, prerelease_merge_artifact):  # pylint: disable=unused-argument
     """
     Generate the stages needed to build an edxapp AMI.
     """
@@ -282,11 +282,13 @@ def generate_build_stages(app_repo, edp, theme_url, configuration_secure_repo,
             # Currently, edx-theme isn't exposed as a material. See https://openedx.atlassian.net/browse/TE-1874
             # edxapp_theme_version='$GO_REVISION_EDX_THEME',
             # edxapp_theme_name='$EDXAPP_THEME_NAME',
+            edx_platform_version='$GO_REVISION_EDX_PLATFORM',
+            edx_platform_repo=app_repo,
             disable_edx_services='true',
             COMMON_TAG_EC2_INSTANCE='true',
             cache_id='$GO_PIPELINE_COUNTER',
             override_artifacts=[
-                prerelease_merge_artifact,
+                # prerelease_merge_artifact,
             ],
         )
 
