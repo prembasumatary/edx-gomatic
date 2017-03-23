@@ -172,6 +172,7 @@ def prerelease_materials(edxapp_group, config, stage_config, prod_edx_config, pr
             (PROD_EDGE_EDXAPP, prod_edge_config)
     ):
         job = stage.ensure_job(constants.BASE_AMI_SELECTION_EDP_JOB_NAME(edp))
+        tasks.generate_package_install(job, 'tubular')
         tasks.generate_base_ami_selection(
             job,
             localized_config['aws_access_key_id'],
