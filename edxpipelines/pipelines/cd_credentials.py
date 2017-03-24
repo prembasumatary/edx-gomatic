@@ -21,7 +21,7 @@ def install_pipelines(configurator, config):
     """
     Generates pipelines used to deploy the credentials service to stage, loadtest, and prod.
     """
-    edp = EDP(None, 'edx', 'credentials')
+    edp = EDP(None, None, 'credentials')
 
     partial_app_material = partial(
         GitMaterial,

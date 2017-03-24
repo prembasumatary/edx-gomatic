@@ -60,6 +60,7 @@ def generate_ami_deployment_pipeline(configurator,
     return configurator
 
 
+# TODO: this can be deleted!
 def generate_basic_multistage_pipeline(
         configurator,
         play,
@@ -284,32 +285,30 @@ def generate_service_deployment_pipelines(
         base_edp,
         partial_app_material,
         has_migrations=True,
+        has_edge=False,
 ):
     """
-    Generates pipelines used to build and deploy a service to stage, prod, and
-    loadtest environments. The generated pipelines only support a single deployment
-    (e.g., edx, edge).
+    Generates pipelines used to build and deploy a service to stage, loadtest,
+    prod-edx, and prod-edge.
 
-    Three pipelines are produced, named stage-deployment-play, prod-deployment-play,
-    and loadtest-deployment-play. All three are placed in a group with the same name
-    as the play.
+    Four pipelines are produced, named stage-edx-play, loadtest-edx-play, prod-edx-play,
+    prod-edge-play. All three are placed in a group with the same name as the play.
 
-    stage-deployment-play polls a GitMaterial representing the service. When a change
+    stage-edx-play polls a GitMaterial representing the service. When a change
     is detected on the master branch, it builds AMIs for stage and prod, deploys
     to stage, and gives pipeline operators the option of rolling back stage ASGs
     and migrations.
 
-    prod-deployment-play requires a PipelineMaterial representing the upstream
-    stage-deployment-play pipeline's build stage. When it completes successfully,
-    prod-deployment-play is armed. Deployment to prod is then manually approved
+    prod-edx-play requires a PipelineMaterial representing the upstream
+    stage-edx-play pipeline's build stage. When it completes successfully,
+    prod-edx-play is armed. Deployment to prod is then manually approved
     by a pipeline operator. This pipeline gives operators the option of rolling
     back prod ASGs and migrations.
 
-    loadtest-deployment-play is independent of the stage-deployment-play and
-    prod-deployment-play pipelines. It polls a GitMaterial representing the service.
-    When a change is detected on the loadtest branch, it builds AMIs for loadtest,
-    deploys to loadtest, and gives pipeline operators the option of rolling back
-    loadtest ASGs and migrations.
+    loadtest-edx-play is independent of the stage-edx-play and prod-edx-play pipelines.
+    It polls a GitMaterial representing the service. When a change is detected on the
+    loadtest branch, it builds AMIs for loadtest, deploys to loadtest, and gives
+    pipeline operators the option of rolling back loadtest ASGs and migrations.
 
     Args:
         configurator (gomatic.go_cd_configurator.GoCdConfigurator): GoCdConfigurator
@@ -325,7 +324,21 @@ def generate_service_deployment_pipelines(
             being generated.
         has_migrations (bool): Whether to generate Gomatic for applying and
             rolling back migrations.
+        has_edge (bool): Whether to generate service for deploying to prod-edge.
     """
+
+    def build_edp_map(edp, pipeline_group, edp_map, build_pipeline=None, git_branch='master',
+                      configuration_branch='master'):
+        """
+        Helper function for constructing the edp, pipeline, and storing the results
+        in a map.  The edp and pipeline are returned.
+        """
+        pipeline = pipeline_group.ensure_replacement_of_pipeline(
+            constants.DEPLOYMENT_PIPELINE_NAME_TPL(edp)
+        )
+        edp_map.append((edp, build_pipeline or pipeline, pipeline, git_branch, configuration_branch))
+        return edp, pipeline
+
     # Replace any existing pipeline group with a fresh one.
     configurator.ensure_removal_of_pipeline_group(base_edp.play)
     pipeline_group = configurator.ensure_pipeline_group(base_edp.play)
@@ -338,21 +351,36 @@ def generate_service_deployment_pipelines(
     ensure_permissions(configurator, pipeline_group, Permission.OPERATE, [operator_role])
     ensure_permissions(configurator, pipeline_group, Permission.VIEW, [operator_role])
 
-    # Create tuples representing each EDP.
-    stage_edp = base_edp._replace(environment='stage')
-    prod_edp = base_edp._replace(environment='prod')
-    loadtest_edp = base_edp._replace(environment='loadtest')
+    # Map EDPs to the pipelines that build their AMIs and the pipelines that deploy them.
+    edp_pipeline_map = []
 
-    # Create pipelines for each environment.
-    stage_pipeline = pipeline_group.ensure_replacement_of_pipeline(
-        constants.DEPLOYMENT_PIPELINE_NAME_TPL(stage_edp)
+    # Create EDP and pipelines for each environment.
+    stage_edp, stage_pipeline = build_edp_map(
+        base_edp._replace(environment='stage', deployment='edx'),
+        pipeline_group,
+        edp_pipeline_map,
     )
-    prod_pipeline = pipeline_group.ensure_replacement_of_pipeline(
-        constants.DEPLOYMENT_PIPELINE_NAME_TPL(prod_edp)
+    loadtest_edp, _pipeline = build_edp_map(
+        base_edp._replace(environment='loadtest', deployment='edx'),
+        pipeline_group,
+        edp_pipeline_map,
+        git_branch='loadtest',
+        configuration_branch='-'.join(['loadtest', base_edp.play]),
     )
-    loadtest_pipeline = pipeline_group.ensure_replacement_of_pipeline(
-        constants.DEPLOYMENT_PIPELINE_NAME_TPL(loadtest_edp)
-    )
+    auto_deploy = (stage_edp,loadtest_edp,)
+
+    prod_deployments = ['edx']
+    if has_edge:
+        prod_deployments.append('edge')
+    manual_deploy = ()
+    for deployment in prod_deployments:
+        prod_edp, _pipeline = build_edp_map(
+            base_edp._replace(environment='prod', deployment=deployment),
+            pipeline_group,
+            edp_pipeline_map,
+            build_pipeline=stage_pipeline,
+        )
+        manual_deploy += (prod_edp,)
 
     configuration_secure_material = materials.deployment_secure(
         base_edp.deployment,
@@ -368,24 +396,15 @@ def generate_service_deployment_pipelines(
         configuration_internal_material,
     ]
 
-    # Map EDPs to the pipelines that build their AMIs and the pipelines that deploy them.
-    edp_pipeline_map = [
-        (stage_edp, stage_pipeline, stage_pipeline),
-        (prod_edp, stage_pipeline, prod_pipeline),
-        (loadtest_edp, loadtest_pipeline, loadtest_pipeline),
-    ]
-
-    for edp, build_pipeline, deploy_pipeline in edp_pipeline_map:
-        configuration_material = materials.CONFIGURATION(
-            branch='-'.join(['loadtest', edp.play]) if edp == loadtest_edp else 'master'
-        )
-        app_material = partial_app_material(branch='loadtest' if edp == loadtest_edp else 'master')
+    for edp, build_pipeline, deploy_pipeline, git_branch, configuration_branch in edp_pipeline_map:
+        configuration_material = materials.CONFIGURATION(branch=configuration_branch)
+        app_material = partial_app_material(branch=git_branch)
 
         for material in common_materials + [configuration_material]:
             # All pipelines need access to tubular and configuration repos.
             deploy_pipeline.ensure_material(material)
 
-        if edp in (stage_edp, loadtest_edp):
+        if edp in auto_deploy:
             # Most ensure_* methods are idempotent. ensure_material() seems
             # to be an exception: calling it repeatedly for the same pipeline
             # with the same materials results in duplicate materials.
@@ -441,7 +460,7 @@ def generate_service_deployment_pipelines(
         # The next stage in all three pipelines deploys an AMI built in an upstream stage.
         deploy_stage = deploy_pipeline.ensure_stage(constants.DEPLOY_AMI_STAGE_NAME)
 
-        if edp == prod_edp:
+        if edp in manual_deploy:
             # We don't want the prod pipeline to deploy automatically (yet).
             deploy_stage.set_has_manual_approval()
 

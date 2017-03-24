@@ -21,7 +21,7 @@ def install_pipelines(configurator, config):
     """
     Generates pipelines used to deploy the ecommerce service to stage, loadtest, and prod.
     """
-    edp = EDP(None, 'edx', 'ecommerce')
+    edp = EDP(None, None, 'ecommerce')
 
     partial_app_material = partial(
         GitMaterial,

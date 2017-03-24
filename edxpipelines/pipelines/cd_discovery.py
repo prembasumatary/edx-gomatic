@@ -21,7 +21,7 @@ def install_pipelines(configurator, config):
     """
     Generates pipelines used to deploy the discovery service to stage, loadtest, and prod.
     """
-    edp = EDP(None, 'edx', 'discovery')
+    edp = EDP(None, None, 'discovery')
 
     partial_app_material = partial(
         GitMaterial,
