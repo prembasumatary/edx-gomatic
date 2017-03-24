@@ -829,7 +829,7 @@ def merge_back_branches(edxapp_deploy_group, pipeline_name, deploy_artifact, pre
         deploy_artifact=deploy_artifact,
         org='edx',
         repo='edx-platform-private',
-        head_sha_variable='edx-platform-version',
+        head_sha_variable='edx_platform_version',
         head_sha_artifact=prerelease_merge_artifact,
     )
 
