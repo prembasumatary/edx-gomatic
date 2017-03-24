@@ -300,20 +300,34 @@ tools:
   - script: edxpipelines/pipelines/cd_insights.py
     variable_file:
       - *tools-admin
-      - "../gomatic-secure/gocd/vars/tools/environment-deployment-play/stage-edx-insights.yml"
-      - *stage-edx
       - "../gomatic-secure/gocd/vars/tools/plays/insights.yml"
       - *deployment-edx
+    env-deploy-variable-file:
+      - ["stage-edx", *stage-edx]
+      - ["stage-edx", "../gomatic-secure/gocd/vars/tools/environment-deployment-play/stage-edx-insights.yml"]
+      - ["loadtest-edx", *loadtest-edx]
+      - ["loadtest-edx", "../gomatic-secure/gocd/vars/tools/environment-deployment-play/loadtest-edx-insights.yml"]
+      - ["prod-edx", *prod-edx]
+      - ["prod-edx", "../gomatic-secure/gocd/vars/tools/environment-deployment-play/prod-edx-insights.yml"]
+      - ["prod-edge", *prod-edge]
+      - ["prod-edx", "../gomatic-secure/gocd/vars/tools/environment-deployment-play/prod-edge-insights.yml"]
     enabled: True
 
   # Stage Analytics API
   - script: edxpipelines/pipelines/cd_analyticsapi.py
     variable_file:
       - *tools-admin
-      - "../gomatic-secure/gocd/vars/tools/environment-deployment-play/stage-edx-analyticsapi.yml"
-      - *stage-edx
       - "../gomatic-secure/gocd/vars/tools/plays/analyticsapi.yml"
       - *deployment-edx
+    env-deploy-variable-file:
+      - ["stage-edx", *stage-edx]
+      - ["stage-edx", "../gomatic-secure/gocd/vars/tools/environment-deployment-play/stage-edx-analyticsapi.yml"]
+      - ["loadtest-edx", *loadtest-edx]
+      - ["loadtest-edx", "../gomatic-secure/gocd/vars/tools/environment-deployment-play/loadtest-edx-analyticsapi.yml"]
+      - ["prod-edx", *prod-edx]
+      - ["prod-edx", "../gomatic-secure/gocd/vars/tools/environment-deployment-play/prod-edx-analyticsapi.yml"]
+      - ["prod-edge", *prod-edge]
+      - ["prod-edx", "../gomatic-secure/gocd/vars/tools/environment-deployment-play/prod-edge-analyticsapi.yml"]
     enabled: True
 
   # E-Commerce Service (Otto)

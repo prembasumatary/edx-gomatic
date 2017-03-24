@@ -383,11 +383,11 @@ def generate_service_deployment_pipelines(
         manual_deploy += (prod_edp,)
 
     configuration_secure_material = materials.deployment_secure(
-        base_edp.deployment,
+        'edx',
         destination_directory='configuration-secure'
     )
     configuration_internal_material = materials.deployment_internal(
-        base_edp.deployment,
+        'edx',
         destination_directory='configuration-internal'
     )
     common_materials = [
