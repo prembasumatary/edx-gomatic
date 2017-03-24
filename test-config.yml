@@ -60,6 +60,16 @@ stage:
     db_migration_pass: valid_encryption_must_be_a_multiple_of_32_xxxxxxxxxxxxxxxxxxxxxx
     asgard_token: valid_encryption_must_be_a_multiple_of_32_xxxxxxxxxxxxxxxxxxxxxx
 
+stage-edx:
+    edx_environment: stage
+
+    hipchat_token: valid_encryption_must_be_a_multiple_of_32_xxxxxxxxxxxxxxxxxxxxxx
+    github_private_key: valid_encryption_must_be_a_multiple_of_32_xxxxxxxxxxxxxxxxxxxxxx
+    aws_secret_access_key: valid_encryption_must_be_a_multiple_of_32_xxxxxxxxxxxxxxxxxxxxxx
+    aws_access_key_id: valid_encryption_must_be_a_multiple_of_32_xxxxxxxxxxxxxxxxxxxxxx
+    db_migration_pass: valid_encryption_must_be_a_multiple_of_32_xxxxxxxxxxxxxxxxxxxxxx
+    asgard_token: valid_encryption_must_be_a_multiple_of_32_xxxxxxxxxxxxxxxxxxxxxx
+
 prod-edx:
     edx_environment: prod
 
@@ -81,6 +91,14 @@ prod-edge:
     asgard_token: valid_encryption_must_be_a_multiple_of_32_xxxxxxxxxxxxxxxxxxxxxx
 
 loadtest:
+    hipchat_token: valid_encryption_must_be_a_multiple_of_32_xxxxxxxxxxxxxxxxxxxxxx
+    github_private_key: valid_encryption_must_be_a_multiple_of_32_xxxxxxxxxxxxxxxxxxxxxx
+    aws_secret_access_key: valid_encryption_must_be_a_multiple_of_32_xxxxxxxxxxxxxxxxxxxxxx
+    aws_access_key_id: valid_encryption_must_be_a_multiple_of_32_xxxxxxxxxxxxxxxxxxxxxx
+    db_migration_pass: valid_encryption_must_be_a_multiple_of_32_xxxxxxxxxxxxxxxxxxxxxx
+    asgard_token: valid_encryption_must_be_a_multiple_of_32_xxxxxxxxxxxxxxxxxxxxxx
+
+loadtest-edx:
     hipchat_token: valid_encryption_must_be_a_multiple_of_32_xxxxxxxxxxxxxxxxxxxxxx
     github_private_key: valid_encryption_must_be_a_multiple_of_32_xxxxxxxxxxxxxxxxxxxxxx
     aws_secret_access_key: valid_encryption_must_be_a_multiple_of_32_xxxxxxxxxxxxxxxxxxxxxx

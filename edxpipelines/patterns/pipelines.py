@@ -60,6 +60,19 @@ def generate_ami_deployment_pipeline(configurator,
     return configurator
 
 
+def build_edp_map(edp, pipeline_group, edp_map, build_pipeline=None, git_branch='master',
+                  configuration_branch='master'):
+    """
+    Helper function for constructing the edp, pipeline, and storing the results
+    in a map.  The edp and pipeline are returned.
+    """
+    pipeline = pipeline_group.ensure_replacement_of_pipeline(
+        constants.DEPLOYMENT_PIPELINE_NAME_TPL(edp)
+    )
+    edp_map.append((edp, build_pipeline or pipeline, pipeline, git_branch, configuration_branch))
+    return edp, pipeline
+
+
 def generate_service_deployment_pipelines(
         configurator,
         config,
@@ -95,7 +108,7 @@ def generate_service_deployment_pipelines(
         configurator (gomatic.go_cd_configurator.GoCdConfigurator): GoCdConfigurator
             to use for building the pipeline.
         config (dict): Environment-independent config.
-        env_config (dict): Environment-specific config, keyed by environment.
+        env_configs (dict): Environment-specific config, keyed by environment.
         base_edp (edxpipelines.utils.EDP): Tuple indicating deployment and play for
             which to build a pipeline. The environment set in the tuple will be
             replaced depending on the pipeline being generated.
@@ -107,19 +120,6 @@ def generate_service_deployment_pipelines(
             rolling back migrations.
         has_edge (bool): Whether to generate service for deploying to prod-edge.
     """
-
-    def build_edp_map(edp, pipeline_group, edp_map, build_pipeline=None, git_branch='master',
-                      configuration_branch='master'):
-        """
-        Helper function for constructing the edp, pipeline, and storing the results
-        in a map.  The edp and pipeline are returned.
-        """
-        pipeline = pipeline_group.ensure_replacement_of_pipeline(
-            constants.DEPLOYMENT_PIPELINE_NAME_TPL(edp)
-        )
-        edp_map.append((edp, build_pipeline or pipeline, pipeline, git_branch, configuration_branch))
-        return edp, pipeline
-
     # Replace any existing pipeline group with a fresh one.
     configurator.ensure_removal_of_pipeline_group(base_edp.play)
     pipeline_group = configurator.ensure_pipeline_group(base_edp.play)
@@ -148,7 +148,7 @@ def generate_service_deployment_pipelines(
         git_branch='loadtest',
         configuration_branch='-'.join(['loadtest', base_edp.play]),
     )
-    auto_deploy = (stage_edp,loadtest_edp,)
+    auto_deploy = (stage_edp, loadtest_edp,)
 
     prod_deployments = ['edx']
     if has_edge:

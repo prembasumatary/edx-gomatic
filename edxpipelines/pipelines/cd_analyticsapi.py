@@ -6,7 +6,6 @@ from functools import partial
 import sys
 from os import path
 
-
 # Used to import edxpipelines files - since the module is not installed.
 sys.path.append(path.dirname(path.dirname(path.dirname(path.abspath(__file__)))))
 
@@ -33,7 +32,6 @@ def install_pipelines(configurator, config):
         material_name=edp.play,
         polling=True,
         destination_directory=edp.play,
-        has_edge=True,
     )
 
     generate_service_deployment_pipelines(configurator, config, edp, partial_app_material, has_edge=True)

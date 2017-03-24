@@ -310,7 +310,7 @@ tools:
       - ["prod-edx", *prod-edx]
       - ["prod-edx", "../gomatic-secure/gocd/vars/tools/environment-deployment-play/prod-edx-insights.yml"]
       - ["prod-edge", *prod-edge]
-      - ["prod-edx", "../gomatic-secure/gocd/vars/tools/environment-deployment-play/prod-edge-insights.yml"]
+      - ["prod-edge", "../gomatic-secure/gocd/vars/tools/environment-deployment-play/prod-edge-insights.yml"]
     enabled: True
 
   # Stage Analytics API
@@ -327,7 +327,7 @@ tools:
       - ["prod-edx", *prod-edx]
       - ["prod-edx", "../gomatic-secure/gocd/vars/tools/environment-deployment-play/prod-edx-analyticsapi.yml"]
       - ["prod-edge", *prod-edge]
-      - ["prod-edx", "../gomatic-secure/gocd/vars/tools/environment-deployment-play/prod-edge-analyticsapi.yml"]
+      - ["prod-edge", "../gomatic-secure/gocd/vars/tools/environment-deployment-play/prod-edge-analyticsapi.yml"]
     enabled: True
 
   # E-Commerce Service (Otto)
