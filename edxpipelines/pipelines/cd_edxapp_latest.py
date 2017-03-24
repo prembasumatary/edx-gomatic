@@ -519,4 +519,4 @@ def install_pipelines(configurator, config):
 
 
 if __name__ == "__main__":
-    pipeline_script(install_pipelines, environments=('stage', 'prod-edx', 'prod-edge'))
+    pipeline_script(install_pipelines, environments=('stage-edx', 'prod-edx', 'prod-edge'))
