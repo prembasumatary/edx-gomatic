@@ -266,7 +266,7 @@ def install_pipelines(configurator, config, env_configs):
     manual_verification.ensure_material(
         PipelineMaterial(
             pipeline_name=stage_md.name,
-            stage_name=constants.MESSAGE_PR_STAGE_NAME,
+            stage_name=constants.DEPLOY_AMI_STAGE_NAME,
             material_name='stage_ami_deploy',
         )
     )
@@ -367,7 +367,7 @@ def install_pipelines(configurator, config, env_configs):
                 PipelineMaterial(build.name, constants.BUILD_AMI_STAGE_NAME, "{}_build".format(build.name))
             )
         deploy.ensure_material(
-            PipelineMaterial(stage_md.name, constants.MESSAGE_PR_STAGE_NAME, "stage_message_prs")
+            PipelineMaterial(stage_md.name, constants.DEPLOY_AMI_STAGE_NAME, "stage_deploy")
         )
         deploy.ensure_material(
             PipelineMaterial(
@@ -419,8 +419,8 @@ def install_pipelines(configurator, config, env_configs):
         rollback_pipeline.ensure_material(
             PipelineMaterial(
                 pipeline_name=stage_md.name,
-                stage_name=constants.MESSAGE_PR_STAGE_NAME,
-                material_name='stage_message_pr',
+                stage_name=constants.DEPLOY_AMI_STAGE_NAME,
+                material_name='stage_deploy',
             )
         )
         rollback_pipeline.ensure_material(
