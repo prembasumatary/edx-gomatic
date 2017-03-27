@@ -67,7 +67,7 @@ def ansible_task(
         if isinstance(variable, basestring):
             command.extend(('-e', '@../{}'.format(variable)))
         elif isinstance(variable, dict):
-            command.extend(('-e', json.dumps(variable)))
+            command.extend(('-e', json.dumps(variable, sort_keys=True)))
         else:
             name, value = variable
             command.extend(('-e', '{}={}'.format(name, value)))
