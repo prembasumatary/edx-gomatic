@@ -7,9 +7,10 @@ import subprocess
 import tempfile
 
 from .canonicalize import canonicalize_file
+from .topology import simplify_file
 
 
-def ensure_pipeline(script, dry_run=False, save_config_locally=False, **kwargs):
+def ensure_pipeline(script, dry_run=False, save_config_locally=False, topology=False, **kwargs):
     """
     Execute a pipeline install script, optionally saving the config for later inspection.
 
@@ -50,11 +51,13 @@ def ensure_pipeline(script, dry_run=False, save_config_locally=False, **kwargs):
     result = subprocess.check_output(command, stderr=subprocess.STDOUT)
     if dry_run and save_config_locally:
         with tempfile.NamedTemporaryFile() as before_out, tempfile.NamedTemporaryFile() as after_out:
-            canonicalize_file('config-before.xml', before_out)
-            canonicalize_file('config-after.xml', after_out)
+            diff_func = simplify_file if topology else canonicalize_file
+            diff_func('config-before.xml', before_out)
+            diff_func('config-after.xml', after_out)
             subprocess.call([
                 'git', '--no-pager',
                 'diff', '--no-index', '--color-words',
                 before_out.name, after_out.name
             ])
+
     return result

@@ -76,7 +76,14 @@ def print_failure_report(failures):
     default=False,
     is_flag=True
 )
-def run_pipelines(environment, config_file, script, verbose, dry_run, save_config_locally):
+@click.option(
+    '--topology', 'topology',
+    help='Diff the topology of the pipelines, rather than their content.',
+    required=False,
+    default=False,
+    is_flag=True
+)
+def run_pipelines(environment, config_file, script, verbose, dry_run, save_config_locally, topology):
     """
 
     Args:
@@ -106,6 +113,7 @@ def run_pipelines(environment, config_file, script, verbose, dry_run, save_confi
                 script_name,
                 dry_run=dry_run,
                 save_config_locally=save_config_locally,
+                topology=topology,
                 **script
             )
             success.append(script_name)
