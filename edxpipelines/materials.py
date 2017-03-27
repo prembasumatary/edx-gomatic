@@ -20,8 +20,7 @@ class GomaticGitMaterial(GitMaterial):
     Wrapper class around gomatic.gomatic.gocd.materials.GitMaterial in order to add helper methods.
     """
     def __init__(
-            self, url, branch=None, material_name=None, polling=True,
-            ignore_patterns=None, destination_directory=None
+            self, url, *args, **kwargs
     ):
         # Parse out the org/repo from the material url.
         clone_url = urllib.parse.urlparse(url).geturl()
@@ -30,9 +29,7 @@ class GomaticGitMaterial(GitMaterial):
             raise InvalidGitRepoURL(url)
         self.org = match.group('org')
         self.repo = match.group('repo')
-        super(GomaticGitMaterial, self).__init__(
-            url, branch, material_name, polling, ignore_patterns, destination_directory
-        )
+        super(GomaticGitMaterial, self).__init__(url, *args, **kwargs)
 
     @property
     def envvar_name(self):
