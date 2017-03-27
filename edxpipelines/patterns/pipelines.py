@@ -60,16 +60,13 @@ def generate_ami_deployment_pipeline(configurator,
     return configurator
 
 
-def build_edp_map(edp, pipeline_group, edp_map, build_pipeline=None, git_branch='master',
-                  configuration_branch='master'):
+def construct_pipeline(edp, pipeline_group):
     """
-    Helper function for constructing the edp, pipeline, and storing the results
-    in a map.  The edp and pipeline are returned.
+    Helper function for constructing the pipeline.  EDP and pipeline are returned.
     """
     pipeline = pipeline_group.ensure_replacement_of_pipeline(
         constants.DEPLOYMENT_PIPELINE_NAME_TPL(edp)
     )
-    edp_map.append((edp, build_pipeline or pipeline, pipeline, git_branch, configuration_branch))
     return edp, pipeline
 
 
@@ -136,18 +133,17 @@ def generate_service_deployment_pipelines(
     edp_pipeline_map = []
 
     # Create EDP and pipelines for each environment.
-    stage_edp, stage_pipeline = build_edp_map(
+    stage_edp, stage_pipeline = construct_pipeline(
         base_edp._replace(environment='stage', deployment='edx'),
-        pipeline_group,
-        edp_pipeline_map,
+        pipeline_group
     )
-    loadtest_edp, _pipeline = build_edp_map(
+    edp_pipeline_map.append((stage_edp, stage_pipeline, stage_pipeline, 'master', 'master'),)
+
+    loadtest_edp, pipeline = construct_pipeline(
         base_edp._replace(environment='loadtest', deployment='edx'),
         pipeline_group,
-        edp_pipeline_map,
-        git_branch='loadtest',
-        configuration_branch='-'.join(['loadtest', base_edp.play]),
     )
+    edp_pipeline_map.append((loadtest_edp, pipeline, pipeline, 'loadtest', '-'.join(['loadtest', base_edp.play])),)
     auto_deploy = (stage_edp, loadtest_edp,)
 
     prod_deployments = ['edx']
@@ -155,12 +151,11 @@ def generate_service_deployment_pipelines(
         prod_deployments.append('edge')
     manual_deploy = ()
     for deployment in prod_deployments:
-        prod_edp, _pipeline = build_edp_map(
+        prod_edp, pipeline = construct_pipeline(
             base_edp._replace(environment='prod', deployment=deployment),
             pipeline_group,
-            edp_pipeline_map,
-            build_pipeline=stage_pipeline,
         )
+        edp_pipeline_map.append((prod_edp, stage_pipeline, pipeline, 'master', 'master'),)
         manual_deploy += (prod_edp,)
 
     configuration_secure_material = materials.deployment_secure(
