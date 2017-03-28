@@ -10,6 +10,8 @@ Responsibilities:
             * This allows pipeline pattern composition to be customized by pipeline groups.
         * return the pipeline that was created (or a list/namedtuple, if there were multiple pipelines).
 """
+from collections import namedtuple
+
 from gomatic import GitMaterial, PipelineMaterial
 
 from edxpipelines import constants, materials
@@ -60,14 +62,39 @@ def generate_ami_deployment_pipeline(configurator,
     return configurator
 
 
-def construct_pipeline(edp, pipeline_group):
+class PipelineBlueprintBuilder(object):
     """
-    Helper function for constructing the pipeline.  EDP and pipeline are returned.
+    Builds deployment pipelines and stores them in a PIPELINE_BLUEPRINT tuple.
+    Blueprints store configuration needed for constructing materials and jobs.
     """
-    pipeline = pipeline_group.ensure_replacement_of_pipeline(
-        constants.DEPLOYMENT_PIPELINE_NAME_TPL(edp)
-    )
-    return edp, pipeline
+    PIPELINE_BLUEPRINT = namedtuple('PIPELINE_BLUEPRINT', ['edp', 'build_pipeline', 'deploy_pipeline',
+                                                           'git_branch', 'configuration_branch'])
+
+    blueprints = []
+
+    def __init__(self, pipeline_group):
+        self.pipeline_group = pipeline_group
+
+    def add_pipeline(self, edp, build_pipeline=None, git_branch='master', configuration_branch='master'):
+        """
+        Constructs a deployment pipeline from the edp and stores the pipeline
+        and configuration in the blueprints member variable.
+
+        Args:
+            edp(edxpipelines.utils.EDP): tuple indicating pipeline to be built
+            build_pipeline(gomatic.gocd.pipelines.Pipeline): pipeline where AMIs are built
+            git_branch(str): git branch to poll for changes
+            configuration_branch(str): configuration branch to poll for changes
+
+        Returns:
+            newly constructed blueprint tuple
+        """
+        pipeline = self.pipeline_group.ensure_replacement_of_pipeline(
+            constants.DEPLOYMENT_PIPELINE_NAME_TPL(edp)
+        )
+        blueprint = self.PIPELINE_BLUEPRINT(edp, build_pipeline or pipeline, pipeline, git_branch, configuration_branch)
+        self.blueprints.append(blueprint)
+        return blueprint
 
 
 def generate_service_deployment_pipelines(
@@ -82,8 +109,8 @@ def generate_service_deployment_pipelines(
     Generates pipelines used to build and deploy a service to stage, loadtest,
     prod-edx, and prod-edge.
 
-    Four pipelines are produced, named stage-edx-play, loadtest-edx-play, prod-edx-play,
-    prod-edge-play. All three are placed in a group with the same name as the play.
+    Pipelines are produced, named stage-edx-play, loadtest-edx-play, prod-edx-play,
+    prod-edge-play. All are placed in a group with the same name as the play.
 
     stage-edx-play polls a GitMaterial representing the service. When a change
     is detected on the master branch, it builds AMIs for stage and prod, deploys
@@ -95,6 +122,9 @@ def generate_service_deployment_pipelines(
     prod-edx-play is armed. Deployment to prod is then manually approved
     by a pipeline operator. This pipeline gives operators the option of rolling
     back prod ASGs and migrations.
+
+    prod-edge-play works like the prod-edx-play pipeline and produced if has_edge
+    kwarg is set to True.
 
     loadtest-edx-play is independent of the stage-edx-play and prod-edx-play pipelines.
     It polls a GitMaterial representing the service. When a change is detected on the
@@ -115,7 +145,7 @@ def generate_service_deployment_pipelines(
             being generated.
         has_migrations (bool): Whether to generate Gomatic for applying and
             rolling back migrations.
-        has_edge (bool): Whether to generate service for deploying to prod-edge.
+        has_edge (bool): Whether to generate services for deploying to prod-edge.
     """
     # Replace any existing pipeline group with a fresh one.
     configurator.ensure_removal_of_pipeline_group(base_edp.play)
@@ -130,33 +160,28 @@ def generate_service_deployment_pipelines(
     ensure_permissions(configurator, pipeline_group, Permission.VIEW, [operator_role])
 
     # Map EDPs to the pipelines that build their AMIs and the pipelines that deploy them.
-    edp_pipeline_map = []
+    blueprint_builder = PipelineBlueprintBuilder(pipeline_group)
 
     # Create EDP and pipelines for each environment.
-    stage_edp, stage_pipeline = construct_pipeline(
-        base_edp._replace(environment='stage', deployment='edx'),
-        pipeline_group
+    stage_blueprint = blueprint_builder.add_pipeline(
+        base_edp._replace(environment='stage', deployment='edx')
     )
-    edp_pipeline_map.append((stage_edp, stage_pipeline, stage_pipeline, 'master', 'master'),)
-
-    loadtest_edp, pipeline = construct_pipeline(
+    blueprint_builder.add_pipeline(
         base_edp._replace(environment='loadtest', deployment='edx'),
-        pipeline_group,
+        git_branch='loadtest',
+        configuration_branch='-'.join(['loadtest', base_edp.play])
     )
-    edp_pipeline_map.append((loadtest_edp, pipeline, pipeline, 'loadtest', '-'.join(['loadtest', base_edp.play])),)
-    auto_deploy = (stage_edp, loadtest_edp,)
 
     prod_deployments = ['edx']
     if has_edge:
         prod_deployments.append('edge')
     manual_deploy = ()
     for deployment in prod_deployments:
-        prod_edp, pipeline = construct_pipeline(
+        prod_blueprint = blueprint_builder.add_pipeline(
             base_edp._replace(environment='prod', deployment=deployment),
-            pipeline_group,
+            build_pipeline=stage_blueprint.build_pipeline
         )
-        edp_pipeline_map.append((prod_edp, stage_pipeline, pipeline, 'master', 'master'),)
-        manual_deploy += (prod_edp,)
+        manual_deploy += (prod_blueprint,)
 
     configuration_secure_material = materials.deployment_secure(
         'edx',
@@ -172,21 +197,18 @@ def generate_service_deployment_pipelines(
         configuration_internal_material,
     ]
 
-    for edp, build_pipeline, deploy_pipeline, git_branch, configuration_branch in edp_pipeline_map:
-        configuration_material = materials.CONFIGURATION(branch=configuration_branch)
-        app_material = partial_app_material(branch=git_branch)
+    for blueprint in blueprint_builder.blueprints:
+        edp = blueprint.edp
+        build_pipeline = blueprint.build_pipeline
+        deploy_pipeline = blueprint.deploy_pipeline
+        configuration_material = materials.CONFIGURATION(branch=blueprint.configuration_branch)
+        app_material = partial_app_material(branch=blueprint.git_branch)
 
         for material in common_materials + [configuration_material]:
             # All pipelines need access to tubular and configuration repos.
             deploy_pipeline.ensure_material(material)
 
-        if edp in auto_deploy:
-            # Most ensure_* methods are idempotent. ensure_material() seems
-            # to be an exception: calling it repeatedly for the same pipeline
-            # with the same materials results in duplicate materials.
-            build_pipeline.ensure_material(app_material)
-            build_pipeline.set_label_template(constants.DEPLOYMENT_PIPELINE_LABEL_TPL(app_material))
-        else:
+        if blueprint in manual_deploy:
             # The prod pipeline only requires successful completion of the stage
             # pipeline's AMI build stage, from which it will retrieve an AMI artifact.
             deploy_pipeline.ensure_material(
@@ -204,6 +226,12 @@ def generate_service_deployment_pipelines(
             # The prod pipeline's first stage is a no-op 'armed stage' that will
             # be followed by a deploy stage requiring manual approval.
             stages.generate_armed_stage(deploy_pipeline, constants.ARMED_STAGE_NAME)
+        else:
+            # Most ensure_* methods are idempotent. ensure_material() seems
+            # to be an exception: calling it repeatedly for the same pipeline
+            # with the same materials results in duplicate materials.
+            build_pipeline.ensure_material(app_material)
+            build_pipeline.set_label_template(constants.DEPLOYMENT_PIPELINE_LABEL_TPL(app_material))
 
         app_version_var = '$GO_REVISION_{}'.format(app_material.material_name.upper())
         overrides = {
@@ -233,10 +261,10 @@ def generate_service_deployment_pipelines(
             **overrides
         )
 
-        # The next stage in all three pipelines deploys an AMI built in an upstream stage.
+        # The next stage in all pipelines deploys an AMI built in an upstream stage.
         deploy_stage = deploy_pipeline.ensure_stage(constants.DEPLOY_AMI_STAGE_NAME)
 
-        if edp in manual_deploy:
+        if blueprint in manual_deploy:
             # We don't want the prod pipeline to deploy automatically (yet).
             deploy_stage.set_has_manual_approval()
 
