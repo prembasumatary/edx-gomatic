@@ -14,14 +14,14 @@ from edxpipelines.patterns import stages
 from edxpipelines.pipelines.script import pipeline_script
 
 
-def install_pipelines(configurator, config, env_configs):  # pylint: disable=unused-argument
+def install_pipelines(configurator, config):
     """
     Variables needed for this pipeline:
     - aws_access_key_id
     - aws_secret_access_key
     - edx_deployment
     """
-    for _, env_config in env_configs.items():
+    for env_config in config.by_environments():
         pipeline_name = 'Instance-Cleanup-{}'.format(env_config['edx_deployment'])
         pipeline = configurator.ensure_pipeline_group('Janitors')\
                                .ensure_replacement_of_pipeline(pipeline_name)\

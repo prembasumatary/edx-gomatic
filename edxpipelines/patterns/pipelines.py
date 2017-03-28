@@ -281,7 +281,6 @@ def generate_basic_multistage_pipeline(
 def generate_service_deployment_pipelines(
         configurator,
         config,
-        env_configs,
         base_edp,
         partial_app_material,
         has_migrations=True,
@@ -377,7 +376,6 @@ def generate_service_deployment_pipelines(
     ]
 
     for edp, build_pipeline, deploy_pipeline in edp_pipeline_map:
-        env_config = env_configs[edp.environment]
         configuration_material = materials.CONFIGURATION(
             branch='-'.join(['loadtest', edp.play]) if edp == loadtest_edp else 'master'
         )
@@ -426,7 +424,7 @@ def generate_service_deployment_pipelines(
             configuration_secure_material,
             configuration_internal_material,
             constants.PLAYBOOK_PATH_TPL(edp),
-            env_config,
+            config[edp],
             version_tags={
                 edp.play: (app_material.url, app_version_var),
                 'configuration': (configuration_material.url, configuration_material.envvar_bash),
@@ -457,7 +455,7 @@ def generate_service_deployment_pipelines(
             deploy_stage,
             ami_artifact_location,
             edp,
-            env_config,
+            config[edp],
             has_migrations=has_migrations
         )
 
@@ -497,8 +495,8 @@ def generate_service_deployment_pipelines(
                 edp.play,
                 '/edx/app/{}'.format(edp.play),
                 constants.DB_MIGRATION_USER,
-                env_config['db_migration_pass'],
+                config[edp]['db_migration_pass'],
                 migration_info_location,
                 ami_artifact_location=ami_artifact_location,
-                env_config=env_config,
+                config=config[edp],
             )

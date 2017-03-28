@@ -25,7 +25,7 @@ PACKAGE_SOURCE_JOB_NAME = 'package-source'
 API_MANAGER_WORKING_DIR = 'api-manager'
 
 
-def install_pipelines(configurator, config, env_configs):  # pylint: disable=unused-argument
+def install_pipelines(configurator, config):
     """
     Install pipelines that can build the edX api-gateway.
     """

@@ -24,7 +24,7 @@ def generate_build_ami(stage,
                        configuration_secure_material,
                        configuration_internal_material,
                        playbook_path,
-                       env_config,
+                       config,
                        version_tags=None,
                        **kwargs):
     """
@@ -40,7 +40,7 @@ def generate_build_ami(stage,
         configuration_internal_material (gomatic.gomatic.gocd.materials.GitMaterial): Internal
             configuration material. Destination directory expected to be 'configuration-internal'.
         playbook_path (str): Path to the Ansible playbook to run when creating the AMI.
-        env_config (dict): Environment-specific secure config.
+        config (dict): Environment-specific secure config.
         version_tags (dict): An optional {app_name: (repo, version), ...} dict that
             specifies what versions to tag the AMI with.
 
@@ -56,19 +56,19 @@ def generate_build_ami(stage,
     # Locate the base AMI.
     tasks.generate_base_ami_selection(
         job,
-        env_config['aws_access_key_id'],
-        env_config['aws_secret_access_key'],
+        config['aws_access_key_id'],
+        config['aws_secret_access_key'],
         edp=edp
     )
 
     # Launch a new instance on which to build the AMI.
     tasks.generate_launch_instance(
         job,
-        aws_access_key_id=env_config['aws_access_key_id'],
-        aws_secret_access_key=env_config['aws_secret_access_key'],
-        ec2_vpc_subnet_id=env_config['ec2_vpc_subnet_id'],
-        ec2_security_group_id=env_config['ec2_security_group_id'],
-        ec2_instance_profile_name=env_config['ec2_instance_profile_name'],
+        aws_access_key_id=config['aws_access_key_id'],
+        aws_secret_access_key=config['aws_secret_access_key'],
+        ec2_vpc_subnet_id=config['ec2_vpc_subnet_id'],
+        ec2_security_group_id=config['ec2_security_group_id'],
+        ec2_instance_profile_name=config['ec2_instance_profile_name'],
         variable_override_path=path_to_artifact(constants.BASE_AMI_OVERRIDE_FILENAME),
     )
 
@@ -78,8 +78,8 @@ def generate_build_ami(stage,
         playbook_path,
         edp,
         app_repo_url,
-        private_github_key=env_config['github_private_key'],
-        hipchat_token=env_config['hipchat_token'],
+        private_github_key=config['github_private_key'],
+        hipchat_token=config['hipchat_token'],
         configuration_secure_dir=configuration_secure_material.destination_directory,
         configuration_internal_dir=configuration_internal_material.destination_directory,
         disable_edx_services='true',
@@ -94,20 +94,20 @@ def generate_build_ami(stage,
         edp.deployment,
         edp.environment,
         app_repo_url,
-        env_config['aws_access_key_id'],
-        env_config['aws_secret_access_key'],
+        config['aws_access_key_id'],
+        config['aws_secret_access_key'],
         path_to_artifact(constants.LAUNCH_INSTANCE_FILENAME),
-        hipchat_token=env_config['hipchat_token'],
+        hipchat_token=config['hipchat_token'],
         version_tags=version_tags,
         **kwargs
     )
 
-    tasks.generate_ami_cleanup(job, env_config['hipchat_token'], runif='any')
+    tasks.generate_ami_cleanup(job, config['hipchat_token'], runif='any')
 
     return job
 
 
-def generate_deploy_ami(stage, ami_artifact_location, edp, env_config, has_migrations=True):
+def generate_deploy_ami(stage, ami_artifact_location, edp, config, has_migrations=True):
     """
     Generates a job for deploying an AMI. Migrations are applied as part of this job.
 
@@ -117,7 +117,7 @@ def generate_deploy_ami(stage, ami_artifact_location, edp, env_config, has_migra
             the AMI artifact to deploy.
         edp (edxpipelines.utils.EDP): Tuple indicating environment, deployment, and play
             to which the AMI belongs.
-        env_config (dict): Environment-specific secure config.
+        config (dict): Environment-specific secure config.
         has_migrations (bool): Whether to generate Gomatic for applying migrations.
 
     Returns:
@@ -136,11 +136,11 @@ def generate_deploy_ami(stage, ami_artifact_location, edp, env_config, has_migra
     if has_migrations:
         tasks.generate_launch_instance(
             job,
-            aws_access_key_id=env_config['aws_access_key_id'],
-            aws_secret_access_key=env_config['aws_secret_access_key'],
-            ec2_vpc_subnet_id=env_config['ec2_vpc_subnet_id'],
-            ec2_security_group_id=env_config['ec2_security_group_id'],
-            ec2_instance_profile_name=env_config['ec2_instance_profile_name'],
+            aws_access_key_id=config['aws_access_key_id'],
+            aws_secret_access_key=config['aws_secret_access_key'],
+            ec2_vpc_subnet_id=config['ec2_vpc_subnet_id'],
+            ec2_security_group_id=config['ec2_security_group_id'],
+            ec2_instance_profile_name=config['ec2_instance_profile_name'],
             variable_override_path=variable_override_path,
         )
 
@@ -156,16 +156,16 @@ def generate_deploy_ami(stage, ami_artifact_location, edp, env_config, has_migra
             application_name=edp.play,
             application_path='/edx/app/{}'.format(edp.play),
             db_migration_user=constants.DB_MIGRATION_USER,
-            db_migration_pass=env_config['db_migration_pass'],
+            db_migration_pass=config['db_migration_pass'],
         )
 
-        tasks.generate_ami_cleanup(job, env_config['hipchat_token'], runif='any')
+        tasks.generate_ami_cleanup(job, config['hipchat_token'], runif='any')
 
     tasks.generate_deploy_ami(
         job,
         variable_override_path,
-        env_config['asgard_api_endpoints'],
-        env_config['asgard_token'],
+        config['asgard_api_endpoints'],
+        config['asgard_token'],
     )
 
     return job
@@ -216,7 +216,7 @@ def generate_rollback_migrations(
         inventory_location=None,
         instance_key_location=None,
         ami_artifact_location=None,
-        env_config=None,
+        config=None,
         sub_application_name=None
 ):
     """
@@ -232,7 +232,7 @@ def generate_rollback_migrations(
             the key used to ssh in to the instance
         ami_artifact_location (edxpipelines.utils.ArtifactLocation): AMI to use when
             launching instance used to roll back migrations.
-        env_config (dict): Environment-specific secure config.
+        config (dict): Environment-specific secure config.
         sub_application_name (str): additional command to be passed to the migrate app {cms|lms}
 
     Returns:
@@ -248,7 +248,7 @@ def generate_rollback_migrations(
     tasks.generate_requirements_install(job, 'configuration')
     tasks.generate_target_directory(job)
 
-    is_instance_launch_required = ami_artifact_location and env_config
+    is_instance_launch_required = ami_artifact_location and config
 
     if is_instance_launch_required:
         # Retrieve the AMI ID from the upstream build stage.
@@ -257,11 +257,11 @@ def generate_rollback_migrations(
 
         tasks.generate_launch_instance(
             job,
-            aws_access_key_id=env_config['aws_access_key_id'],
-            aws_secret_access_key=env_config['aws_secret_access_key'],
-            ec2_vpc_subnet_id=env_config['ec2_vpc_subnet_id'],
-            ec2_security_group_id=env_config['ec2_security_group_id'],
-            ec2_instance_profile_name=env_config['ec2_instance_profile_name'],
+            aws_access_key_id=config['aws_access_key_id'],
+            aws_secret_access_key=config['aws_secret_access_key'],
+            ec2_vpc_subnet_id=config['ec2_vpc_subnet_id'],
+            ec2_security_group_id=config['ec2_security_group_id'],
+            ec2_instance_profile_name=config['ec2_instance_profile_name'],
             variable_override_path=variable_override_path,
         )
     else:
@@ -293,7 +293,7 @@ def generate_rollback_migrations(
 
     # If an instance was launched as part of this job, clean it up.
     if is_instance_launch_required:
-        tasks.generate_ami_cleanup(job, env_config['hipchat_token'], runif='any')
+        tasks.generate_ami_cleanup(job, config['hipchat_token'], runif='any')
 
     return job
 

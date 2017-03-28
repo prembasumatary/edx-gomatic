@@ -17,7 +17,7 @@ from edxpipelines.pipelines.script import pipeline_script
 from edxpipelines.utils import EDP
 
 
-def install_pipelines(configurator, config, env_configs):
+def install_pipelines(configurator, config):
     """
     Generates pipelines used to deploy the discovery service to stage, loadtest, and prod.
     """
@@ -33,7 +33,7 @@ def install_pipelines(configurator, config, env_configs):
         destination_directory=edp.play
     )
 
-    generate_service_deployment_pipelines(configurator, config, env_configs, edp, partial_app_material)
+    generate_service_deployment_pipelines(configurator, config, edp, partial_app_material)
 
 
 if __name__ == '__main__':
