@@ -177,20 +177,6 @@ def generate_service_deployment_pipelines(
         blueprints.append(prod_blueprint)
         manual_deploy.append(prod_blueprint)
 
-    configuration_secure_material = materials.deployment_secure(
-        'edx',
-        destination_directory='configuration-secure'
-    )
-    configuration_internal_material = materials.deployment_internal(
-        'edx',
-        destination_directory='configuration-internal'
-    )
-    common_materials = [
-        materials.TUBULAR(),
-        configuration_secure_material,
-        configuration_internal_material,
-    ]
-
     for blueprint in blueprints:
         edp = blueprint.edp
         build_pipeline = blueprint.build_pipeline
@@ -198,7 +184,20 @@ def generate_service_deployment_pipelines(
         configuration_material = materials.CONFIGURATION(branch=blueprint.configuration_branch)
         app_material = partial_app_material(branch=blueprint.git_branch)
 
-        for material in common_materials + [configuration_material]:
+        configuration_secure_material = materials.deployment_secure(
+            edp.deployment,
+            destination_directory='configuration-secure'
+        )
+        configuration_internal_material = materials.deployment_internal(
+            edp.deployment,
+            destination_directory='configuration-internal'
+        )
+        for material in (
+                materials.TUBULAR(),
+                configuration_material,
+                configuration_secure_material,
+                configuration_internal_material
+        ):
             # All pipelines need access to tubular and configuration repos.
             deploy_pipeline.ensure_material(material)
 
