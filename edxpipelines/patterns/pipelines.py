@@ -62,18 +62,18 @@ def generate_ami_deployment_pipeline(configurator,
     return configurator
 
 
+PipelineBlueprint = namedtuple('PipelineBlueprint',
+                               ['edp', 'build_pipeline', 'deploy_pipeline', 'git_branch', 'configuration_branch'])
+
+
 class PipelineBlueprintBuilder(object):
     """
-    Builds deployment pipelines and stores them in a PIPELINE_BLUEPRINT tuple.
+    Builds deployment pipelines and stores them in a PipelineBlueprint tuple.
     Blueprints store configuration needed for constructing materials and jobs.
     """
-    PIPELINE_BLUEPRINT = namedtuple('PIPELINE_BLUEPRINT', ['edp', 'build_pipeline', 'deploy_pipeline',
-                                                           'git_branch', 'configuration_branch'])
-
-    blueprints = []
-
     def __init__(self, pipeline_group):
         self.pipeline_group = pipeline_group
+        self.blueprints = []
 
     def add_pipeline(self, edp, build_pipeline=None, git_branch='master', configuration_branch='master'):
         """
@@ -92,7 +92,7 @@ class PipelineBlueprintBuilder(object):
         pipeline = self.pipeline_group.ensure_replacement_of_pipeline(
             constants.DEPLOYMENT_PIPELINE_NAME_TPL(edp)
         )
-        blueprint = self.PIPELINE_BLUEPRINT(edp, build_pipeline or pipeline, pipeline, git_branch, configuration_branch)
+        blueprint = PipelineBlueprint(edp, build_pipeline or pipeline, pipeline, git_branch, configuration_branch)
         self.blueprints.append(blueprint)
         return blueprint
 
