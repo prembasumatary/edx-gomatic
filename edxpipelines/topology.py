@@ -17,13 +17,6 @@ PARSER = ElementTree.XMLParser(
     remove_blank_text=True,
 )
 
-def recurse(element):
-    for child in element:
-        for task in simplify_element(child):
-            yield task
-
-
-
 
 def pipelines(element):
     only_after = defaultdict(set)
@@ -72,12 +65,15 @@ def pipelines(element):
                 phase.append(pipeline)
 
             # Record the phase
-            phases.append(Concurrent.flatten(
+            phases.append(Concurrent(
                 element,
-                [
-                    simplify_element(pipeline)
-                    for pipeline in phase
-                ]
+                sum(
+                    [
+                        simplify_element(pipeline)
+                        for pipeline in phase
+                    ],
+                    []
+                )
             ))
             group -= set(phase)
 
@@ -89,20 +85,9 @@ def pipelines(element):
                     if not triggers:
                         del only_after[after]
 
-        groups.append(Serial.flatten(element, phases))
-    return Concurrent.flatten(element, groups)
+        groups.append(Serial(element, phases))
+    return [Concurrent(element, groups)]
 
-
-def exec_(element):
-    runif = element.find('runif')
-    if runif and runif.get('status', 'passed') != 'passed':
-        runif_string = "when {}".format(runif.get('status'))
-    else:
-        runif_string = ''
-    return "{}{}".format(
-        runif_string,
-        " ".join([element.get('command')] + [arg.text for arg in element.findall('arg')])
-    )
 
 def approval(element):
     if element.get('type') == "manual":
@@ -116,14 +101,8 @@ def indent(blocks, indent):
     return "\n".join(indented)
 
 
-class Flow(namedtuple('_Flow', ['element', 'tasks'])):
-    def __str__(self):
-        return "{cls}<{tag} {name}>(\n{tasks}\n)".format(
-            tag=self.element.tag,
-            name=self.element.get('name'),
-            cls=self.__class__.__name__,
-            tasks=indent((str(task) for task in self.tasks), ' '*4)
-        )
+class Container(namedtuple('_Container', ['element', 'tasks'])):
+    sorted = False
 
     @classmethod
     def flatten(cls, element, tasks):
@@ -134,38 +113,113 @@ class Flow(namedtuple('_Flow', ['element', 'tasks'])):
         if not tasks:
             return None
 
-        if len(tasks) == 1:
-            return tasks[0]
-
         flattened = []
         for task in tasks:
             if isinstance(task, cls):
+                flattened.append(task.marker('start '))
                 flattened.extend(task.tasks)
+                flattened.append(task.marker('end '))
             else:
                 flattened.append(task)
         if len(flattened) == 1:
             return tasks[0]
         else:
-            return cls(element, flattened)
+            if element.get('name'):
+                context = [element.get('name')]
+            else:
+                context = None
+            return cls(context, flattened)
+
+    def render(self, current_mode=None, context=()):
+        print self.__class__, self.element, self.element.get('name'), current_mode, context
+        new_context = False
+        if self.element.get('name'):
+            context += (self.element.get('name'),)
+            new_context = True
+
+        if len(self.tasks) == 1 and isinstance(self.tasks[0], Container):
+            return self.tasks[0].render(current_mode, context)
+
+        rendered_tasks = []
+        for task in self.tasks:
+            rendered_tasks.append(task.render(self.__class__, context))
+        rendered_tasks = [
+            rendered
+            for rendered in rendered_tasks
+            if rendered
+        ]
+
+        if current_mode == self.__class__:
+            if new_context:
+                return ['start {}'.format(
+                    ' :: '.join(context),
+                )] + sum(rendered_tasks, []) + ['end {}'.format(
+                    ' :: '.join(context),
+                )]
+            else:
+                return sum(rendered_tasks, [])
+        else:
+            if new_context:
+                return [
+                    '{}  # {}'.format(
+                        self.__class__.__name__,
+                        ' :: '.join(context),
+                    )
+                ] + [
+                    '    {}'.format(task)
+                    for rendered in rendered_tasks
+                    for task in rendered
+                ]
+            else:
+                return [
+                    self.__class__.__name__,
+                ] + [
+                    '    {}'.format(task)
+                    for rendered in rendered_tasks
+                    for task in rendered
+                ]
 
     @classmethod
     def process(cls, element):
-        return cls.flatten(element, [simplify_element(child) for child in element])
+        return [cls(element, sum([simplify_element(child) for child in element], []))]
 
 
-class Serial(Flow):
+class Serial(Container):
     sorted = False
 
-class Concurrent(Flow):
+class Concurrent(Container):
     sorted = True
 
 
-RULES = defaultdict(lambda: Serial.process, {
+def recurse(element):
+    return sum(
+        (simplify_element(child) for child in element),
+        []
+    )
+
+
+class Exec(namedtuple('_Exec', ['element'])):
+    @property
+    def tasks(self):
+        return [self]
+
+    def render(self, current_mode=None, context=()):
+        runif = self.element.find('runif')
+        if runif and runif.get('status', 'passed') != 'passed':
+            runif_string = "when {}".format(runif.get('status'))
+        else:
+            runif_string = ''
+        return ["{}{}".format(
+            runif_string,
+            " ".join([self.element.get('command')] + [arg.text for arg in self.element.findall('arg')])
+        )]
+
+RULES = defaultdict(lambda: recurse, {
     'cruise': pipelines,
     'pipeline': Serial.process,
     'stage': Concurrent.process,
     'job': Serial.process,
-    'exec': exec_,
+    'exec': lambda element: [Exec(element)],
 })
 
 def simplify_file(input_file, output_file):
@@ -177,7 +231,13 @@ def simplify_file(input_file, output_file):
         output_file (path or file-like): Where to write the simplified configuration.
     """
     input_tree = ElementTree.parse(input_file, parser=PARSER)
-    output_file.write(str(simplify_gocd(input_tree)))
+    output_file.write("\n".join(sum(
+        (
+            task.render()
+            for task in simplify_gocd(input_tree)
+        ),
+        []
+    )))
 
 
 def simplify_gocd(config_xml):
