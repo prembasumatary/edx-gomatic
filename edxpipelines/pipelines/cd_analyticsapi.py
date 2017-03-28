@@ -34,7 +34,8 @@ def install_pipelines(configurator, config):
         destination_directory=edp.play,
     )
 
-    generate_service_deployment_pipelines(configurator, config, edp, partial_app_material, has_edge=True)
+    generate_service_deployment_pipelines(configurator, config, edp, partial_app_material,
+                                          prod_deployments=['edx', 'edge'])
 
 
 if __name__ == '__main__':

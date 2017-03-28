@@ -103,7 +103,7 @@ def generate_service_deployment_pipelines(
         base_edp,
         partial_app_material,
         has_migrations=True,
-        has_edge=False,
+        prod_deployments=None,
 ):
     """
     Generates pipelines used to build and deploy a service to stage, loadtest,
@@ -145,8 +145,13 @@ def generate_service_deployment_pipelines(
             being generated.
         has_migrations (bool): Whether to generate Gomatic for applying and
             rolling back migrations.
-        has_edge (bool): Whether to generate services for deploying to prod-edge.
+        prod_deployments ([str]): Indicates which production deployments will be
+            generated (e.g. set to ['edx', 'edge'] to create prod-edge-play and
+            prod-edx-play pipelines.  Defaults to only 'edx'.
     """
+    if prod_deployments is None:
+        prod_deployments = ['edx']
+
     # Replace any existing pipeline group with a fresh one.
     configurator.ensure_removal_of_pipeline_group(base_edp.play)
     pipeline_group = configurator.ensure_pipeline_group(base_edp.play)
@@ -172,9 +177,6 @@ def generate_service_deployment_pipelines(
         configuration_branch='-'.join(['loadtest', base_edp.play])
     )
 
-    prod_deployments = ['edx']
-    if has_edge:
-        prod_deployments.append('edge')
     manual_deploy = ()
     for deployment in prod_deployments:
         prod_blueprint = blueprint_builder.add_pipeline(
