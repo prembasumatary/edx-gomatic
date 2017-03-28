@@ -186,11 +186,9 @@ def generate_service_deployment_pipelines(
 
         configuration_secure_material = materials.deployment_secure(
             edp.deployment,
-            destination_directory='configuration-secure'
         )
         configuration_internal_material = materials.deployment_internal(
             edp.deployment,
-            destination_directory='configuration-internal'
         )
         for material in (
                 materials.TUBULAR(),
@@ -200,6 +198,7 @@ def generate_service_deployment_pipelines(
         ):
             # All pipelines need access to tubular and configuration repos.
             deploy_pipeline.ensure_material(material)
+            build_pipeline.ensure_material(material)
 
         if blueprint in manual_deploy:
             # The prod pipeline only requires successful completion of the stage
