@@ -65,36 +65,25 @@ def generate_ami_deployment_pipeline(configurator,
 PipelineBlueprint = namedtuple('PipelineBlueprint',
                                ['edp', 'build_pipeline', 'deploy_pipeline', 'git_branch', 'configuration_branch'])
 
-
-class PipelineBlueprintBuilder(object):
+def make_blueprint(pipeline_group, edp, build_pipeline=None, git_branch='master', configuration_branch='master'):
     """
-    Builds deployment pipelines and stores them in a PipelineBlueprint tuple.
-    Blueprints store configuration needed for constructing materials and jobs.
+    Constructs a deployment pipeline from the edp and returns the pipeline and configuration
+    as a PipelineBlueprint
+
+    Args:
+        edp(edxpipelines.utils.EDP): tuple indicating pipeline to be built
+        build_pipeline(gomatic.gocd.pipelines.Pipeline): pipeline where AMIs are built
+        git_branch(str): git branch to poll for changes
+        configuration_branch(str): configuration branch to poll for changes
+
+    Returns:
+        newly constructed blueprint tuple
     """
-    def __init__(self, pipeline_group):
-        self.pipeline_group = pipeline_group
-        self.blueprints = []
-
-    def add_pipeline(self, edp, build_pipeline=None, git_branch='master', configuration_branch='master'):
-        """
-        Constructs a deployment pipeline from the edp and stores the pipeline
-        and configuration in the blueprints member variable.
-
-        Args:
-            edp(edxpipelines.utils.EDP): tuple indicating pipeline to be built
-            build_pipeline(gomatic.gocd.pipelines.Pipeline): pipeline where AMIs are built
-            git_branch(str): git branch to poll for changes
-            configuration_branch(str): configuration branch to poll for changes
-
-        Returns:
-            newly constructed blueprint tuple
-        """
-        pipeline = self.pipeline_group.ensure_replacement_of_pipeline(
-            constants.DEPLOYMENT_PIPELINE_NAME_TPL(edp)
-        )
-        blueprint = PipelineBlueprint(edp, build_pipeline or pipeline, pipeline, git_branch, configuration_branch)
-        self.blueprints.append(blueprint)
-        return blueprint
+    pipeline = pipeline_group.ensure_replacement_of_pipeline(
+        constants.DEPLOYMENT_PIPELINE_NAME_TPL(edp)
+    )
+    blueprint = PipelineBlueprint(edp, build_pipeline or pipeline, pipeline, git_branch, configuration_branch)
+    return blueprint
 
 
 def generate_service_deployment_pipelines(
@@ -165,25 +154,28 @@ def generate_service_deployment_pipelines(
     ensure_permissions(configurator, pipeline_group, Permission.VIEW, [operator_role])
 
     # Map EDPs to the pipelines that build their AMIs and the pipelines that deploy them.
-    blueprint_builder = PipelineBlueprintBuilder(pipeline_group)
-
     # Create EDP and pipelines for each environment.
-    stage_blueprint = blueprint_builder.add_pipeline(
+    stage_blueprint = make_blueprint(
+        pipeline_group,
         base_edp._replace(environment='stage', deployment='edx')
     )
-    blueprint_builder.add_pipeline(
+    blueprints = [stage_blueprint]
+    blueprints.append(make_blueprint(
+        pipeline_group,
         base_edp._replace(environment='loadtest', deployment='edx'),
         git_branch='loadtest',
         configuration_branch='-'.join(['loadtest', base_edp.play])
-    )
+    ))
 
-    manual_deploy = ()
+    manual_deploy = []
     for deployment in prod_deployments:
-        prod_blueprint = blueprint_builder.add_pipeline(
+        prod_blueprint = make_blueprint(
+            pipeline_group,
             base_edp._replace(environment='prod', deployment=deployment),
             build_pipeline=stage_blueprint.build_pipeline
         )
-        manual_deploy += (prod_blueprint,)
+        blueprints.append(prod_blueprint)
+        manual_deploy.append(prod_blueprint)
 
     configuration_secure_material = materials.deployment_secure(
         'edx',
@@ -199,7 +191,7 @@ def generate_service_deployment_pipelines(
         configuration_internal_material,
     ]
 
-    for blueprint in blueprint_builder.blueprints:
+    for blueprint in blueprints:
         edp = blueprint.edp
         build_pipeline = blueprint.build_pipeline
         deploy_pipeline = blueprint.deploy_pipeline
