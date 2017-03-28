@@ -11,7 +11,7 @@ sys.path.append(path.dirname(path.dirname(path.dirname(path.abspath(__file__))))
 
 # pylint: disable=wrong-import-position
 from edxpipelines.patterns import tasks
-from edxpipelines.materials import TUBULAR
+from edxpipelines.materials import (TUBULAR, EDX_ORA2)
 from edxpipelines import constants
 from edxpipelines.pipelines.script import pipeline_script
 
@@ -28,14 +28,16 @@ def install_pipelines(configurator, config, env_configs):  # pylint: disable=unu
     """
 
     pipeline = configurator.ensure_pipeline_group(constants.ORA2_PIPELINE_GROUP_NAME) \
-                           .ensure_replacement_of_pipeline(constants.BUILD_ORA2_SANDBOX_PIPELINE_NAME)
+                           .ensure_replacement_of_pipeline(constants.BUILD_ORA2_SANDBOX_PIPELINE_NAME) \
+                           .set_timer('0 30 9 * * ?')
 
-    pipeline.ensure_material(TUBULAR())
+    for material in (TUBULAR, EDX_ORA2):
+        pipeline.ensure_material(material())
 
     pipeline.ensure_environment_variables(
         {
-            'DNS_NAME': '',
-            'NAME_TAG': '',
+            'DNS_NAME': 'ora2',
+            'NAME_TAG': 'ora2',
             'EDXAPP_VERSION': 'master',
             'ORA2_VERSION': 'master',
             'CONFIGURATION_VERSION': 'master',

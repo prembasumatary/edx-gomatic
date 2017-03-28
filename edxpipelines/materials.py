@@ -152,3 +152,12 @@ ECOM_SECURE = partial(
     destination_directory="ecom-secure",
     ignore_patterns=['**/*'],
 )
+
+EDX_ORA2 = partial(
+    GitMaterial,
+    url='https://github.com/edx/edx-ora2',
+    branch='master',
+    polling=True,
+    destination_directory='edx-ora2',
+    ignore_patterns=['**/*']
+)
