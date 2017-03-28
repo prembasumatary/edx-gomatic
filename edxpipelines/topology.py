@@ -18,11 +18,12 @@ PARSER = ElementTree.XMLParser(
 )
 
 
-def pipelines(element):
+def pipelines(element, pipelines=None):
     only_after = defaultdict(set)
     pipelines_by_name = {
         pipeline.get('name'): pipeline
         for pipeline in element.iter('pipeline')
+        if not pipelines or pipeline.get('name') in pipelines
     }
     for pipeline in pipelines_by_name.values():
         for materials in pipeline.iter('materials'):
@@ -66,7 +67,7 @@ def pipelines(element):
 
             # Record the phase
             phases.append(Concurrent(
-                element,
+                None,
                 sum(
                     [
                         simplify_element(pipeline)
@@ -85,11 +86,11 @@ def pipelines(element):
                     if not triggers:
                         del only_after[after]
 
-        groups.append(Serial(element, phases))
-    return [Concurrent(element, groups)]
+        groups.append(Serial(None, phases))
+    return [Concurrent(None, groups)]
 
 
-def approval(element):
+def approval(element, pipelines=None):
     if element.get('type') == "manual":
         return "block on manual approval"
 
@@ -101,47 +102,37 @@ def indent(blocks, indent):
     return "\n".join(indented)
 
 
+def sort_key(task):
+    if task.element:
+        return (task.element.tag, task.element.get('name'))
+    elif task.tasks:
+        if task.sorted:
+            return sort_key(sorted(task.tasks, key=sort_key)[0])
+        else:
+            return sort_key(task.tasks[0])
+    else:
+        return None
+
+
 class Container(namedtuple('_Container', ['element', 'tasks'])):
     sorted = False
 
-    @classmethod
-    def flatten(cls, element, tasks):
-        tasks = [task for task in tasks if task]
-        if cls.sorted:
-            tasks.sort()
-
-        if not tasks:
-            return None
-
-        flattened = []
-        for task in tasks:
-            if isinstance(task, cls):
-                flattened.append(task.marker('start '))
-                flattened.extend(task.tasks)
-                flattened.append(task.marker('end '))
-            else:
-                flattened.append(task)
-        if len(flattened) == 1:
-            return tasks[0]
-        else:
-            if element.get('name'):
-                context = [element.get('name')]
-            else:
-                context = None
-            return cls(context, flattened)
-
     def render(self, current_mode=None, context=()):
-        print self.__class__, self.element, self.element.get('name'), current_mode, context
         new_context = False
-        if self.element.get('name'):
+        if self.element and self.element.get('name'):
             context += (self.element.get('name'),)
             new_context = True
 
         if len(self.tasks) == 1 and isinstance(self.tasks[0], Container):
             return self.tasks[0].render(current_mode, context)
 
+        if self.sorted:
+            tasks = sorted(self.tasks, key=sort_key)
+        else:
+            tasks = self.tasks
+
         rendered_tasks = []
-        for task in self.tasks:
+        for task in tasks:
             rendered_tasks.append(task.render(self.__class__, context))
         rendered_tasks = [
             rendered
@@ -180,7 +171,7 @@ class Container(namedtuple('_Container', ['element', 'tasks'])):
                 ]
 
     @classmethod
-    def process(cls, element):
+    def process(cls, element, pipelines=None):
         return [cls(element, sum([simplify_element(child) for child in element], []))]
 
 
@@ -191,7 +182,7 @@ class Concurrent(Container):
     sorted = True
 
 
-def recurse(element):
+def recurse(element, pipelines=None):
     return sum(
         (simplify_element(child) for child in element),
         []
@@ -214,15 +205,19 @@ class Exec(namedtuple('_Exec', ['element'])):
             " ".join([self.element.get('command')] + [arg.text for arg in self.element.findall('arg')])
         )]
 
+    @classmethod
+    def process(cls, element, pipelines=None):
+        return [cls(element)]
+
 RULES = defaultdict(lambda: recurse, {
     'cruise': pipelines,
     'pipeline': Serial.process,
     'stage': Concurrent.process,
     'job': Serial.process,
-    'exec': lambda element: [Exec(element)],
+    'exec': Exec.process,
 })
 
-def simplify_file(input_file, output_file):
+def simplify_file(input_file, output_file, pipelines=None):
     """
     Simplify a file to its essential topology and write it to the output.
 
@@ -231,16 +226,10 @@ def simplify_file(input_file, output_file):
         output_file (path or file-like): Where to write the simplified configuration.
     """
     input_tree = ElementTree.parse(input_file, parser=PARSER)
-    output_file.write("\n".join(sum(
-        (
-            task.render()
-            for task in simplify_gocd(input_tree)
-        ),
-        []
-    )))
+    output_file.write("\n".join(simplify_gocd(input_tree, pipelines).render()))
 
 
-def simplify_gocd(config_xml):
+def simplify_gocd(config_xml, pipelines=None):
     """
     Reformats a GoCD configuration into a diffable format
     that preserves its topology (concurrency of tasks).
@@ -250,23 +239,24 @@ def simplify_gocd(config_xml):
 
     Returns (ElementTree): A simplified GoCD config file.
     """
-    return simplify_element(config_xml.getroot())
+    return Concurrent(config_xml.getroot(), simplify_element(config_xml.getroot(), pipelines))
 
 
-def simplify_element(element):
+def simplify_element(element, pipelines=None):
     """
     Simplify an element using the standard rule for that elements tag.
     """
-    return RULES[element.tag](element)
+    return RULES[element.tag](element, pipelines=pipelines)
 
 
 @click.command()
 @click.argument('input_file', nargs=1, type=click.File('rb'))
-def cli(input_file):
+@click.option('--pipeline', multiple=True, help="A pipeline to limit the topology computation to")
+def cli(input_file, pipeline):
     """
     simplify a GoCD XML configuration file, and print it to stdout.
     """
-    simplify_file(input_file, sys.stdout)
+    simplify_file(input_file, sys.stdout, pipelines=set(pipeline))
 
 
 if __name__ == '__main__':
