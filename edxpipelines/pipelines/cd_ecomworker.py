@@ -15,6 +15,7 @@ from gomatic import GitMaterial
 from edxpipelines.patterns.pipelines import generate_service_deployment_pipelines
 from edxpipelines.pipelines.script import pipeline_script
 from edxpipelines.utils import EDP
+from edxpipelines.materials import GomaticGitMaterial
 
 
 def install_pipelines(configurator, config):
@@ -24,7 +25,7 @@ def install_pipelines(configurator, config):
     edp = EDP(None, None, 'ecomworker')
 
     partial_app_material = partial(
-        GitMaterial,
+        GomaticGitMaterial,
         'https://github.com/edx/ecommerce-worker.git',
         # Material name is required to label pipelines with a commit SHA. GitMaterials
         # return their SHA when referenced by name.

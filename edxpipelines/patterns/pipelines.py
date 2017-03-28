@@ -226,7 +226,7 @@ def generate_service_deployment_pipelines(
             build_pipeline.ensure_material(app_material)
             build_pipeline.set_label_template(constants.DEPLOYMENT_PIPELINE_LABEL_TPL(app_material))
 
-        app_version_var = '$GO_REVISION_{}'.format(app_material.material_name.upper())
+        app_version_var = app_material.envvar_bash
         overrides = {
             'app_version': app_version_var,
             '{}_VERSION'.format(base_edp.play.upper()): app_version_var,
