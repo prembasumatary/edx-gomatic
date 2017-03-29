@@ -8,6 +8,7 @@ from enum import Enum
 ARM_PRERELEASE_STAGE = 'arm_prerelease'
 DEPLOY_AMI_STAGE_NAME = 'deploy_ami'
 DEPLOY_AMI_JOB_NAME = 'deploy_ami_job'
+DEPLOY_AMI_JOB_NAME_TPL = '{0.environment}_{0.deployment}_deploy_ami_job'.format
 RUN_MIGRATIONS_STAGE_NAME = 'apply_migrations'
 RUN_MIGRATIONS_JOB_NAME = 'apply_migrations_job'
 BUILD_AMI_STAGE_NAME = 'build_ami'
@@ -28,8 +29,9 @@ MANUAL_VERIFICATION_STAGE_NAME = 'manual_verification'
 MANUAL_VERIFICATION_JOB_NAME = 'manual_verification_job'
 ROLLBACK_ASGS_STAGE_NAME = 'rollback_asgs'
 ROLLBACK_ASGS_JOB_NAME = 'rollback_asgs_job'
+ROLLBACK_ASGS_JOB_NAME_TPL = '{0.environment}_{0.deployment}_rollback_asgs_job'.format
 ROLLBACK_MIGRATIONS_STAGE_NAME = 'rollback_migrations'
-ROLLBACK_MIGRATIONS_JOB_NAME = 'rollback_migrations_job'
+ROLLBACK_MIGRATIONS_JOB_NAME_TPL = '{0.environment}_{0.deployment}_rollback_migrations_job'.format
 ARMED_STAGE_NAME = 'armed_stage'
 ARMED_JOB_NAME = 'armed_job'
 PRERELEASE_MATERIALS_STAGE_NAME = 'prerelease_materials'
@@ -69,6 +71,8 @@ BRANCH_CLEANUP_PIPELINE_NAME = 'edxapp_branch_cleanup'
 PRERELEASE_EDXAPP_CUT_RC_PIPELINE_NAME = 'prerelease_edxapp_private_rc'
 DEPLOYMENT_PIPELINE_NAME_TPL = '{0.environment}-{0.deployment}-{0.play}'.format
 BUILD_ORA2_SANDBOX_PIPELINE_NAME = 'build_ora2_sandbox'
+CONTINUOUS_DEPLOYMENT_PIPELINE_TPL = '{}-continuous-deploy'.format
+MANUAL_DEPLOYMENT_PIPELINE_TPL = '{}-manual-deploy'.format
 
 # ORA2 configuration
 ORA2_JENKINS_URL = 'https://tools-edx-jenkins.edx.org'
@@ -125,6 +129,8 @@ DEPLOYMENT_PIPELINE_LABEL_TPL = '${{{.material_name}[:7]}}-${{COUNT}}'.format
 DB_MIGRATION_USER = 'migrate'
 MIGRATION_OUTPUT_DIR_NAME = 'migrations'
 PLAYBOOK_PATH_TPL = 'playbooks/edx-east/{.play}.yml'.format
+EDX_REPO_TPL = 'https://github.com/edx/{}.git'.format
+
 
 # AWS Defaults
 EC2_REGION = 'us-east-1'

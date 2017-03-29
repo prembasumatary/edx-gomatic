@@ -9,27 +9,23 @@ from gomatic import GitMaterial
 from edxpipelines import constants
 
 
-class InvalidGitRepoURL(Exception):
+class InvalidGitRepoURL(ValueError):
     """
     Raised when repo URL can't be parsed.
     """
     pass
 
 
-def github_org(material):
+def github_id(material):
+    """
+    Return the github (org, repo) parsed from ``material``s url, or
+    raise an InvalidGitRepoURL if none could be parsed.
+    """
     clone_url = urllib.parse.urlparse(material.url).geturl()
     match = re.match(r'.*[:/](?P<org>[^/]*)/(?P<repo>[^/.]*)', clone_url)
     if not match:
         raise InvalidGitRepoURL(material.url)
-    return match.group('org')
-
-
-def github_repo(material):
-    clone_url = urllib.parse.urlparse(material.url).geturl()
-    match = re.match(r'.*[:/](?P<org>[^/]*)/(?P<repo>[^/.]*)', clone_url)
-    if not match:
-        raise InvalidGitRepoURL(material.url)
-    return match.group('repo')
+    return match.group('org'), match.group('repo')
 
 
 def material_envvar_name(material):
@@ -155,4 +151,3 @@ EDX_ORA2 = partial(
     destination_directory='edx-ora2',
     ignore_patterns=constants.MATERIAL_IGNORE_ALL_REGEX,
 )
-

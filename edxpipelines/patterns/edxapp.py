@@ -687,9 +687,10 @@ def armed_stage_builder(pipeline, config):  # pylint: disable=unused-argument
     return pipeline
 
 
-def rollback_database(build_pipeline, deploy_pipeline):
+def rollback_database(edp, build_pipeline, deploy_pipeline):
     """
     Arguments:
+        edp (EDP): EDP that this builder will roll back
         build_pipeline (gomatic.Pipeline): Pipeline source of the launch info (ami-id)
         deploy_pipeline (gomatic.Pipeline): Pipeline source of the migration information
 
@@ -759,6 +760,7 @@ def rollback_database(build_pipeline, deploy_pipeline):
 
             stages.generate_rollback_migrations(
                 pipeline,
+                edp,
                 db_migration_pass=config['db_migration_pass'],
                 inventory_location=ansible_inventory_location,
                 instance_key_location=instance_ssh_key_location,

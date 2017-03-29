@@ -23,7 +23,7 @@ from edxpipelines.patterns import (
     jobs
 )
 from edxpipelines.utils import ArtifactLocation
-from edxpipelines.materials import github_org, github_repo, material_envvar_bash
+from edxpipelines.materials import github_id, material_envvar_bash
 
 
 def generate_asg_cleanup(pipeline,
@@ -606,6 +606,7 @@ def generate_run_migrations(pipeline,
 
 
 def generate_rollback_migrations(pipeline,
+                                 edp,
                                  db_migration_pass,
                                  inventory_location,
                                  instance_key_location,
@@ -620,6 +621,7 @@ def generate_rollback_migrations(pipeline,
 
     Args:
         pipeline (gomatic.Pipeline): Pipeline to which to add the run migrations stage.
+        edp (EDP): EDP that this stage will roll back
         db_migration_pass (str): Password for the DB user used to run migrations.
         inventory_location (ArtifactLocation): Location of inventory containing the IP
             address of the EC2 instance, for fetching.
@@ -644,6 +646,7 @@ def generate_rollback_migrations(pipeline,
 
     jobs.generate_rollback_migrations(
         stage,
+        edp,
         application_user=application_user,
         application_name=application_name,
         application_path=application_path,
@@ -1499,14 +1502,15 @@ def generate_check_ci(
     stage = pipeline.ensure_stage(constants.CHECK_CI_STAGE_NAME)
     # Add a separate checking job for each org/repo.
     for material in materials_to_check:
-        repo_underscore = github_repo(material).replace('-', '_')
+        org, repo = github_id(material)
+        repo_underscore = repo.replace('-', '_')
         job = stage.ensure_job(constants.CHECK_CI_JOB_NAME + '_' + repo_underscore)
         tasks.generate_package_install(job, 'tubular')
 
         cmd_args = [
             '--token', '$GIT_TOKEN',
-            '--org', github_org(material),
-            '--repo', github_repo(material),
+            '--org', org,
+            '--repo', repo,
             '--commit_hash', material_envvar_bash(material)
         ]
         job.add_task(tasks.tubular_task(
