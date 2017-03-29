@@ -19,17 +19,26 @@ class GomaticGitMaterial(GitMaterial):
     """
     Wrapper class around gomatic.gomatic.gocd.materials.GitMaterial in order to add helper methods.
     """
-    def __init__(
-            self, url, *args, **kwargs
-    ):
-        # Parse out the org/repo from the material url.
-        clone_url = urllib.parse.urlparse(url).geturl()
+    # N.B. because of how GoCD implements equality comparison, this object cannot have
+    # additional instance attributes and still compare equal to an equivalent GitMaterial.
+    # It *has* to compare equal to GitMaterials, because gomatic reconstructs the GitMaterials
+    # on the fly during ensure_materials.
+
+    @property
+    def org(self):
+        clone_url = urllib.parse.urlparse(self.url).geturl()
         match = re.match(r'.*[:/](?P<org>[^/]*)/(?P<repo>[^/.]*)', clone_url)
         if not match:
-            raise InvalidGitRepoURL(url)
-        self.org = match.group('org')
-        self.repo = match.group('repo')
-        super(GomaticGitMaterial, self).__init__(url, *args, **kwargs)
+            raise InvalidGitRepoURL(self.url)
+        return match.group('org')
+
+    @property
+    def repo(self):
+        clone_url = urllib.parse.urlparse(self.url).geturl()
+        match = re.match(r'.*[:/](?P<org>[^/]*)/(?P<repo>[^/.]*)', clone_url)
+        if not match:
+            raise InvalidGitRepoURL(self.url)
+        return match.group('repo')
 
     @property
     def envvar_name(self):
@@ -45,6 +54,11 @@ class GomaticGitMaterial(GitMaterial):
         Return the material revision's GoCD environment variable in de-referenced bash format.
         """
         return '${self.envvar_name}'.format(self=self)
+
+    def __eq__(self, other):
+        # N.B. GitMaterial is hard-coded, because otherwise the comparison GomaticGitMaterial(...) == GitMaterial(...)
+        # won't work
+        return isinstance(other, GitMaterial) and self.__dict__ == other.__dict__
 
 
 def deployment_secure(deployment, branch='master', polling=True, destination_directory=None, ignore_patterns=None):
