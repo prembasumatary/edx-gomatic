@@ -15,6 +15,7 @@ from collections import namedtuple
 from gomatic import GitMaterial, PipelineMaterial
 
 from edxpipelines import constants, materials
+from edxpipelines.materials import material_envvar_bash
 from edxpipelines.patterns import jobs, stages
 from edxpipelines.patterns.authz import Permission, ensure_permissions
 from edxpipelines.utils import ArtifactLocation
@@ -225,7 +226,7 @@ def generate_service_deployment_pipelines(
             build_pipeline.ensure_material(app_material)
             build_pipeline.set_label_template(constants.DEPLOYMENT_PIPELINE_LABEL_TPL(app_material))
 
-        app_version_var = app_material.envvar_bash
+        app_version_var = material_envvar_bash(app_material)
         overrides = {
             'app_version': app_version_var,
             '{}_VERSION'.format(base_edp.play.upper()): app_version_var,
@@ -242,7 +243,7 @@ def generate_service_deployment_pipelines(
             config[edp],
             version_tags={
                 edp.play: (app_material.url, app_version_var),
-                'configuration': (configuration_material.url, configuration_material.envvar_bash),
+                'configuration': (configuration_material.url, material_envvar_bash(configuration_material)),
                 'configuration_secure': (
                     configuration_secure_material.url, constants.CONFIGURATION_SECURE_VERSION
                 ),

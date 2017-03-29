@@ -16,63 +16,48 @@ class InvalidGitRepoURL(Exception):
     pass
 
 
-class GomaticGitMaterial(GitMaterial):
+def github_org(material):
+    clone_url = urllib.parse.urlparse(material.url).geturl()
+    match = re.match(r'.*[:/](?P<org>[^/]*)/(?P<repo>[^/.]*)', clone_url)
+    if not match:
+        raise InvalidGitRepoURL(material.url)
+    return match.group('org')
+
+
+def github_repo(material):
+    clone_url = urllib.parse.urlparse(material.url).geturl()
+    match = re.match(r'.*[:/](?P<org>[^/]*)/(?P<repo>[^/.]*)', clone_url)
+    if not match:
+        raise InvalidGitRepoURL(material.url)
+    return match.group('repo')
+
+
+def material_envvar_name(material):
     """
-    Wrapper class around gomatic.gomatic.gocd.materials.GitMaterial in order to add helper methods.
+    Return the material revision's GoCD environment variable name.
     """
-    # N.B. because of how GoCD implements equality comparison, this object cannot have
-    # additional instance attributes and still compare equal to an equivalent GitMaterial.
-    # It *has* to compare equal to GitMaterials, because gomatic reconstructs the GitMaterials
-    # on the fly during ensure_materials.
-
-    @property
-    def org(self):
-        clone_url = urllib.parse.urlparse(self.url).geturl()
-        match = re.match(r'.*[:/](?P<org>[^/]*)/(?P<repo>[^/.]*)', clone_url)
-        if not match:
-            raise InvalidGitRepoURL(self.url)
-        return match.group('org')
-
-    @property
-    def repo(self):
-        clone_url = urllib.parse.urlparse(self.url).geturl()
-        match = re.match(r'.*[:/](?P<org>[^/]*)/(?P<repo>[^/.]*)', clone_url)
-        if not match:
-            raise InvalidGitRepoURL(self.url)
-        return match.group('repo')
-
-    @property
-    def envvar_name(self):
-        """
-        Return the material revision's GoCD environment variable name.
-        """
-        suffix = self.material_name if self.material_name else self.destination_directory
-        return 'GO_REVISION_{suffix}'.format(suffix=suffix.replace('-', '_').upper())
-
-    @property
-    def envvar_bash(self):
-        """
-        Return the material revision's GoCD environment variable in de-referenced bash format.
-        """
-        return '${self.envvar_name}'.format(self=self)
-
-    def __eq__(self, other):
-        # N.B. GitMaterial is hard-coded, because otherwise the comparison GomaticGitMaterial(...) == GitMaterial(...)
-        # won't work
-        return isinstance(other, GitMaterial) and self.__dict__ == other.__dict__
+    suffix = material.material_name if material.material_name else material.destination_directory
+    return 'GO_REVISION_{suffix}'.format(suffix=suffix.replace('-', '_').upper())
 
 
-def deployment_secure(deployment, branch='master', polling=True, destination_directory=None, ignore_patterns=None):
+def material_envvar_bash(material):
     """
-    Initialize a GomaticGitMaterial representing a deployment's secure configuration repo.
+    Return the material revision's GoCD environment variable in de-referenced bash format.
+    """
+    return '${{{}}}'.format(material_envvar_name(material))
+
+
+def deployment_secure(deployment, branch=None, polling=True, destination_directory=None, ignore_patterns=None):
+    """
+    Initialize a GitMaterial representing a deployment's secure configuration repo.
 
     Args:
         deployment (str): Deployment for which to create the material (e.g., 'edx', 'edge')
 
     Returns:
-        GomaticGitMaterial
+        GitMaterial
     """
-    return GomaticGitMaterial(
+    return GitMaterial(
         url='git@github.com:edx-ops/{}-secure.git'.format(deployment),
         branch=branch,
         polling=polling,
@@ -84,15 +69,15 @@ def deployment_secure(deployment, branch='master', polling=True, destination_dir
 
 def deployment_internal(deployment, branch=None, polling=True, destination_directory=None, ignore_patterns=frozenset()):
     """
-    Initialize a GomaticGitMaterial representing a deployment's internal configuration repo.
+    Initialize a GitMaterial representing a deployment's internal configuration repo.
 
     Args:
         deployment (str): Deployment for which to create the material (e.g., 'edx', 'edge')
 
     Returns:
-        GomaticGitMaterial
+        GitMaterial
     """
-    return GomaticGitMaterial(
+    return GitMaterial(
         url='git@github.com:edx/{}-internal.git'.format(deployment),
         branch=branch,
         polling=polling,
@@ -103,7 +88,7 @@ def deployment_internal(deployment, branch=None, polling=True, destination_direc
 
 
 TUBULAR = partial(
-    GomaticGitMaterial,
+    GitMaterial,
     url="https://github.com/edx/tubular",
     destination_directory="tubular",
     ignore_patterns=constants.MATERIAL_IGNORE_ALL_REGEX,
@@ -111,7 +96,7 @@ TUBULAR = partial(
 )
 
 CONFIGURATION = partial(
-    GomaticGitMaterial,
+    GitMaterial,
     url="https://github.com/edx/configuration",
     polling=True,
     destination_directory="configuration",
@@ -120,7 +105,7 @@ CONFIGURATION = partial(
 )
 
 EDX_PLATFORM = partial(
-    GomaticGitMaterial,
+    GitMaterial,
     url="https://github.com/edx/edx-platform",
     branch="release-candidate",
     polling=True,
@@ -134,7 +119,7 @@ EDX_SECURE = partial(deployment_secure, 'edx')
 EDGE_SECURE = partial(deployment_secure, 'edge')
 
 EDX_MICROSITE = partial(
-    GomaticGitMaterial,
+    GitMaterial,
     url="git@github.com:edx/edx-microsite.git",
     branch="release",
     polling=True,
@@ -148,7 +133,7 @@ EDX_INTERNAL = partial(deployment_internal, 'edx')
 EDGE_INTERNAL = partial(deployment_internal, 'edge')
 
 EDX_MKTG = partial(
-    GomaticGitMaterial,
+    GitMaterial,
     url="git@github.com:edx/edx-mktg.git",
     polling=True,
     destination_directory="edx-mktg",
@@ -156,7 +141,7 @@ EDX_MKTG = partial(
 )
 
 ECOM_SECURE = partial(
-    GomaticGitMaterial,
+    GitMaterial,
     url="git@github.com:edx-ops/ecom-secure",
     polling=True,
     destination_directory="ecom-secure",

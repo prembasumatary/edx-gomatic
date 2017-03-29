@@ -23,6 +23,7 @@ from edxpipelines.patterns import (
     jobs
 )
 from edxpipelines.utils import ArtifactLocation
+from edxpipelines.materials import github_org, github_repo, material_envvar_bash
 
 
 def generate_asg_cleanup(pipeline,
@@ -1485,7 +1486,7 @@ def generate_check_ci(
     Args:
         pipeline (gomatic.Pipeline):
         token (str): GitHub token used to check CI.
-        materials_to_check (list(GomaticGitMaterial): List of materials.
+        materials_to_check (list(GitMaterial)): List of materials.
 
     Returns:
         gomatic.Stage
@@ -1498,15 +1499,15 @@ def generate_check_ci(
     stage = pipeline.ensure_stage(constants.CHECK_CI_STAGE_NAME)
     # Add a separate checking job for each org/repo.
     for material in materials_to_check:
-        repo_underscore = material.repo.replace('-', '_')
+        repo_underscore = github_repo(material).replace('-', '_')
         job = stage.ensure_job(constants.CHECK_CI_JOB_NAME + '_' + repo_underscore)
         tasks.generate_package_install(job, 'tubular')
 
         cmd_args = [
             '--token', '$GIT_TOKEN',
-            '--org', material.org,
-            '--repo', material.repo,
-            '--commit_hash', material.envvar_bash
+            '--org', github_org(material),
+            '--repo', github_repo(material),
+            '--commit_hash', material_envvar_bash(material)
         ]
         job.add_task(tasks.tubular_task(
             'check_pr_tests_status.py',

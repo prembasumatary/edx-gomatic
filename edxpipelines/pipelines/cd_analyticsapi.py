@@ -15,7 +15,6 @@ from gomatic import GitMaterial
 from edxpipelines.patterns.pipelines import generate_service_deployment_pipelines
 from edxpipelines.pipelines.script import pipeline_script
 from edxpipelines.utils import EDP
-from edxpipelines.materials import GomaticGitMaterial
 
 
 def install_pipelines(configurator, config):
@@ -26,7 +25,7 @@ def install_pipelines(configurator, config):
     edp = EDP(None, None, 'analyticsapi')
 
     partial_app_material = partial(
-        GomaticGitMaterial,
+        GitMaterial,
         'https://github.com/edx/edx-analytics-data-api.git',
         # Material name is required to label pipelines with a commit SHA. GitMaterials
         # return their SHA when referenced by name.
