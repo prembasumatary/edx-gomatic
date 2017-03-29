@@ -6,6 +6,7 @@ from functools import partial
 from six.moves import urllib
 
 from gomatic import GitMaterial
+from edxpipelines import constants
 
 
 class InvalidGitRepoURL(Exception):
@@ -76,12 +77,12 @@ def deployment_secure(deployment, branch='master', polling=True, destination_dir
         branch=branch,
         polling=polling,
         destination_directory=destination_directory or '{}-secure'.format(deployment),
-        ignore_patterns=ignore_patterns or ['**/*'],
+        ignore_patterns=ignore_patterns or constants.MATERIAL_IGNORE_ALL_REGEX,
         shallow=True,
     )
 
 
-def deployment_internal(deployment, branch='master', polling=True, destination_directory=None, ignore_patterns=None):
+def deployment_internal(deployment, branch=None, polling=True, destination_directory=None, ignore_patterns=frozenset()):
     """
     Initialize a GomaticGitMaterial representing a deployment's internal configuration repo.
 
@@ -96,7 +97,7 @@ def deployment_internal(deployment, branch='master', polling=True, destination_d
         branch=branch,
         polling=polling,
         destination_directory=destination_directory or '{}-internal'.format(deployment),
-        ignore_patterns=ignore_patterns or ['**/*'],
+        ignore_patterns=ignore_patterns or constants.MATERIAL_IGNORE_ALL_REGEX,
         shallow=True,
     )
 
@@ -104,20 +105,17 @@ def deployment_internal(deployment, branch='master', polling=True, destination_d
 TUBULAR = partial(
     GomaticGitMaterial,
     url="https://github.com/edx/tubular",
-    branch="master",
-    polling=True,
     destination_directory="tubular",
-    ignore_patterns=['**/*'],
+    ignore_patterns=constants.MATERIAL_IGNORE_ALL_REGEX,
     shallow=True,
 )
 
 CONFIGURATION = partial(
     GomaticGitMaterial,
     url="https://github.com/edx/configuration",
-    branch="master",
     polling=True,
     destination_directory="configuration",
-    ignore_patterns=['**/*'],
+    ignore_patterns=constants.MATERIAL_IGNORE_ALL_REGEX,
     shallow=True,
 )
 
@@ -127,7 +125,7 @@ EDX_PLATFORM = partial(
     branch="release-candidate",
     polling=True,
     destination_directory="edx-platform",
-    ignore_patterns=['**/*'],
+    ignore_patterns=constants.MATERIAL_IGNORE_ALL_REGEX,
     shallow=True,
 )
 
@@ -141,7 +139,7 @@ EDX_MICROSITE = partial(
     branch="release",
     polling=True,
     destination_directory="edx-microsite",
-    ignore_patterns=['**/*'],
+    ignore_patterns=constants.MATERIAL_IGNORE_ALL_REGEX,
     shallow=True,
 )
 
@@ -152,26 +150,24 @@ EDGE_INTERNAL = partial(deployment_internal, 'edge')
 EDX_MKTG = partial(
     GomaticGitMaterial,
     url="git@github.com:edx/edx-mktg.git",
-    branch="master",
     polling=True,
     destination_directory="edx-mktg",
-    ignore_patterns=['**/*'],
+    ignore_patterns=constants.MATERIAL_IGNORE_ALL_REGEX,
 )
 
 ECOM_SECURE = partial(
     GomaticGitMaterial,
     url="git@github.com:edx-ops/ecom-secure",
-    branch="master",
     polling=True,
     destination_directory="ecom-secure",
-    ignore_patterns=['**/*'],
+    ignore_patterns=constants.MATERIAL_IGNORE_ALL_REGEX,
 )
 
 EDX_ORA2 = partial(
     GitMaterial,
     url='https://github.com/edx/edx-ora2',
-    branch='master',
     polling=True,
     destination_directory='edx-ora2',
-    ignore_patterns=['**/*']
+    ignore_patterns=constants.MATERIAL_IGNORE_ALL_REGEX,
 )
+

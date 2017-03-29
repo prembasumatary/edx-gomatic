@@ -65,7 +65,7 @@ def generate_ami_deployment_pipeline(configurator,
 PipelineBlueprint = namedtuple('PipelineBlueprint',
                                ['edp', 'build_pipeline', 'deploy_pipeline', 'git_branch', 'configuration_branch'])
 
-def make_blueprint(pipeline_group, edp, build_pipeline=None, git_branch='master', configuration_branch='master'):
+def make_blueprint(pipeline_group, edp, build_pipeline=None, git_branch=None, configuration_branch=None):
     """
     Constructs a deployment pipeline from the edp and returns the pipeline and configuration
     as a PipelineBlueprint
