@@ -8,12 +8,12 @@ from enum import Enum
 ARM_PRERELEASE_STAGE = 'arm_prerelease'
 DEPLOY_AMI_STAGE_NAME = 'deploy_ami'
 DEPLOY_AMI_JOB_NAME = 'deploy_ami_job'
-DEPLOY_AMI_JOB_NAME_TPL = '{0.environment}_{0.deployment}_deploy_ami_job'.format
+DEPLOY_AMI_JOB_NAME_TPL = '{0.environment}_{0.deployment}'.format
 RUN_MIGRATIONS_STAGE_NAME = 'apply_migrations'
 RUN_MIGRATIONS_JOB_NAME = 'apply_migrations_job'
 BUILD_AMI_STAGE_NAME = 'build_ami'
 BUILD_AMI_JOB_NAME = 'build_ami_job'
-BUILD_AMI_JOB_NAME_TPL = '{0.environment}_{0.deployment}_build_ami_job'.format
+BUILD_AMI_JOB_NAME_TPL = '{0.environment}_{0.deployment}'.format
 TERMINATE_INSTANCE_STAGE_NAME = 'cleanup_ami_Instance'
 TERMINATE_INSTANCE_JOB_NAME = 'cleanup_ami_instance_job'
 LAUNCH_INSTANCE_STAGE_NAME = 'launch_instance'
@@ -29,16 +29,16 @@ MANUAL_VERIFICATION_STAGE_NAME = 'manual_verification'
 MANUAL_VERIFICATION_JOB_NAME = 'manual_verification_job'
 ROLLBACK_ASGS_STAGE_NAME = 'rollback_asgs'
 ROLLBACK_ASGS_JOB_NAME = 'rollback_asgs_job'
-ROLLBACK_ASGS_JOB_NAME_TPL = '{0.environment}_{0.deployment}_rollback_asgs_job'.format
+ROLLBACK_ASGS_JOB_NAME_TPL = '{0.environment}_{0.deployment}'.format
 ROLLBACK_MIGRATIONS_STAGE_NAME = 'rollback_migrations'
-ROLLBACK_MIGRATIONS_JOB_NAME_TPL = '{0.environment}_{0.deployment}_rollback_migrations_job'.format
+ROLLBACK_MIGRATIONS_JOB_NAME_TPL = '{0.environment}_{0.deployment}'.format
 ARMED_STAGE_NAME = 'armed_stage'
 ARMED_JOB_NAME = 'armed_job'
 PRERELEASE_MATERIALS_STAGE_NAME = 'prerelease_materials'
 PRERELEASE_MATERIALS_JOB_NAME = 'prerelease_materials_job'
 BASE_AMI_SELECTION_STAGE_NAME = 'select_base_ami'
 BASE_AMI_SELECTION_JOB_NAME = 'select_base_ami_job'
-BASE_AMI_SELECTION_EDP_JOB_NAME = 'select_base_ami_{0.environment}_{0.deployment}_{0.play}_job'.format
+BASE_AMI_SELECTION_EDP_JOB_NAME = '{0.environment}_{0.deployment}_{0.play}'.format
 GIT_SETUP_STAGE_NAME = 'create_branch_and_pr'
 GIT_SETUP_JOB_NAME = 'create_branch_and_pr_job'
 GIT_CREATE_BRANCH_JOB_NAME = 'create_branch_job'
@@ -69,10 +69,8 @@ ORA2_PIPELINE_GROUP_NAME = 'ORA2'
 # Pipeline names
 BRANCH_CLEANUP_PIPELINE_NAME = 'edxapp_branch_cleanup'
 PRERELEASE_EDXAPP_CUT_RC_PIPELINE_NAME = 'prerelease_edxapp_private_rc'
-DEPLOYMENT_PIPELINE_NAME_TPL = '{0.environment}-{0.deployment}-{0.play}'.format
+ENVIRONMENT_PIPELINE_NAME_TPL = '{environment}-{play}'.format
 BUILD_ORA2_SANDBOX_PIPELINE_NAME = 'build_ora2_sandbox'
-CONTINUOUS_DEPLOYMENT_PIPELINE_TPL = '{}-continuous-deploy'.format
-MANUAL_DEPLOYMENT_PIPELINE_TPL = '{}-manual-deploy'.format
 
 # ORA2 configuration
 ORA2_JENKINS_URL = 'https://tools-edx-jenkins.edx.org'

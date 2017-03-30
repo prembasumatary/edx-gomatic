@@ -69,21 +69,21 @@ def generate_single_deployment_service_pipelines(configurator, config, play, app
     Generates pipelines used to build and deploy a service to stage, loadtest,
     and prod, for only a single edx deployment.
 
-    Pipelines are produced, named stage-edx-play, loadtest-edx-play, prod-edx-play.
+    Pipelines are produced, named stage-{play}, loadtest-{play}, and prod-{play}.
     All are placed in a group with the same name as the play.
 
-    stage-edx-play polls a GitMaterial representing the service. When a change
+    stage-{play} polls a GitMaterial representing the service. When a change
     is detected on the master branch, it builds AMIs for stage and prod, deploys
     to stage, and gives pipeline operators the option of rolling back stage ASGs
     and migrations.
 
-    prod-edx-play requires a PipelineMaterial representing the upstream
-    stage-edx-play pipeline's build stage. When it completes successfully,
-    prod-edx-play is armed. Deployment to prod is then manually approved
+    prod-{play} requires a PipelineMaterial representing the upstream
+    stage-{play} pipeline's build stage. When it completes successfully,
+    prod-{play} is armed. Deployment to prod is then manually approved
     by a pipeline operator. This pipeline gives operators the option of rolling
     back prod ASGs and migrations.
 
-    loadtest-edx-play is independent of the stage-edx-play and prod-edx-play pipelines.
+    loadtest-{play} is independent of the stage-{play} and prod-{play} pipelines.
     It polls a GitMaterial representing the service. When a change is detected on the
     loadtest branch, it builds AMIs for loadtest, deploys to loadtest, and gives
     pipeline operators the option of rolling back loadtest ASGs and migrations.
@@ -100,27 +100,20 @@ def generate_single_deployment_service_pipelines(configurator, config, play, app
         destination_directory=play
     )
 
-    stage = EDP('stage', 'edx', play)
-    prod = EDP('prod', 'edx', play)
-    loadtest = EDP('loadtest', 'edx', play)
-
     generate_service_deployment_pipelines(
         group,
         config,
         partial_app_material(),
-        [stage],
-        [prod],
-        cd_pipeline_name=constants.DEPLOYMENT_PIPELINE_NAME_TPL(stage),
-        manual_pipeline_name=constants.DEPLOYMENT_PIPELINE_NAME_TPL(prod),
+        continuous_deployment_edps=[EDP('stage', 'edx', play)],
+        manual_deployment_edps=[EDP('prod', 'edx', play)],
         has_migrations=has_migrations,
     )
     generate_service_deployment_pipelines(
         group,
         config,
         partial_app_material(branch='loadtest'),
-        [EDP('loadtest', 'edx', play)],
+        continuous_deployment_edps=[EDP('loadtest', 'edx', play)],
         configuration_branch='loadtest-{}'.format(play),
-        cd_pipeline_name=constants.DEPLOYMENT_PIPELINE_NAME_TPL(loadtest),
         has_migrations=has_migrations,
     )
 
@@ -130,22 +123,22 @@ def generate_service_pipelines_with_edge(configurator, config, play, app_repo=No
     Generates pipelines used to build and deploy a service to stage-edx, loadtest-edx,
     prod-edx and prod-edx.
 
-    Pipelines are produced, named {play}-continuous-deploy, {play}-manual-deploy,
-    and loadtest-{play}-continuous-deploy. All are placed in a group with the same name as the play.
+    Pipelines are produced, named stage-{play}, prod-{play},
+    and loadtest-{play}. All are placed in a group with the same name as the play.
 
-    {play}-continuous-deploy polls a GitMaterial representing the service. When a change
+    stage-{play} polls a GitMaterial representing the service. When a change
     is detected on the master branch, it builds AMIs for stage-edx, prod-edx, and prod-edge, deploys
     to stage, and gives pipeline operators the option of rolling back stage ASGs
     and migrations.
 
-    {play}-manual-deploy requires a PipelineMaterial representing the upstream
-    {play}-continuous-deploy pipeline's build stage. When it completes successfully,
-    {play}-manual-deploy is armed. Deployment to prod-edx and prod-edge is then manually approved
+    prod-{play} requires a PipelineMaterial representing the upstream
+    stage-{play} pipeline's build stage. When it completes successfully,
+    prod-{play} is armed. Deployment to prod-edx and prod-edge is then manually approved
     by a pipeline operator. This pipeline gives operators the option of rolling
     back prod-edx and prod-edge ASGs and migrations.
 
-    loadtest-{play}-continuous-deploy is independent of the {play}-continuous-deploy
-    and {play}-manual-deploy pipelines. It polls a GitMaterial representing the service.
+    loadtest-{play} is independent of the stage-{play}
+    and prod-{play} pipelines. It polls a GitMaterial representing the service.
     When a change is detected on the loadtest branch, it builds AMIs for loadtest, deploys
     to loadtest, and gives pipeline operators the option of rolling back loadtest ASGs and migrations.
     """
@@ -165,19 +158,17 @@ def generate_service_pipelines_with_edge(configurator, config, play, app_repo=No
         group,
         config,
         partial_app_material(),
-        [EDP('stage', 'edx', play)],
-        [EDP('prod', 'edx', play), EDP('prod', 'edge', play)],
+        continuous_deployment_edps=[EDP('stage', 'edx', play)],
+        manual_deployment_edps=[EDP('prod', 'edx', play), EDP('prod', 'edge', play)],
         has_migrations=has_migrations,
     )
     generate_service_deployment_pipelines(
         group,
         config,
         partial_app_material(branch='loadtest'),
-        [EDP('loadtest', 'edx', play)],
+        continuous_deployment_edps=[EDP('loadtest', 'edx', play)],
         configuration_branch='loadtest-{}'.format(play),
         has_migrations=has_migrations,
-        cd_pipeline_name="loadtest-{}".format(constants.CONTINUOUS_DEPLOYMENT_PIPELINE_TPL(play)),
-        manual_pipeline_name="loadtest-{}".format(constants.MANUAL_DEPLOYMENT_PIPELINE_TPL(play)),
     )
 
 
@@ -263,9 +254,9 @@ def generate_service_deployment_pipelines(
         has_migrations (bool): Whether to generate Gomatic for applying and
             rolling back migrations.
         cd_pipeline_name (str): The name of the continuous-deployment pipeline.
-            Defaults to constants.CONTINUOUS_DEPLOYMENT_PIPELINE_TPL
+            Defaults to constants.ENVIRONMENT_PIPELINE_NAME_TPL
         manual_pipeline_name (str): The name of the manual deployment pipeline.
-            Defaults to constants.MANUAL_DEPLOYMENT_PIPELINE_TPL
+            Defaults to constants.ENVIRONMENT_PIPELINE_NAME_TPL
     """
     continuous_deployment_edps = tuple(continuous_deployment_edps)
     manual_deployment_edps = tuple(manual_deployment_edps)
@@ -283,19 +274,33 @@ def generate_service_deployment_pipelines(
 
     play = plays.pop()
 
+    if cd_pipeline_name is None:
+        cd_envs = {edp.environment for edp in continuous_deployment_edps}
+        if len(cd_envs) > 1:
+            raise ValueError(
+                "Only one environment is allowed in continuous_deployment_edps "
+                "if no cd_pipeline_name is specified"
+            )
+        cd_pipeline_name = constants.ENVIRONMENT_PIPELINE_NAME_TPL(environment=cd_envs.pop(), play=play)
+
     # Frame out the continuous deployment pipeline
-    cd_pipeline = pipeline_group.ensure_replacement_of_pipeline(
-        cd_pipeline_name or constants.CONTINUOUS_DEPLOYMENT_PIPELINE_TPL(play)
-    )
+    cd_pipeline = pipeline_group.ensure_replacement_of_pipeline(cd_pipeline_name)
     cd_pipeline.set_label_template(constants.DEPLOYMENT_PIPELINE_LABEL_TPL(app_material))
     build_stage = cd_pipeline.ensure_stage(constants.BUILD_AMI_STAGE_NAME)
     cd_deploy_stages = _generate_deployment_stages(cd_pipeline, has_migrations)
 
     # Frame out the manual deployment pipeline (and wire it to the continuous deployment pipeline)
     if manual_deployment_edps:
-        manual_pipeline = pipeline_group.ensure_replacement_of_pipeline(
-            manual_pipeline_name or constants.MANUAL_DEPLOYMENT_PIPELINE_TPL(play)
-        )
+        if manual_pipeline_name is None:
+            manual_envs = {edp.environment for edp in manual_deployment_edps}
+            if len(manual_envs) > 1:
+                raise ValueError(
+                    "Only one environment is allowed in manual_deployment_edps "
+                    "if no manual_pipeline_name is specified"
+                )
+            manual_pipeline_name = constants.ENVIRONMENT_PIPELINE_NAME_TPL(environment=manual_envs.pop(), play=play)
+
+        manual_pipeline = pipeline_group.ensure_replacement_of_pipeline(manual_pipeline_name)
         # The manual pipeline only requires successful completion of the continuous deployment
         # pipeline's AMI build stage, from which it will retrieve an AMI artifact.
         manual_pipeline.ensure_material(
