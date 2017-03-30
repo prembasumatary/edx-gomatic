@@ -221,10 +221,6 @@ def install_pipelines(configurator, config, env_configs):
     stage_md.set_automatic_pipeline_locking()
     stage_md.set_label_template('${STAGE_edxapp_B_build}')
 
-    # TODO
-    # We should consider moving the publish_wiki_job (and perhaps the message_pr_job to their own pipelines, this would
-    # allow the stage M-D pipeline to run independently of the prod_edx_b and prod_edge_b pipelines possibly unblocking
-    # some builds.
     for build_stage in (stage_b, prod_edx_b, prod_edge_b):
         stage_md.ensure_material(
             PipelineMaterial(
@@ -233,11 +229,18 @@ def install_pipelines(configurator, config, env_configs):
                 material_name="{}_build".format(build_stage.name),
             )
         )
+    stage_md.ensure_material(
+        PipelineMaterial(
+            pipeline_name=prerelease_materials.name,
+            stage_name=constants.BASE_AMI_SELECTION_STAGE_NAME,
+            material_name="prerelease",
+        )
+    )
 
     rollback_stage_db = edxapp.launch_and_terminate_subset_pipeline(
         edxapp_deploy_group,
         [
-            edxapp.rollback_database(stage_md),
+            edxapp.rollback_database(stage_b, stage_md),
         ],
         config=env_configs['stage'],
         pipeline_name="stage_edxapp_Rollback_Migrations",
@@ -263,7 +266,7 @@ def install_pipelines(configurator, config, env_configs):
     manual_verification.ensure_material(
         PipelineMaterial(
             pipeline_name=stage_md.name,
-            stage_name=constants.DEPLOY_AMI_STAGE_NAME,
+            stage_name=constants.MESSAGE_PR_STAGE_NAME,
             material_name='stage_ami_deploy',
         )
     )
@@ -359,6 +362,20 @@ def install_pipelines(configurator, config, env_configs):
                 material_name="prod_release_gate",
             )
         )
+        for build in (prod_edx_b, prod_edge_b):
+            deploy.ensure_material(
+                PipelineMaterial(build.name, constants.BUILD_AMI_STAGE_NAME, "{}_build".format(build.name))
+            )
+        deploy.ensure_material(
+            PipelineMaterial(stage_md.name, constants.MESSAGE_PR_STAGE_NAME, "stage_message_prs")
+        )
+        deploy.ensure_material(
+            PipelineMaterial(
+                pipeline_name=prerelease_materials.name,
+                stage_name=constants.BASE_AMI_SELECTION_STAGE_NAME,
+                material_name="prerelease",
+            )
+        )
 
     for pipeline in (stage_b, stage_md, prod_edx_b, prod_edx_md, prod_edge_b, prod_edge_md):
         for material in (
@@ -398,6 +415,30 @@ def install_pipelines(configurator, config, env_configs):
     )
     rollback_edge.set_label_template('${deploy_ami}')
 
+    for rollback_pipeline in (rollback_edx, rollback_edge):
+        rollback_pipeline.ensure_material(
+            PipelineMaterial(
+                pipeline_name=stage_md.name,
+                stage_name=constants.MESSAGE_PR_STAGE_NAME,
+                material_name='stage_message_pr',
+            )
+        )
+        rollback_pipeline.ensure_material(
+            PipelineMaterial(
+                pipeline_name=prerelease_materials.name,
+                stage_name=constants.BASE_AMI_SELECTION_STAGE_NAME,
+                material_name="prerelease",
+            )
+        )
+        for build in (prod_edx_b, prod_edge_b):
+            rollback_pipeline.ensure_material(
+                PipelineMaterial(
+                    pipeline_name=build.name,
+                    stage_name=constants.BUILD_AMI_STAGE_NAME,
+                    material_name='{}_build_ami'.format(build.name),
+                )
+            )
+
     rollback_edx.ensure_material(
         PipelineMaterial(prod_edx_md.name, constants.DEPLOY_AMI_STAGE_NAME, "deploy_ami")
     )
@@ -409,7 +450,7 @@ def install_pipelines(configurator, config, env_configs):
     rollback_edx_db = edxapp.launch_and_terminate_subset_pipeline(
         edxapp_deploy_group,
         [
-            edxapp.rollback_database(prod_edx_md),
+            edxapp.rollback_database(prod_edx_b, prod_edx_md),
         ],
         config=env_configs['prod-edx'],
         pipeline_name="PROD_edx_edxapp_Rollback_Migrations_latest",
@@ -429,7 +470,7 @@ def install_pipelines(configurator, config, env_configs):
     rollback_edge_db = edxapp.launch_and_terminate_subset_pipeline(
         edxapp_deploy_group,
         [
-            edxapp.rollback_database(prod_edge_md),
+            edxapp.rollback_database(prod_edge_b, prod_edge_md),
         ],
         config=env_configs['prod-edge'],
         pipeline_name="PROD_edge_edxapp_Rollback_Migrations_latest",
@@ -462,6 +503,13 @@ def install_pipelines(configurator, config, env_configs):
     )
     merge_back.set_label_template('${{deploy_pipeline_{}}}'.format(prod_edx_md.name))
 
+    merge_back.ensure_material(
+        PipelineMaterial(
+            pipeline_name=prerelease_materials.name,
+            stage_name=constants.PRERELEASE_MATERIALS_STAGE_NAME,
+            material_name='prerelease_materials',
+        )
+    )
     # Specify the upstream deploy pipeline materials for this branch-merging pipeline.
     for deploy_pipeline in (prod_edx_md, prod_edge_md):
         merge_back.ensure_material(
