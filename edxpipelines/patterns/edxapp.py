@@ -686,11 +686,10 @@ def armed_stage_builder(pipeline, config):  # pylint: disable=unused-argument
     return pipeline
 
 
-def rollback_database(build_pipeline, deploy_pipeline):
+def rollback_database(deploy_pipeline):
     """
     Arguments:
-        build_pipeline (gomatic.Pipeline): Pipeline source of the launch info (ami-id)
-        deploy_pipeline (gomatic.Pipeline): Pipeline source of the migration information
+        deploy_pipeline (gomatic.Pipeline): Pipeline source of the migration information and upstream trigger
 
     Configuration Required:
         aws_access_key_id
@@ -738,14 +737,6 @@ def rollback_database(build_pipeline, deploy_pipeline):
             )
         )
 
-        # We need the build_pipeline upstream so that we can fetch the AMI selection artifact from it
-        pipeline.ensure_material(
-            PipelineMaterial(
-                pipeline_name=build_pipeline.name,
-                stage_name=constants.BUILD_AMI_STAGE_NAME,
-                material_name='select_base_ami',
-            )
-        )
         # Create a a stage for migration rollback.
         for sub_app in EDXAPP_SUBAPPS:
             migration_artifact = utils.ArtifactLocation(
