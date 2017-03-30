@@ -24,7 +24,7 @@ from edxpipelines.materials import (
 )
 
 
-def install_pipelines(configurator, config, env_configs):
+def install_pipelines(configurator, config):
     """
     Arguments:
         configurator (GoCdConfigurator)
@@ -71,10 +71,7 @@ def install_pipelines(configurator, config, env_configs):
 
     prerelease_materials = edxapp.prerelease_materials(
         edxapp_group,
-        config,
-        env_configs['stage'],
-        env_configs['prod-edx'],
-        env_configs['prod-edge']
+        config
     )
 
     prerelease_merge_artifact = utils.ArtifactLocation(
@@ -97,7 +94,7 @@ def install_pipelines(configurator, config, env_configs):
                 prerelease_merge_artifact=prerelease_merge_artifact,
             ),
         ],
-        config=env_configs['stage'],
+        config=config[edxapp.STAGE_EDX_EDXAPP],
         pipeline_name="STAGE_edxapp_B",
         ami_artifact=utils.ArtifactLocation(
             prerelease_materials.name,
@@ -122,7 +119,7 @@ def install_pipelines(configurator, config, env_configs):
                 prerelease_merge_artifact=prerelease_merge_artifact,
             ),
         ],
-        config=env_configs['prod-edx'],
+        config=config[edxapp.PROD_EDX_EDXAPP],
         pipeline_name="PROD_edx_edxapp_B",
         ami_artifact=utils.ArtifactLocation(
             prerelease_materials.name,
@@ -147,7 +144,7 @@ def install_pipelines(configurator, config, env_configs):
                 prerelease_merge_artifact=prerelease_merge_artifact,
             ),
         ],
-        config=env_configs['prod-edge'],
+        config=config[edxapp.PROD_EDGE_EDXAPP],
         pipeline_name="PROD_edge_edxapp_B",
         ami_artifact=utils.ArtifactLocation(
             prerelease_materials.name,
@@ -208,7 +205,7 @@ def install_pipelines(configurator, config, env_configs):
         post_cleanup_builders=[
             edxapp.generate_e2e_test_stage,
         ],
-        config=env_configs['stage'],
+        config=config[edxapp.STAGE_EDX_EDXAPP],
         pipeline_name="STAGE_edxapp_M-D",
         ami_artifact=utils.ArtifactLocation(
             stage_b.name,
@@ -242,7 +239,7 @@ def install_pipelines(configurator, config, env_configs):
         [
             edxapp.rollback_database(stage_b, stage_md),
         ],
-        config=env_configs['stage'],
+        config=config[edxapp.STAGE_EDX_EDXAPP],
         pipeline_name="stage_edxapp_Rollback_Migrations",
         ami_artifact=utils.ArtifactLocation(
             stage_b.name,
@@ -313,7 +310,7 @@ def install_pipelines(configurator, config, env_configs):
                 auto_deploy_ami=True,
             )
         ],
-        config=env_configs['prod-edx'],
+        config=config[edxapp.PROD_EDX_EDXAPP],
         pipeline_name="PROD_edx_edxapp_M-D",
         ami_artifact=utils.ArtifactLocation(
             prod_edx_b.name,
@@ -342,7 +339,7 @@ def install_pipelines(configurator, config, env_configs):
                 auto_deploy_ami=True,
             )
         ],
-        config=env_configs['prod-edge'],
+        config=config[edxapp.PROD_EDGE_EDXAPP],
         pipeline_name="PROD_edge_edxapp_M-D",
         ami_artifact=utils.ArtifactLocation(
             prod_edge_b.name,
@@ -388,7 +385,7 @@ def install_pipelines(configurator, config, env_configs):
         edxapp_deploy_group=edxapp_deploy_group,
         pipeline_name='PROD_edx_edxapp_Rollback_latest',
         deploy_pipeline=prod_edx_md,
-        config=env_configs['prod-edx'],
+        config=config[edxapp.PROD_EDX_EDXAPP],
         ami_pairs=deployed_ami_pairs,
         stage_deploy_pipeline=stage_md,
         base_ami_artifact=utils.ArtifactLocation(
@@ -403,7 +400,7 @@ def install_pipelines(configurator, config, env_configs):
         edxapp_deploy_group=edxapp_deploy_group,
         pipeline_name='PROD_edge_edxapp_Rollback_latest',
         deploy_pipeline=prod_edge_md,
-        config=env_configs['prod-edge'],
+        config=config[edxapp.PROD_EDGE_EDXAPP],
         ami_pairs=deployed_ami_pairs,
         stage_deploy_pipeline=stage_md,
         base_ami_artifact=utils.ArtifactLocation(
@@ -452,7 +449,7 @@ def install_pipelines(configurator, config, env_configs):
         [
             edxapp.rollback_database(prod_edx_b, prod_edx_md),
         ],
-        config=env_configs['prod-edx'],
+        config=config[edxapp.PROD_EDX_EDXAPP],
         pipeline_name="PROD_edx_edxapp_Rollback_Migrations_latest",
         ami_artifact=utils.ArtifactLocation(
             prod_edx_b.name,
@@ -472,7 +469,7 @@ def install_pipelines(configurator, config, env_configs):
         [
             edxapp.rollback_database(prod_edge_b, prod_edge_md),
         ],
-        config=env_configs['prod-edge'],
+        config=config[edxapp.PROD_EDGE_EDXAPP],
         pipeline_name="PROD_edge_edxapp_Rollback_Migrations_latest",
         ami_artifact=utils.ArtifactLocation(
             prod_edge_b.name,

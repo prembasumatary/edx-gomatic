@@ -151,6 +151,7 @@ tools:
       - ['stage', *deployment-edx]
       - ['stage', *stage-edx]
       - ['stage', "../gomatic-secure/gocd/vars/tools/environment-deployment-play/stage-edx-edxapp-latest.yml"]
+    env-deploy-variable-file:
       - ['prod-edx', *deployment-edx]
       - ['prod-edx', *prod-edx]
       - ['prod-edx', *prod-edx-edxapp-latest-secure]

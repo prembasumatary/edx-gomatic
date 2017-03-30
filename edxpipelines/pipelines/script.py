@@ -2,15 +2,13 @@
 A standard interface for pipeline update scripts.
 """
 
-from itertools import groupby
-
 import click
 from gomatic import GoCdConfigurator, HostRestClient
 
 import edxpipelines.utils as utils
 
 
-def pipeline_script(install_pipelines, environments=()):
+def pipeline_script(install_pipelines, environments=(), edps=()):
     """
     Convert a function into a pipeline system creation script.
     """
@@ -41,8 +39,25 @@ def pipeline_script(install_pipelines, environments=()):
     @click.option(
         '--env-variable-file', 'env_variable_files',
         multiple=True,
-        type=(click.Choice(environments), click.Path(dir_okay=False, exists=True)),
+        type=(
+            click.Choice(set(environments) | set(edp.environment for edp in edps)),
+            click.Path(dir_okay=False, exists=True)
+        ),
         help='An environment, and a variable file that applies only to that environment',
+        required=False,
+        default=[],
+    )
+    @click.option(
+        '--env-deploy-variable-file', 'env_deploy_variable_files',
+        multiple=True,
+        type=(
+            click.Choice(set(environments) | set(
+                '{0.environment}-{0.deployment}'.format(edp)
+                for edp in edps
+            )),
+            click.Path(dir_okay=False, exists=True)
+        ),
+        help='An environment-deployment, and a variable file that applies only to that environment',
         required=False,
         default=[],
     )
@@ -57,22 +72,9 @@ def pipeline_script(install_pipelines, environments=()):
     )
     def cli(  # pylint: disable=missing-docstring
             save_config_locally, dry_run, variable_files,
-            env_variable_files, cmd_line_vars
+            env_variable_files, env_deploy_variable_files, cmd_line_vars
     ):
-        # Merge the configuration files/variables together
-        config = utils.merge_files_and_dicts(variable_files, list(cmd_line_vars,))
-        env_vars = {
-            env: tuple(file for _, file in files)
-            for env, files
-            in groupby(
-                sorted(env_variable_files),
-                lambda (env, file): env,
-            )
-        }
-        env_configs = {
-            env: utils.merge_files_and_dicts(variable_files + files, list(cmd_line_vars))
-            for env, files in env_vars.items()
-        }
+        config = utils.ConfigMerger(variable_files, env_variable_files, env_deploy_variable_files, cmd_line_vars)
 
         # Create the pipeline
         configurator = GoCdConfigurator(HostRestClient(
@@ -81,7 +83,7 @@ def pipeline_script(install_pipelines, environments=()):
             config['gocd_password'],
             ssl=True
         ))
-        return_val = install_pipelines(configurator, config, env_configs)
+        return_val = install_pipelines(configurator, config)
         configurator.save_updated_config(save_config_locally=save_config_locally, dry_run=dry_run)
         return return_val
 

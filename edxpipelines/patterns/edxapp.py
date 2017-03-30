@@ -96,7 +96,7 @@ def release_advancer(edxapp_group, config):
     return pipeline
 
 
-def prerelease_materials(edxapp_group, config, stage_config, prod_edx_config, prod_edge_config):
+def prerelease_materials(edxapp_group, config):
     """
     Generate the prerelease materials pipeline
 
@@ -166,11 +166,12 @@ def prerelease_materials(edxapp_group, config, stage_config, prod_edx_config, pr
 
     # Move the AMI selection jobs here in a single stage.
     stage = pipeline.ensure_stage(constants.BASE_AMI_SELECTION_STAGE_NAME)
-    for edp, localized_config in (
-            (STAGE_EDX_EDXAPP, stage_config),
-            (PROD_EDX_EDXAPP, prod_edx_config),
-            (PROD_EDGE_EDXAPP, prod_edge_config)
+    for edp in (
+            STAGE_EDX_EDXAPP,
+            PROD_EDX_EDXAPP,
+            PROD_EDGE_EDXAPP,
     ):
+        localized_config = config[edp]
         job = stage.ensure_job(constants.BASE_AMI_SELECTION_EDP_JOB_NAME(edp))
         tasks.generate_package_install(job, 'tubular')
         tasks.generate_base_ami_selection(

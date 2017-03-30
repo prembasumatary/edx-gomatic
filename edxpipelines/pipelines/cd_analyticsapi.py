@@ -13,7 +13,7 @@ from edxpipelines.patterns import pipelines
 from edxpipelines.pipelines.script import pipeline_script
 
 
-def install_pipelines(configurator, config, env_configs):  # pylint: disable=unused-argument
+def install_pipelines(configurator, config):
     """
     Variables needed for this pipeline:
     - gocd_username

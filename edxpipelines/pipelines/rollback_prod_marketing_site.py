@@ -17,7 +17,7 @@ from edxpipelines.pipelines.script import pipeline_script
 from edxpipelines.materials import (TUBULAR, EDX_MKTG, ECOM_SECURE)
 
 
-def install_pipelines(configurator, config, env_configs):  # pylint: disable=unused-argument
+def install_pipelines(configurator, config):
     """
     Install pipelines that can rollback the production edx-mktg site.
     """
