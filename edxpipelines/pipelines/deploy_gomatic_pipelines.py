@@ -42,14 +42,12 @@ def install_pipelines(configurator, config):
             polling=True,
             material_name='edx-gomatic',
             destination_directory='edx-gomatic',
-            branch='master'
         )
     ).ensure_material(
         GitMaterial(
             'git@github.com:edx-ops/gomatic-secure.git',
             polling=True,
             destination_directory='gomatic-secure',
-            branch='master',
             ignore_patterns=constants.MATERIAL_IGNORE_ALL_REGEX
         )
     ).set_label_template('${edx-gomatic[:7]}')

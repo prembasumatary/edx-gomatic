@@ -35,7 +35,7 @@ def install_pipelines(configurator, config):
                 material_name=material['material_name'],
                 polling=material['polling'],
                 destination_directory=material['destination_directory'],
-                ignore_patterns=material['ignore_patterns']
+                ignore_patterns=set(material['ignore_patterns'])
             )
         )
 

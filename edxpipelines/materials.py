@@ -6,114 +6,107 @@ from functools import partial
 from six.moves import urllib
 
 from gomatic import GitMaterial
+from edxpipelines import constants
 
 
-class InvalidGitRepoURL(Exception):
+class InvalidGitRepoURL(ValueError):
     """
     Raised when repo URL can't be parsed.
     """
     pass
 
 
-class GomaticGitMaterial(GitMaterial):
+def github_id(material):
     """
-    Wrapper class around gomatic.gomatic.gocd.materials.GitMaterial in order to add helper methods.
+    Return the github (org, repo) parsed from ``material``s url, or
+    raise an InvalidGitRepoURL if none could be parsed.
     """
-    def __init__(
-            self, url, *args, **kwargs
-    ):
-        # Parse out the org/repo from the material url.
-        clone_url = urllib.parse.urlparse(url).geturl()
-        match = re.match(r'.*[:/](?P<org>[^/]*)/(?P<repo>[^/.]*)', clone_url)
-        if not match:
-            raise InvalidGitRepoURL(url)
-        self.org = match.group('org')
-        self.repo = match.group('repo')
-        super(GomaticGitMaterial, self).__init__(url, *args, **kwargs)
-
-    @property
-    def envvar_name(self):
-        """
-        Return the material revision's GoCD environment variable name.
-        """
-        suffix = self.material_name if self.material_name else self.destination_directory
-        return 'GO_REVISION_{suffix}'.format(suffix=suffix.replace('-', '_').upper())
-
-    @property
-    def envvar_bash(self):
-        """
-        Return the material revision's GoCD environment variable in de-referenced bash format.
-        """
-        return '${self.envvar_name}'.format(self=self)
+    clone_url = urllib.parse.urlparse(material.url).geturl()
+    match = re.match(r'.*[:/](?P<org>[^/]*)/(?P<repo>[^/.]*)', clone_url)
+    if not match:
+        raise InvalidGitRepoURL(material.url)
+    return match.group('org'), match.group('repo')
 
 
-def deployment_secure(deployment, branch='master', polling=True, destination_directory=None, ignore_patterns=None):
+def material_envvar_name(material):
     """
-    Initialize a GomaticGitMaterial representing a deployment's secure configuration repo.
+    Return the material revision's GoCD environment variable name.
+    """
+    suffix = material.material_name if material.material_name else material.destination_directory
+    return 'GO_REVISION_{suffix}'.format(suffix=suffix.replace('-', '_').upper())
+
+
+def material_envvar_bash(material):
+    """
+    Return the material revision's GoCD environment variable in de-referenced bash format.
+    """
+    return '${{{}}}'.format(material_envvar_name(material))
+
+
+def deployment_secure(deployment, branch=None, polling=True, destination_directory=None, ignore_patterns=None):
+    """
+    Initialize a GitMaterial representing a deployment's secure configuration repo.
 
     Args:
         deployment (str): Deployment for which to create the material (e.g., 'edx', 'edge')
 
     Returns:
-        GomaticGitMaterial
+        GitMaterial
     """
-    return GomaticGitMaterial(
+    return GitMaterial(
         url='git@github.com:edx-ops/{}-secure.git'.format(deployment),
         branch=branch,
         polling=polling,
         destination_directory=destination_directory or '{}-secure'.format(deployment),
-        ignore_patterns=ignore_patterns or ['**/*'],
+        ignore_patterns=ignore_patterns or constants.MATERIAL_IGNORE_ALL_REGEX,
         shallow=True,
     )
 
 
-def deployment_internal(deployment, branch='master', polling=True, destination_directory=None, ignore_patterns=None):
+def deployment_internal(deployment, branch=None, polling=True, destination_directory=None, ignore_patterns=frozenset()):
     """
-    Initialize a GomaticGitMaterial representing a deployment's internal configuration repo.
+    Initialize a GitMaterial representing a deployment's internal configuration repo.
 
     Args:
         deployment (str): Deployment for which to create the material (e.g., 'edx', 'edge')
 
     Returns:
-        GomaticGitMaterial
+        GitMaterial
     """
-    return GomaticGitMaterial(
+    return GitMaterial(
         url='git@github.com:edx/{}-internal.git'.format(deployment),
         branch=branch,
         polling=polling,
         destination_directory=destination_directory or '{}-internal'.format(deployment),
-        ignore_patterns=ignore_patterns or ['**/*'],
+        ignore_patterns=ignore_patterns or constants.MATERIAL_IGNORE_ALL_REGEX,
         shallow=True,
     )
 
 
 TUBULAR = partial(
-    GomaticGitMaterial,
+    GitMaterial,
     url="https://github.com/edx/tubular",
-    branch="master",
-    polling=True,
     destination_directory="tubular",
-    ignore_patterns=['**/*'],
+    ignore_patterns=constants.MATERIAL_IGNORE_ALL_REGEX,
     shallow=True,
 )
 
 CONFIGURATION = partial(
-    GomaticGitMaterial,
+    GitMaterial,
     url="https://github.com/edx/configuration",
-    branch="master",
     polling=True,
     destination_directory="configuration",
-    ignore_patterns=['**/*'],
+    ignore_patterns=constants.MATERIAL_IGNORE_ALL_REGEX,
     shallow=True,
 )
 
 EDX_PLATFORM = partial(
-    GomaticGitMaterial,
+    GitMaterial,
     url="https://github.com/edx/edx-platform",
     branch="release-candidate",
     polling=True,
     destination_directory="edx-platform",
-    ignore_patterns=['**/*'],
+    ignore_patterns=constants.MATERIAL_IGNORE_ALL_REGEX,
     shallow=True,
 )
 
@@ -122,12 +115,12 @@ EDX_SECURE = partial(deployment_secure, 'edx')
 EDGE_SECURE = partial(deployment_secure, 'edge')
 
 EDX_MICROSITE = partial(
-    GomaticGitMaterial,
+    GitMaterial,
     url="git@github.com:edx/edx-microsite.git",
     branch="release",
     polling=True,
     destination_directory="edx-microsite",
-    ignore_patterns=['**/*'],
+    ignore_patterns=constants.MATERIAL_IGNORE_ALL_REGEX,
     shallow=True,
 )
 
@@ -136,28 +129,25 @@ EDX_INTERNAL = partial(deployment_internal, 'edx')
 EDGE_INTERNAL = partial(deployment_internal, 'edge')
 
 EDX_MKTG = partial(
-    GomaticGitMaterial,
+    GitMaterial,
     url="git@github.com:edx/edx-mktg.git",
-    branch="master",
     polling=True,
     destination_directory="edx-mktg",
-    ignore_patterns=['**/*'],
+    ignore_patterns=constants.MATERIAL_IGNORE_ALL_REGEX,
 )
 
 ECOM_SECURE = partial(
-    GomaticGitMaterial,
+    GitMaterial,
     url="git@github.com:edx-ops/ecom-secure",
-    branch="master",
     polling=True,
     destination_directory="ecom-secure",
-    ignore_patterns=['**/*'],
+    ignore_patterns=constants.MATERIAL_IGNORE_ALL_REGEX,
 )
 
 EDX_ORA2 = partial(
     GitMaterial,
     url='https://github.com/edx/edx-ora2',
-    branch='master',
     polling=True,
     destination_directory='edx-ora2',
-    ignore_patterns=['**/*']
+    ignore_patterns=constants.MATERIAL_IGNORE_ALL_REGEX,
 )

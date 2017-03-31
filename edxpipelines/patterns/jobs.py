@@ -123,7 +123,7 @@ def generate_deploy_ami(stage, ami_artifact_location, edp, config, has_migration
     Returns:
         gomatic.gocd.pipelines.Job
     """
-    job = stage.ensure_job(constants.DEPLOY_AMI_JOB_NAME)
+    job = stage.ensure_job(constants.DEPLOY_AMI_JOB_NAME_TPL(edp))
 
     tasks.generate_requirements_install(job, 'configuration')
     tasks.generate_package_install(job, 'tubular')
@@ -171,12 +171,13 @@ def generate_deploy_ami(stage, ami_artifact_location, edp, config, has_migration
     return job
 
 
-def generate_rollback_asgs(stage, deployment_artifact_location, config):
+def generate_rollback_asgs(stage, edp, deployment_artifact_location, config):
     """
     Generates a job for rolling back ASGs (code).
 
     Args:
         stage (gomatic.gocd.pipelines.Stage): Stage to which this job belongs.
+        edp (EDP): The EDP that this job should roll back.
         deployment_artifact_location (edxpipelines.utils.ArtifactLocation): Where to find
             the AMI artifact to roll back.
         config (dict): Environment-independent secure config.
@@ -184,7 +185,7 @@ def generate_rollback_asgs(stage, deployment_artifact_location, config):
     Returns:
         gomatic.gocd.pipelines.Job
     """
-    job = stage.ensure_job(constants.ROLLBACK_ASGS_JOB_NAME)
+    job = stage.ensure_job(constants.ROLLBACK_ASGS_JOB_NAME_TPL(edp))
 
     tasks.generate_package_install(job, 'tubular')
     tasks.generate_target_directory(job)
@@ -207,6 +208,7 @@ def generate_rollback_asgs(stage, deployment_artifact_location, config):
 
 def generate_rollback_migrations(
         stage,
+        edp,
         application_user,
         application_name,
         application_path,
@@ -224,6 +226,7 @@ def generate_rollback_migrations(
 
     Args:
         stage (gomatic.gocd.pipelines.Stage): Stage this job will be part of
+        edp (EDP): EDP that this job will roll back
         migration_info_location (edxpipelines.utils.ArtifactLocation): Location of
             the migration output to roll back
         inventory_location (edxpipelines.utils.ArtifactLocation): Location of the
@@ -238,7 +241,7 @@ def generate_rollback_migrations(
     Returns:
         gomatic.gocd.pipelines.Job
     """
-    job_name = constants.ROLLBACK_MIGRATIONS_JOB_NAME
+    job_name = constants.ROLLBACK_MIGRATIONS_JOB_NAME_TPL(edp)
 
     if sub_application_name is not None:
         job_name += '_{}'.format(sub_application_name)

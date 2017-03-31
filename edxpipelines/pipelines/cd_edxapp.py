@@ -44,7 +44,7 @@ def install_pipelines(configurator, config):
     # Example materials yaml
     # materials:
     #   - url: "https://github.com/edx/tubular"
-    #     branch: "master"
+    #     branch: "release"
     #     material_name: "tubular"
     #     polling: "True"
     #     destination_directory: "tubular"
@@ -59,7 +59,7 @@ def install_pipelines(configurator, config):
                 material_name=material['material_name'],
                 polling=material['polling'],
                 destination_directory=material['destination_directory'],
-                ignore_patterns=material['ignore_patterns']
+                ignore_patterns=set(material['ignore_patterns'])
             )
         )
 
