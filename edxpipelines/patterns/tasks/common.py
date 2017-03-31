@@ -220,35 +220,6 @@ def generate_package_install(job, package_dir, working_dir=None, runif="passed",
     ))
 
 
-def generate_hipchat_message(job, message, channels, color=None, runif="passed"):
-    """
-    Generates a task used to send a HipChat message.
-
-    Args:
-        job (gomatic.job.Job): the gomatic job which to add install requirements
-        message (str): message to send - can contain env vars
-        channels (list(str)): HipChat channel names to which the message is submitted
-        color (str): optional color used for message, i.e. "green", "red"
-        runif (str): one of ['passed', 'failed', 'any'] Default: passed
-
-    Returns:
-        The newly created task (gomatic.gocd.tasks.ExecTask)
-    """
-    cmd_args = [
-        '--auth_token', '${HIPCHAT_TOKEN}',
-        '--message', '"{}"'.format(message),
-    ]
-    for channel in channels:
-        cmd_args.extend(['--channel', channel])
-    if color:
-        cmd_args.extend(['--color', color])
-    return job.add_task(tubular_task(
-        'submit_hipchat_msg.py',
-        cmd_args,
-        runif=runif
-    ))
-
-
 def generate_find_and_advance_release(
         job, gocd_user, gocd_url, pipeline_name, stage_name,
         hipchat_room, relative_dt=None, out_file=None, runif="passed"
@@ -1074,117 +1045,6 @@ def generate_fetch_tag(job, site_env, path_name):
     ))
 
 
-def generate_refresh_metadata(job, runif='passed'):
-    """
-    Generates GoCD task that refreshes metadata (for the Catalog Service) via an Ansible script.
-
-    Args:
-        job (gomatic.job.Job): the gomatic job to which the run migrations task will be added
-        runif (str): one of ['passed', 'failed', 'any'] Default: passed
-
-    Returns:
-        The newly created task (gomatic.gocd.tasks.ExecTask)
-
-    """
-
-    return job.add_task(ansible_task(
-        prefix=[
-            'export ANSIBLE_HOST_KEY_CHECKING=False;',
-            'export ANSIBLE_SSH_ARGS="-o ControlMaster=auto -o ControlPersist=30m";',
-            'PRIVATE_KEY=`/bin/pwd`/../../key.pem;',
-        ],
-        inventory='../../ansible_inventory',
-        extra_options=[
-            '--private-key=$PRIVATE_KEY',
-            '--user=ubuntu',
-        ],
-        variables=[
-            ('APPLICATION_PATH', '$APPLICATION_PATH'),
-            ('APPLICATION_NAME', '$APPLICATION_NAME'),
-            ('APPLICATION_USER', '$APPLICATION_USER'),
-            ('HIPCHAT_TOKEN', '$HIPCHAT_TOKEN'),
-            ('HIPCHAT_ROOM', '$HIPCHAT_ROOM'),
-        ],
-        playbook='discovery_refresh_metadata.yml',
-        working_dir='configuration/playbooks/continuous_delivery/',
-        runif=runif
-    ))
-
-
-def generate_update_index(job, runif='passed'):
-    """
-    Generates GoCD task that runs the Haystack update_index management command via an Ansible script.
-
-    Args:
-        job (gomatic.job.Job): the gomatic job to which the run migrations task will be added
-        runif (str): one of ['passed', 'failed', 'any'] Default: passed
-
-    Returns:
-        The newly created task (gomatic.gocd.tasks.ExecTask)
-
-    """
-    return job.add_task(ansible_task(
-        prefix=[
-            'export ANSIBLE_HOST_KEY_CHECKING=False;',
-            'export ANSIBLE_SSH_ARGS="-o ControlMaster=auto -o ControlPersist=30m";',
-            'PRIVATE_KEY=`/bin/pwd`/../../key.pem;',
-        ],
-        inventory='../../ansible_inventory',
-        extra_options=[
-            '--private-key=$PRIVATE_KEY',
-            '--user=ubuntu',
-        ],
-        variables=[
-            ('APPLICATION_PATH', '$APPLICATION_PATH'),
-            ('APPLICATION_NAME', '$APPLICATION_NAME'),
-            ('APPLICATION_USER', '$APPLICATION_USER'),
-            ('HIPCHAT_TOKEN', '$HIPCHAT_TOKEN'),
-            ('HIPCHAT_ROOM', '$HIPCHAT_ROOM'),
-        ],
-        playbook='haystack_update_index.yml',
-        working_dir='configuration/playbooks/continuous_delivery/',
-        runif=runif,
-    ))
-
-
-def generate_create_release_candidate_branch_and_pr(job,
-                                                    org,
-                                                    repo,
-                                                    source_branch,
-                                                    target_branch,
-                                                    pr_target_branch,
-                                                    runif='passed'):
-    """
-    Assumptions:
-        Assumes a secure environment variable named "GIT_TOKEN"
-
-    Args:
-        job (gomatic.Job): the Job to attach this stage to.
-        org (str): Name of the github organization that holds the repository (e.g. edx)
-        repo (str): Name of repository (e.g edx-platform)
-        source_branch (str): Name of the branch to create the branch/PR from
-        target_branch (str): Name of the branch to be created (will be the head of the PR)
-        pr_target_branch (str): The base branch of the pull request (merge target_branch in to pr_target_branch)
-        runif (str): one of ['passed', 'failed', 'any'] Default: passed
-
-    Returns:
-        The newly created task (gomatic.gocd.tasks.ExecTask)
-
-    """
-    return job.add_task(tubular_task(
-        'create_release_candidate.py',
-        [
-            '--org', org,
-            '--repo', repo,
-            '--source_branch', source_branch,
-            '--target_branch', target_branch,
-            '--pr_target_branch', pr_target_branch,
-            '--token $GIT_TOKEN',
-        ],
-        runif=runif,
-    ))
-
-
 def generate_create_branch(pipeline,
                            job,
                            token,
@@ -1447,48 +1307,6 @@ def generate_tag_commit(job,
 
     return job.add_task(tubular_task(
         'create_tag.py',
-        cmd_args,
-        runif=runif
-    ))
-
-
-def generate_check_pr_tests(job,
-                            org,
-                            repo,
-                            input_file=None,
-                            pr_number=None,
-                            commit_sha=None,
-                            runif='passed'):
-    """
-    Assumptions:
-        Assumes a secure environment variable named "GIT_TOKEN"
-
-    Args:
-        job (gomatic.Job): the Job to attach this stage to.
-        org (str): Name of the github organization that holds the repository (e.g. edx)
-        repo (str): Name of repository (e.g edx-platform)
-        input_file (str): Name of YAML file containing PR id.
-        runif (str): one of ['passed', 'failed', 'any'] Default: passed
-
-    Returns:
-        The newly created task (gomatic.gocd.tasks.ExecTask)
-
-    """
-    cmd_args = [
-        '--org', org,
-        '--repo', repo,
-        '--token $GIT_TOKEN',
-    ]
-    if input_file:
-        cmd_args.extend(
-            ('--input_file', '../{}/{}'.format(constants.ARTIFACT_PATH, input_file))
-        )
-    if pr_number:
-        cmd_args.extend(('--pr_number', pr_number))
-    if commit_sha:
-        cmd_args.extend(('--commit_hash', commit_sha))
-    return job.add_task(tubular_task(
-        'check_pr_tests_status.py',
         cmd_args,
         runif=runif
     ))
