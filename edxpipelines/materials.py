@@ -117,7 +117,7 @@ EDGE_SECURE = partial(deployment_secure, 'edge')
 EDX_MICROSITE = partial(
     GitMaterial,
     url="git@github.com:edx/edx-microsite.git",
-    branch="release",
+    branch="master",
     polling=True,
     destination_directory="edx-microsite",
     ignore_patterns=constants.MATERIAL_IGNORE_ALL_REGEX,

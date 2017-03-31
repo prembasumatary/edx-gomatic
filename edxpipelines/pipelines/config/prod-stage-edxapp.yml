@@ -42,7 +42,7 @@ materials:
     ignore_patterns:
       - '**/*'
   - url: &theme_url "git@github.com:edx/edx-microsite.git"
-    branch: "release"
+    branch: "master"
     material_name: "edx-microsite"
     polling: "True"
     destination_directory: "edx-microsite"
