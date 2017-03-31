@@ -305,7 +305,8 @@ def generate_build_stages(app_repo, edp, theme_url, configuration_secure_repo,
             aws_access_key_id=config['aws_access_key_id'],
             aws_secret_access_key=config['aws_secret_access_key'],
             version_tags={
-                'edx_platform': (EDX_PLATFORM().url, material_envvar_bash(EDX_PLATFORM())),
+                # We don't specify a tag for edx_platform. The edxapp play in configuration
+                # adds a tag (for edx_app), and the create_ami.yml play adds an edxapp tag automatically.
                 'configuration': (configuration_url, material_envvar_bash(CONFIGURATION())),
                 'configuration_secure': (configuration_secure_repo, configuration_secure_version),
                 'configuration_internal': (configuration_internal_repo, configuration_internal_version),
