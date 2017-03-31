@@ -349,7 +349,7 @@ def install_pipelines(configurator, config):
                     constants.BASE_AMI_OVERRIDE_FILENAME,
                 ),
                 head_ami_artifact=utils.ArtifactLocation(
-                    stage_b.name,
+                    prod_edge_b.name,
                     constants.BUILD_AMI_STAGE_NAME,
                     constants.BUILD_AMI_JOB_NAME,
                     constants.BUILD_AMI_FILENAME,
