@@ -410,7 +410,7 @@ def generate_service_deployment_pipelines(
                 deploy_stages.rollback_asgs,
                 edp,
                 deployment_artifact_location,
-                config
+                config[edp],
             )
 
             if has_migrations:
