@@ -1568,15 +1568,18 @@ def trigger_jenkins_build(
 
 
 def generate_message_pull_requests_in_commit_range(
-        job, org, repo, token, head_sha, release_status,
-        runif='passed', base_sha=None, base_ami_artifact=None, ami_tag_app=None
+        pipeline, job, org, repo, token, release_status, runif='passed',
+        base_sha=None, base_ami_artifact=None, base_ami_tag_app=None,
+        head_sha=None, head_ami_artifact=None, head_ami_tag_app=None,
 ):
     """
     Generate a GoCD task that will message a set of pull requests within a range of commits.
 
-    If base_sha is not supplied, then base_ami_artifact and ami_tag_app must both be supplied.
+    If base_sha is not supplied, then base_ami_artifact and base_ami_tag_app must both be supplied.
+    If head_sha is not supplied, then head_ami_artifact and head_ami_tag_app must both be supplied.
 
     Args:
+        pipeline (gomatic.Pipeline): the pipeline containing the job
         job (gomatic.job.Job): the gomatic job to which this task will be added
         org (str): The github organization
         repo (str): The github repository
@@ -1589,42 +1592,66 @@ def generate_message_pull_requests_in_commit_range(
             (any commits prior to this sha won't be messaged). (Optional)
         base_ami_artifact (ArtifactLocation): The location of the artifact that specifies
             the base_ami and tags (Optional)
-        ami_tag_app (str): The name of the version tag on the AMI to extract the version from (Optional)
+        base_ami_tag_app (str): The name of the version tag on the AMI to extract the version from (Optional)
+        head_sha (str): The sha to use as the head point for sending messages
+            (any commits prior to this sha won't be messaged). (Optional)
+        head_ami_artifact (ArtifactLocation): The location of the artifact that specifies
+            the head_ami and tags (Optional)
+        head_ami_tag_app (str): The name of the version tag on the AMI to extract the version from (Optional)
 
 
     Returns:
         gomatic.task.Task
     """
+    pipeline.ensure_unencrypted_secure_environment_variables(
+        {
+            'GITHUB_TOKEN': token,
+        }
+    )
+
+    if bool(base_sha) == (base_ami_artifact or base_ami_tag_app):
+        raise ValueError("base_sha is mutually exclusive with base_ami_artifact and base_ami_tag_app")
+
+    if bool(head_sha) == (head_ami_artifact or head_ami_tag_app):
+        raise ValueError("head_sha is mutually exclusive with head_ami_artifact and head_ami_tag_app")
+
     flag_for_release_status = {
-        constants.ReleaseStatus.STAGED: 'release_stage',
-        constants.ReleaseStatus.DEPLOYED: 'release_prod',
-        constants.ReleaseStatus.ROLLED_BACK: 'release_rollback',
+        constants.ReleaseStatus.STAGED: 'stage',
+        constants.ReleaseStatus.DEPLOYED: 'prod',
+        constants.ReleaseStatus.ROLLED_BACK: 'rollback',
     }
 
     arguments = [
         '--org', org,
-        '--token', token,
+        '--token', '${GITHUB_TOKEN}',
         '--repo', repo,
-        '--head_sha', head_sha,
-        '--{}'.format(flag_for_release_status[release_status])
+        '--release', flag_for_release_status[release_status],
     ]
     if base_sha:
-        arguments.extend(['--base_sha', base_sha])
+        arguments.extend(['--base-sha', base_sha])
+    else:
+        if not (base_ami_artifact and base_ami_tag_app):
+            raise ValueError("base_ami_artifact and base_ami_tag_app must be specified if base_sha isn't")
 
-    if base_ami_artifact and ami_tag_app:
         retrieve_artifact(base_ami_artifact, job, constants.ARTIFACT_PATH)
 
         arguments.extend([
-            '--base_ami_tags', "../{}/{}".format(constants.ARTIFACT_PATH, base_ami_artifact.file_name),
-            '--ami_tag_app', ami_tag_app,
+            '--base-ami-tags', "../{}/{}".format(constants.ARTIFACT_PATH, base_ami_artifact.file_name),
+            '--base-ami-tag-app', base_ami_tag_app,
         ])
-    elif base_ami_artifact or ami_tag_app:
-        raise ValueError(
-            "Both base_ami_artifact ({!r}) and ami_tag_app"
-            "({!r}) must be specified together".format(
-                base_ami_artifact, ami_tag_app
-            )
-        )
+
+    if head_sha:
+        arguments.extend(['--head-sha', head_sha])
+    else:
+        if not (head_ami_artifact and head_ami_tag_app):
+            raise ValueError("head_ami_artifact and head_ami_tag_app must be specified if head_sha isn't")
+
+        retrieve_artifact(head_ami_artifact, job, constants.ARTIFACT_PATH)
+
+        arguments.extend([
+            '--head-ami-tags', "../{}/{}".format(constants.ARTIFACT_PATH, head_ami_artifact.file_name),
+            '--head-ami-tag-app', head_ami_tag_app,
+        ])
 
     return job.add_task(tubular_task(
         'message_prs_in_range.py',

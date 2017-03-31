@@ -199,6 +199,12 @@ def install_pipelines(configurator, config):
                     constants.BASE_AMI_SELECTION_EDP_JOB_NAME(STAGE_EDX_EDXAPP),
                     constants.BASE_AMI_OVERRIDE_FILENAME,
                 ),
+                head_ami_artifact=utils.ArtifactLocation(
+                    stage_b.name,
+                    constants.BUILD_AMI_STAGE_NAME,
+                    constants.BUILD_AMI_JOB_NAME,
+                    constants.BUILD_AMI_FILENAME,
+                ),
                 auto_deploy_ami=True,
             ),
         ],
@@ -307,6 +313,12 @@ def install_pipelines(configurator, config):
                     constants.BASE_AMI_SELECTION_EDP_JOB_NAME(PROD_EDX_EDXAPP),
                     constants.BASE_AMI_OVERRIDE_FILENAME,
                 ),
+                head_ami_artifact=utils.ArtifactLocation(
+                    prod_edx_b.name,
+                    constants.BUILD_AMI_STAGE_NAME,
+                    constants.BUILD_AMI_JOB_NAME,
+                    constants.BUILD_AMI_FILENAME,
+                ),
                 auto_deploy_ami=True,
             )
         ],
@@ -335,6 +347,12 @@ def install_pipelines(configurator, config):
                     constants.BASE_AMI_SELECTION_STAGE_NAME,
                     constants.BASE_AMI_SELECTION_EDP_JOB_NAME(PROD_EDGE_EDXAPP),
                     constants.BASE_AMI_OVERRIDE_FILENAME,
+                ),
+                head_ami_artifact=utils.ArtifactLocation(
+                    stage_b.name,
+                    constants.BUILD_AMI_STAGE_NAME,
+                    constants.BUILD_AMI_JOB_NAME,
+                    constants.BUILD_AMI_FILENAME,
                 ),
                 auto_deploy_ami=True,
             )
@@ -394,6 +412,12 @@ def install_pipelines(configurator, config):
             constants.BASE_AMI_SELECTION_EDP_JOB_NAME(PROD_EDX_EDXAPP),
             constants.BASE_AMI_OVERRIDE_FILENAME,
         ),
+        head_ami_artifact=utils.ArtifactLocation(
+            prod_edx_b.name,
+            constants.BUILD_AMI_STAGE_NAME,
+            constants.BUILD_AMI_JOB_NAME,
+            constants.BUILD_AMI_FILENAME,
+        ),
     )
     rollback_edx.set_label_template('${deploy_ami}')
     rollback_edge = edxapp.rollback_asgs(
@@ -408,6 +432,12 @@ def install_pipelines(configurator, config):
             constants.BASE_AMI_SELECTION_STAGE_NAME,
             constants.BASE_AMI_SELECTION_EDP_JOB_NAME(PROD_EDGE_EDXAPP),
             constants.BASE_AMI_OVERRIDE_FILENAME,
+        ),
+        head_ami_artifact=utils.ArtifactLocation(
+            prod_edge_b.name,
+            constants.BUILD_AMI_STAGE_NAME,
+            constants.BUILD_AMI_JOB_NAME,
+            constants.BUILD_AMI_FILENAME,
         ),
     )
     rollback_edge.set_label_template('${deploy_ami}')

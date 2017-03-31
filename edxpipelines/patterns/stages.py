@@ -1150,10 +1150,10 @@ def generate_create_branch(pipeline,
 
 
 def generate_deployment_messages(
-        pipeline, ami_pairs, stage_deploy_pipeline, org,
-        repo, token, head_sha, release_status, confluence_user, confluence_password,
-        github_token, manual_approval=False,
-        base_sha=None, base_ami_artifact=None, ami_tag_app=None,
+        pipeline, ami_pairs, stage_deploy_pipeline,
+        release_status, confluence_user, confluence_password, github_token,
+        base_ami_artifact, head_ami_artifact, message_tags,
+        manual_approval=False,
         wiki_parent_title=None, wiki_space=None, wiki_title=None
 ):
     """
@@ -1166,17 +1166,18 @@ def generate_deployment_messages(
         stage_deploy_pipeline: The pipeline that deployed to staging
         org (str): Name of the github organization that holds the repository (e.g. edx)
         repo (str): Name of repository (e.g edx-platform)
-        token (str): the github token used to create all these things. Will be an env_var 'GIT_TOKEN'
-        head_sha(str): ending SHA or environment variable holding the SHA to start the commit range
         release_status (ReleaseStatus): the current status of the release
         confluence_user (str): The confluence user to create the release page with
         confluence_password (str): The confluence password to create the release page with
         github_token (str): The github token to fetch PR data with
-        manual_approval (bool): Should this stage require manual approval?
-        base_sha (str): The sha to use as the base point for sending messages
-            (any commits prior to this sha won't be messaged). (Optional)
         base_ami_artifact (ArtifactLocation): The location of the artifact that specifies
-            the base_ami and tags (Optional)
+            the base_ami and tags
+        head_ami_artifact (ArtifactLocation): The location of the artifact that specifies
+            the head_ami and tags
+        message_tags (list of (org, repo, version_tag)): The list of org/repo pairs that should
+            be messaged based on changes in the specified version tag between the base and head ami
+            artifacts.
+        manual_approval (bool): Should this stage require manual approval?
         ami_tag_app (str): The name of the version tag on the AMI to extract the version from (Optional)
         wiki_parent_title (str): The title of the parent page to publish the release page
             under (defaults to 'LMS/Studio Release Pages')
@@ -1193,10 +1194,12 @@ def generate_deployment_messages(
     message_job = message_stage.ensure_job(constants.MESSAGE_PR_JOB_NAME)
     tasks.generate_package_install(message_job, 'tubular')
 
-    tasks.generate_message_pull_requests_in_commit_range(
-        message_job, org, repo, token, head_sha, release_status,
-        base_sha=base_sha, base_ami_artifact=base_ami_artifact, ami_tag_app=ami_tag_app
-    )
+    for org, repo, version_tag in message_tags:
+        tasks.generate_message_pull_requests_in_commit_range(
+            pipeline, message_job, org, repo, github_token, release_status,
+            base_ami_artifact=base_ami_artifact, base_ami_tag_app=version_tag,
+            head_ami_artifact=head_ami_artifact, head_ami_tag_app=version_tag,
+        )
     wiki_job = message_stage.ensure_job(constants.PUBLISH_WIKI_JOB_NAME)
     tasks.generate_package_install(wiki_job, 'tubular')
 
