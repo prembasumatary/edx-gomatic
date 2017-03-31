@@ -379,7 +379,8 @@ def generate_migrate_stages(pipeline, config):
 
 
 def generate_deploy_stages(
-        pipeline_name_build, ami_pairs, stage_deploy_pipeline, base_ami_artifact,
+        pipeline_name_build, ami_pairs, stage_deploy_pipeline,
+        base_ami_artifact, head_ami_artifact,
         auto_deploy_ami=False
 ):
     """
@@ -405,6 +406,7 @@ def generate_deploy_stages(
                  )
         stage_deploy_pipeline (gomatic.Pipeline):
         base_ami_artifact (edxpipelines.utils.ArtifactLocation): Location of the Base AMI selection artifact.
+        head_ami_artifact (edxpipelines.utils.ArtifactLocation): Location of the Head AMI selection artifact.
         auto_deploy_ami (bool): should this pipeline automatically deploy the AMI
 
     Returns:
@@ -441,19 +443,19 @@ def generate_deploy_stages(
 
         pipeline.ensure_unencrypted_secure_environment_variables({'GITHUB_TOKEN': config['github_token']})
         stages.generate_deployment_messages(
-            pipeline,
-            ami_pairs,
-            stage_deploy_pipeline,
-            'edx',
-            'edx-platform',
-            '$GITHUB_TOKEN',
-            material_envvar_bash(EDX_PLATFORM()),
-            constants.ReleaseStatus[config['edx_environment']],
-            config['jira_user'],
-            config['jira_password'],
-            config['github_token'],
+            pipeline=pipeline,
+            ami_pairs=ami_pairs,
+            stage_deploy_pipeline=stage_deploy_pipeline,
+            release_status=constants.ReleaseStatus[config['edx_environment']],
+            confluence_user=config['jira_user'],
+            confluence_password=config['jira_password'],
             base_ami_artifact=base_ami_artifact,
-            ami_tag_app='edx_platform',
+            head_ami_artifact=head_ami_artifact,
+            message_tags=[
+                ('edx', 'edx-platform', 'edxapp-from-pipeline'),
+                ('edx', 'edx-platform-private', 'edx_platform'),
+            ],
+            github_token=config['github_token'],
         )
         return pipeline
     return builder
@@ -590,7 +592,8 @@ def generate_e2e_test_stage(pipeline, config):
 def rollback_asgs(
         edxapp_deploy_group, pipeline_name,
         deploy_pipeline, config,
-        ami_pairs, stage_deploy_pipeline, base_ami_artifact
+        ami_pairs, stage_deploy_pipeline, base_ami_artifact,
+        head_ami_artifact,
 ):
     """
     Arguments:
@@ -616,6 +619,7 @@ def rollback_asgs(
                  )
         stage_deploy_pipeline (gomatic.Pipeline): The edxapp staging deployment pipeline
         base_ami_artifact (edxpipelines.utils.ArtifactLocation): ArtifactLocation of the base AMI selection
+        head_ami_artifact (edxpipelines.utils.ArtifactLocation): ArtifactLocation of the head AMI selection
 
     Configuration Required:
         tubular_sleep_wait_time
@@ -662,19 +666,19 @@ def rollback_asgs(
     # Message PRs being rolled back
     pipeline.ensure_unencrypted_secure_environment_variables({'GITHUB_TOKEN': config['github_token']})
     stages.generate_deployment_messages(
-        pipeline,
-        ami_pairs,
-        stage_deploy_pipeline,
-        'edx',
-        'edx-platform',
-        '$GITHUB_TOKEN',
-        material_envvar_bash(EDX_PLATFORM()),
-        constants.ReleaseStatus.ROLLED_BACK,
-        config['jira_user'],
-        config['jira_password'],
-        config['github_token'],
+        pipeline=pipeline,
+        ami_pairs=ami_pairs,
+        stage_deploy_pipeline=stage_deploy_pipeline,
         base_ami_artifact=base_ami_artifact,
-        ami_tag_app='edx_platform',
+        head_ami_artifact=head_ami_artifact,
+        message_tags=[
+            ('edx', 'edx-platform', 'edxapp-from-pipeline'),
+            ('edx', 'edx-platform-private', 'edx_platform')
+        ],
+        release_status=constants.ReleaseStatus.ROLLED_BACK,
+        confluence_user=config['jira_user'],
+        confluence_password=config['jira_password'],
+        github_token=config['github_token'],
     )
 
     return pipeline
