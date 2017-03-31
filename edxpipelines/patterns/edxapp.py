@@ -18,7 +18,7 @@ from edxpipelines.patterns.tasks import private_releases
 from edxpipelines import constants
 from edxpipelines.materials import (
     TUBULAR, CONFIGURATION, EDX_PLATFORM, EDX_SECURE, EDGE_SECURE,
-    EDX_MICROSITE, EDX_INTERNAL, EDGE_INTERNAL,
+    EDX_MICROSITE, EDX_INTERNAL, EDGE_INTERNAL, material_envvar_bash
 )
 
 
@@ -40,7 +40,7 @@ def make_release_candidate(edxapp_group, config):
     """
     pipeline = edxapp_group.ensure_replacement_of_pipeline('edxapp_cut_release_candidate')
 
-    edx_platform_master = EDX_PLATFORM(material_name='edx-platform', branch="master", ignore_patterns=[])
+    edx_platform_master = EDX_PLATFORM(material_name='edx-platform', branch=None, ignore_patterns=frozenset())
     pipeline.ensure_material(edx_platform_master)
     pipeline.ensure_material(TUBULAR())
     stage = pipeline.ensure_stage(constants.MAKE_RELEASE_CANDIDATE_STAGE_NAME)
@@ -138,7 +138,7 @@ def prerelease_materials(edxapp_group, config):
         pipeline.ensure_material(material())
 
     pipeline.ensure_material(TUBULAR())
-    pipeline.ensure_material(EDX_PLATFORM(material_name='edx-platform', ignore_patterns=[]))
+    pipeline.ensure_material(EDX_PLATFORM(material_name='edx-platform', ignore_patterns=frozenset()))
 
     stage = pipeline.ensure_stage(constants.PRERELEASE_MATERIALS_STAGE_NAME)
     job = stage.ensure_job(constants.PRERELEASE_MATERIALS_JOB_NAME)
@@ -162,7 +162,7 @@ def prerelease_materials(edxapp_group, config):
     tasks.generate_create_branch(
         pipeline, job, config['git_token'], 'edx', 'edx-platform',
         target_branch="release-candidate-$GO_PIPELINE_COUNTER",
-        sha=EDX_PLATFORM().envvar_bash)
+        sha=material_envvar_bash(EDX_PLATFORM()))
 
     # Move the AMI selection jobs here in a single stage.
     stage = pipeline.ensure_stage(constants.BASE_AMI_SELECTION_STAGE_NAME)
@@ -279,7 +279,7 @@ def generate_build_stages(app_repo, edp, theme_url, configuration_secure_repo,
             configuration_internal_dir='{}-internal'.format(edp.deployment),
             hipchat_token=config['hipchat_token'],
             hipchat_room='release',
-            configuration_version=CONFIGURATION().envvar_bash,
+            configuration_version=material_envvar_bash(CONFIGURATION()),
             edxapp_theme_source_repo=theme_url,
             # Currently, edx-theme isn't exposed as a material. See https://openedx.atlassian.net/browse/TE-1874
             # edxapp_theme_version='$GO_REVISION_EDX_THEME',
@@ -299,17 +299,17 @@ def generate_build_stages(app_repo, edp, theme_url, configuration_secure_repo,
             pipeline,
             edp=edp,
             app_repo=app_repo,
-            app_version=EDX_PLATFORM().envvar_bash,
+            app_version=material_envvar_bash(EDX_PLATFORM()),
             hipchat_token=config['hipchat_token'],
             hipchat_room='release pipeline',
             aws_access_key_id=config['aws_access_key_id'],
             aws_secret_access_key=config['aws_secret_access_key'],
             version_tags={
-                'edx_platform': (EDX_PLATFORM().url, EDX_PLATFORM().envvar_bash),
-                'configuration': (configuration_url, CONFIGURATION().envvar_bash),
+                'edx_platform': (EDX_PLATFORM().url, material_envvar_bash(EDX_PLATFORM())),
+                'configuration': (configuration_url, material_envvar_bash(CONFIGURATION())),
                 'configuration_secure': (configuration_secure_repo, configuration_secure_version),
                 'configuration_internal': (configuration_internal_repo, configuration_internal_version),
-                'edxapp_theme': (theme_url, EDX_MICROSITE().envvar_bash),
+                'edxapp_theme': (theme_url, material_envvar_bash(EDX_MICROSITE())),
             }
         )
 
@@ -446,7 +446,7 @@ def generate_deploy_stages(
             'edx',
             'edx-platform',
             '$GITHUB_TOKEN',
-            EDX_PLATFORM().envvar_bash,
+            material_envvar_bash(EDX_PLATFORM()),
             constants.ReleaseStatus[config['edx_environment']],
             config['jira_user'],
             config['jira_password'],
@@ -667,7 +667,7 @@ def rollback_asgs(
         'edx',
         'edx-platform',
         '$GITHUB_TOKEN',
-        EDX_PLATFORM().envvar_bash,
+        material_envvar_bash(EDX_PLATFORM()),
         constants.ReleaseStatus.ROLLED_BACK,
         config['jira_user'],
         config['jira_password'],
@@ -687,9 +687,10 @@ def armed_stage_builder(pipeline, config):  # pylint: disable=unused-argument
     return pipeline
 
 
-def rollback_database(build_pipeline, deploy_pipeline):
+def rollback_database(edp, build_pipeline, deploy_pipeline):
     """
     Arguments:
+        edp (EDP): EDP that this builder will roll back
         build_pipeline (gomatic.Pipeline): Pipeline source of the launch info (ami-id)
         deploy_pipeline (gomatic.Pipeline): Pipeline source of the migration information
 
@@ -759,6 +760,7 @@ def rollback_database(build_pipeline, deploy_pipeline):
 
             stages.generate_rollback_migrations(
                 pipeline,
+                edp,
                 db_migration_pass=config['db_migration_pass'],
                 inventory_location=ansible_inventory_location,
                 instance_key_location=instance_ssh_key_location,
@@ -809,7 +811,7 @@ def merge_back_branches(edxapp_deploy_group, pipeline_name, deploy_artifact, pre
         org='edx',
         repo='edx-platform',
         target_branch='release',
-        head_sha=EDX_PLATFORM().envvar_bash,
+        head_sha=material_envvar_bash(EDX_PLATFORM()),
         fast_forward_only=True,
         reference_repo='edx-platform',
     )
@@ -819,7 +821,7 @@ def merge_back_branches(edxapp_deploy_group, pipeline_name, deploy_artifact, pre
         deploy_artifact=deploy_artifact,
         org='edx',
         repo='edx-platform',
-        head_sha=EDX_PLATFORM().envvar_bash,
+        head_sha=material_envvar_bash(EDX_PLATFORM()),
     )
 
     jobs.generate_tag_commit(

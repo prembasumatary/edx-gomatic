@@ -237,7 +237,7 @@ def install_pipelines(configurator, config):
     rollback_stage_db = edxapp.launch_and_terminate_subset_pipeline(
         edxapp_deploy_group,
         [
-            edxapp.rollback_database(stage_b, stage_md),
+            edxapp.rollback_database(edxapp.STAGE_EDX_EDXAPP, stage_b, stage_md),
         ],
         config=config[edxapp.STAGE_EDX_EDXAPP],
         pipeline_name="stage_edxapp_Rollback_Migrations",
@@ -447,7 +447,7 @@ def install_pipelines(configurator, config):
     rollback_edx_db = edxapp.launch_and_terminate_subset_pipeline(
         edxapp_deploy_group,
         [
-            edxapp.rollback_database(prod_edx_b, prod_edx_md),
+            edxapp.rollback_database(edxapp.PROD_EDX_EDXAPP, prod_edx_b, prod_edx_md),
         ],
         config=config[edxapp.PROD_EDX_EDXAPP],
         pipeline_name="PROD_edx_edxapp_Rollback_Migrations_latest",
@@ -467,7 +467,7 @@ def install_pipelines(configurator, config):
     rollback_edge_db = edxapp.launch_and_terminate_subset_pipeline(
         edxapp_deploy_group,
         [
-            edxapp.rollback_database(prod_edge_b, prod_edge_md),
+            edxapp.rollback_database(edxapp.PROD_EDGE_EDXAPP, prod_edge_b, prod_edge_md),
         ],
         config=config[edxapp.PROD_EDGE_EDXAPP],
         pipeline_name="PROD_edge_edxapp_Rollback_Migrations_latest",
@@ -519,4 +519,4 @@ def install_pipelines(configurator, config):
 
 
 if __name__ == "__main__":
-    pipeline_script(install_pipelines, environments=('stage', 'prod-edx', 'prod-edge'))
+    pipeline_script(install_pipelines, environments=('stage-edx', 'prod-edx', 'prod-edge'))

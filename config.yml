@@ -147,11 +147,10 @@ tools:
       - *play-edxapp
       - "../gomatic-secure/gocd/vars/tools/edxapp-cutbranch.yml"
       - "../gomatic-secure/gocd/vars/tools/environment-play/edxapp-manual-verification-latest.yml"
-    env-variable-file:
-      - ['stage', *deployment-edx]
-      - ['stage', *stage-edx]
-      - ['stage', "../gomatic-secure/gocd/vars/tools/environment-deployment-play/stage-edx-edxapp-latest.yml"]
     env-deploy-variable-file:
+      - ['stage-edx', *deployment-edx]
+      - ['stage-edx', *stage-edx]
+      - ['stage-edx', "../gomatic-secure/gocd/vars/tools/environment-deployment-play/stage-edx-edxapp-latest.yml"]
       - ['prod-edx', *deployment-edx]
       - ['prod-edx', *prod-edx]
       - ['prod-edx', *prod-edx-edxapp-latest-secure]
@@ -301,20 +300,34 @@ tools:
   - script: edxpipelines/pipelines/cd_insights.py
     variable_file:
       - *tools-admin
-      - "../gomatic-secure/gocd/vars/tools/environment-deployment-play/stage-edx-insights.yml"
-      - *stage-edx
       - "../gomatic-secure/gocd/vars/tools/plays/insights.yml"
       - *deployment-edx
+    env-deploy-variable-file:
+      - ["stage-edx", *stage-edx]
+      - ["stage-edx", "../gomatic-secure/gocd/vars/tools/environment-deployment-play/stage-edx-insights.yml"]
+      - ["loadtest-edx", *loadtest-edx]
+      - ["loadtest-edx", "../gomatic-secure/gocd/vars/tools/environment-deployment-play/loadtest-edx-insights.yml"]
+      - ["prod-edx", *prod-edx]
+      - ["prod-edx", "../gomatic-secure/gocd/vars/tools/environment-deployment-play/prod-edx-insights.yml"]
+      - ["prod-edge", *prod-edge]
+      - ["prod-edge", "../gomatic-secure/gocd/vars/tools/environment-deployment-play/prod-edge-insights.yml"]
     enabled: True
 
   # Stage Analytics API
   - script: edxpipelines/pipelines/cd_analyticsapi.py
     variable_file:
       - *tools-admin
-      - "../gomatic-secure/gocd/vars/tools/environment-deployment-play/stage-edx-analyticsapi.yml"
-      - *stage-edx
       - "../gomatic-secure/gocd/vars/tools/plays/analyticsapi.yml"
       - *deployment-edx
+    env-deploy-variable-file:
+      - ["stage-edx", *stage-edx]
+      - ["stage-edx", "../gomatic-secure/gocd/vars/tools/environment-deployment-play/stage-edx-analyticsapi.yml"]
+      - ["loadtest-edx", *loadtest-edx]
+      - ["loadtest-edx", "../gomatic-secure/gocd/vars/tools/environment-deployment-play/loadtest-edx-analyticsapi.yml"]
+      - ["prod-edx", *prod-edx]
+      - ["prod-edx", "../gomatic-secure/gocd/vars/tools/environment-deployment-play/prod-edx-analyticsapi.yml"]
+      - ["prod-edge", *prod-edge]
+      - ["prod-edge", "../gomatic-secure/gocd/vars/tools/environment-deployment-play/prod-edge-analyticsapi.yml"]
     enabled: True
 
   # E-Commerce Service (Otto)
@@ -323,13 +336,13 @@ tools:
       - *tools-admin
       - *play-ecommerce
       - *deployment-edx
-    env-variable-file:
-      - ["stage", *stage-edx]
-      - ["stage", "../gomatic-secure/gocd/vars/tools/environment-deployment-play/stage-edx-ecommerce.yml"]
-      - ["loadtest", *loadtest-edx]
-      - ["loadtest", "../gomatic-secure/gocd/vars/tools/environment-deployment-play/loadtest-edx-ecommerce.yml"]
-      - ["prod", *prod-edx]
-      - ["prod", "../gomatic-secure/gocd/vars/tools/environment-deployment-play/prod-edx-ecommerce.yml"]
+    env-deploy-variable-file:
+      - ["stage-edx", *stage-edx]
+      - ["stage-edx", "../gomatic-secure/gocd/vars/tools/environment-deployment-play/stage-edx-ecommerce.yml"]
+      - ["loadtest-edx", *loadtest-edx]
+      - ["loadtest-edx", "../gomatic-secure/gocd/vars/tools/environment-deployment-play/loadtest-edx-ecommerce.yml"]
+      - ["prod-edx", *prod-edx]
+      - ["prod-edx", "../gomatic-secure/gocd/vars/tools/environment-deployment-play/prod-edx-ecommerce.yml"]
     enabled: True
 
   # Credentials Service
@@ -338,13 +351,13 @@ tools:
       - *tools-admin
       - *play-credentials
       - *deployment-edx
-    env-variable-file:
-      - ["stage", *stage-edx]
-      - ["stage", "../gomatic-secure/gocd/vars/tools/environment-deployment-play/stage-edx-credentials.yml"]
-      - ["loadtest", *loadtest-edx]
-      - ["loadtest", "../gomatic-secure/gocd/vars/tools/environment-deployment-play/loadtest-edx-credentials.yml"]
-      - ["prod", *prod-edx]
-      - ["prod", "../gomatic-secure/gocd/vars/tools/environment-deployment-play/prod-edx-credentials.yml"]
+    env-deploy-variable-file:
+      - ["stage-edx", *stage-edx]
+      - ["stage-edx", "../gomatic-secure/gocd/vars/tools/environment-deployment-play/stage-edx-credentials.yml"]
+      - ["loadtest-edx", *loadtest-edx]
+      - ["loadtest-edx", "../gomatic-secure/gocd/vars/tools/environment-deployment-play/loadtest-edx-credentials.yml"]
+      - ["prod-edx", *prod-edx]
+      - ["prod-edx", "../gomatic-secure/gocd/vars/tools/environment-deployment-play/prod-edx-credentials.yml"]
     enabled: True
 
   # Catalog/Discovery Service
@@ -353,13 +366,13 @@ tools:
       - *tools-admin
       - *play-discovery
       - *deployment-edx
-    env-variable-file:
-      - ["stage", *stage-edx]
-      - ["stage", "../gomatic-secure/gocd/vars/tools/environment-deployment-play/stage-edx-discovery.yml"]
-      - ["loadtest", *loadtest-edx]
-      - ["loadtest", "../gomatic-secure/gocd/vars/tools/environment-deployment-play/loadtest-edx-discovery.yml"]
-      - ["prod", *prod-edx]
-      - ["prod", "../gomatic-secure/gocd/vars/tools/environment-deployment-play/prod-edx-discovery.yml"]
+    env-deploy-variable-file:
+      - ["stage-edx", *stage-edx]
+      - ["stage-edx", "../gomatic-secure/gocd/vars/tools/environment-deployment-play/stage-edx-discovery.yml"]
+      - ["loadtest-edx", *loadtest-edx]
+      - ["loadtest-edx", "../gomatic-secure/gocd/vars/tools/environment-deployment-play/loadtest-edx-discovery.yml"]
+      - ["prod-edx", *prod-edx]
+      - ["prod-edx", "../gomatic-secure/gocd/vars/tools/environment-deployment-play/prod-edx-discovery.yml"]
     enabled: True
 
   # E-Commerce Worker (ecomworker)
@@ -368,13 +381,13 @@ tools:
       - *tools-admin
       - *play-ecomworker
       - *deployment-edx
-    env-variable-file:
-      - ["stage", *stage-edx]
-      - ["stage", "../gomatic-secure/gocd/vars/tools/environment-deployment-play/stage-edx-ecomworker.yml"]
-      - ["loadtest", *loadtest-edx]
-      - ["loadtest", "../gomatic-secure/gocd/vars/tools/environment-deployment-play/loadtest-edx-ecomworker.yml"]
-      - ["prod", *prod-edx]
-      - ["prod", "../gomatic-secure/gocd/vars/tools/environment-deployment-play/prod-edx-ecomworker.yml"]
+    env-deploy-variable-file:
+      - ["stage-edx", *stage-edx]
+      - ["stage-edx", "../gomatic-secure/gocd/vars/tools/environment-deployment-play/stage-edx-ecomworker.yml"]
+      - ["loadtest-edx", *loadtest-edx]
+      - ["loadtest-edx", "../gomatic-secure/gocd/vars/tools/environment-deployment-play/loadtest-edx-ecomworker.yml"]
+      - ["prod-edx", *prod-edx]
+      - ["prod-edx", "../gomatic-secure/gocd/vars/tools/environment-deployment-play/prod-edx-ecomworker.yml"]
     enabled: True
 
 sandbox:
