@@ -164,9 +164,7 @@ def test_upstream_stages_for_artifacts(script_result, script_name):
 
     Artifact = namedtuple('Artifact', ['pipeline', 'stage', 'job', 'src'])
 
-    for pipeline in script_result.iter('pipeline'):
-        if pipeline.get('name') is None:  # Some pipelines are coming back as empty, skip for now..
-            continue
+    for pipeline in script_result.iterfind('.//pipelines/pipeline'):
         # Build the set of fetchartifact(s) in this pipeline.
         required_artifacts = set(
             Artifact(
