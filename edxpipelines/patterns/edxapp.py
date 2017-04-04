@@ -152,7 +152,7 @@ def prerelease_materials(edxapp_group, config):
         EDX_PLATFORM().branch,
         ('edx', 'edx-platform-private'),
         'security-release',
-        'release-candidate',
+        'release-candidate-${GO_PIPELINE_COUNTER}',
         target_reference_repo='edx-platform-private',
     )
 
