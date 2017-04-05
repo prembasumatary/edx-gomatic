@@ -290,6 +290,7 @@ def generate_build_stages(app_repo, edp, theme_url, configuration_secure_repo,
             override_artifacts=[
                 prerelease_merge_artifact,
             ],
+            timeout=60
         )
 
         configuration_secure_version = '$GO_REVISION_{}_SECURE'.format(edp.deployment.upper())
@@ -564,8 +565,10 @@ def generate_e2e_test_stage(pipeline, config):
     jenkins_user_name = config['jenkins_user_name']
 
     jenkins_url = "https://build.testeng.edx.org"
+    jenkins_job_timeout = 60 * 60
 
     e2e_tests = jenkins_stage.ensure_job('edx-e2e-test')
+    e2e_tests.timeout = str(jenkins_job_timeout + 60)
     tasks.generate_package_install(e2e_tests, 'tubular')
     tasks.trigger_jenkins_build(
         e2e_tests,
@@ -573,10 +576,11 @@ def generate_e2e_test_stage(pipeline, config):
         jenkins_user_name,
         'edx-e2e-tests',
         {},
-        timeout=60 * 60,
+        timeout=jenkins_job_timeout,
     )
 
     microsites_tests = jenkins_stage.ensure_job('microsites-staging-tests')
+    microsites_tests.timeout = str(jenkins_job_timeout + 60)
     tasks.generate_package_install(microsites_tests, 'tubular')
     tasks.trigger_jenkins_build(
         microsites_tests,
@@ -585,7 +589,7 @@ def generate_e2e_test_stage(pipeline, config):
         'microsites-staging-tests', {
             'CI_BRANCH': 'kashif/white_label',
         },
-        timeout=60 * 60,
+        timeout=jenkins_job_timeout,
     )
 
 
