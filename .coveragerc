@@ -1,0 +1,5 @@
+[run]
+parallel = true
+source =
+    edxpipelines
+    deploy_pipelines
