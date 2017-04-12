@@ -148,6 +148,5 @@ EDX_ORA2 = partial(
     GitMaterial,
     url='https://github.com/edx/edx-ora2',
     polling=True,
-    destination_directory='edx-ora2',
-    ignore_patterns=constants.MATERIAL_IGNORE_ALL_REGEX,
+    destination_directory='edx-ora2'
 )
