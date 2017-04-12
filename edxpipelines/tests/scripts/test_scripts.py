@@ -164,7 +164,7 @@ def test_upstream_stages_for_artifacts(script_result, script_name):
 
     Artifact = namedtuple('Artifact', ['pipeline', 'stage', 'job', 'src'])
 
-    for pipeline in script_result.iter('pipeline'):
+    for pipeline in script_result.iterfind('.//pipelines/pipeline'):
         # Build the set of fetchartifact(s) in this pipeline.
         required_artifacts = set(
             Artifact(
@@ -178,7 +178,7 @@ def test_upstream_stages_for_artifacts(script_result, script_name):
         )
 
         # Build the set of artifacts ensured that are available to this pipeline and it's parents:
-        def _find_ensured_artifacts(curr_pipeline, visited):
+        def _find_ensured_artifacts(curr_pipeline, visited, path_list):
             """
             Recursively walk the graph up from this node finding artifacts that have been ensured by ancestor pipelines
 
@@ -190,15 +190,17 @@ def test_upstream_stages_for_artifacts(script_result, script_name):
 
             """
             ensured_artifacts = set()
-            visited.add(curr_pipeline.get('name'))
+            curr_path = [curr_pipeline.get('name')] + path_list
+            visited.add('/'.join(curr_path))
+
             for material in curr_pipeline.iterfind('materials/pipeline'):
                 upstream_node = script_result.find(".//pipeline[@name='{}']".format(material.get('pipelineName')))
-                if upstream_node is not None and upstream_node.get('name') not in visited:
-                    ensured_artifacts |= _find_ensured_artifacts(upstream_node, visited)
+                if upstream_node is not None and '/'.join([upstream_node.get('name')] + curr_path) not in visited:
+                    ensured_artifacts |= _find_ensured_artifacts(upstream_node, visited, curr_path)
 
             ensured_artifacts |= set(
                 Artifact(
-                    curr_pipeline.get('name'),
+                    curr_pipeline.get('name') if len(curr_path) <= 1 else '/'.join(curr_path[:-1]),
                     stage.get('name'),
                     job.get('name'),
                     os.path.basename(artifact.get('src'))
@@ -209,7 +211,7 @@ def test_upstream_stages_for_artifacts(script_result, script_name):
             )
             return ensured_artifacts
 
-        available_artifacts = _find_ensured_artifacts(pipeline, set())
+        available_artifacts = _find_ensured_artifacts(pipeline, set(), [])
         assert required_artifacts <= available_artifacts, "Stages containing artifacts to be fetched aren't upstream"
 
 
