@@ -159,6 +159,7 @@ def generate_run_play(pipeline,
                       configuration_secure_dir=constants.PRIVATE_CONFIGURATION_LOCAL_DIR,
                       configuration_internal_dir=constants.INTERNAL_CONFIGURATION_LOCAL_DIR,
                       override_artifacts=None,
+                      timeout=None,
                       **kwargs):
     """
     TODO: This currently runs from the configuration/playbooks/continuous_delivery/ directory. Need to figure out how to
@@ -182,6 +183,7 @@ def generate_run_play(pipeline,
         hipchat_room (str):
         manual_approval (bool):
         configuration_secure_dir (str): The secure config directory to use for this play.
+        timeout (int): GoCD job level inactivity timeout setting.
         **kwargs (dict):
             k,v pairs:
                 k: the name of the option to pass to ansible
@@ -196,6 +198,9 @@ def generate_run_play(pipeline,
 
     # Install the requirements.
     job = stage.ensure_job(constants.RUN_PLAY_JOB_NAME)
+    if timeout:
+        job.timeout = str(timeout)
+
     tasks.generate_package_install(job, 'tubular')
     tasks.generate_requirements_install(job, 'configuration')
     tasks.generate_target_directory(job)
@@ -244,7 +249,7 @@ def generate_create_ami_from_instance(pipeline,
                                       app_repo,
                                       aws_access_key_id,
                                       aws_secret_access_key,
-                                      ami_creation_timeout="3600",
+                                      ami_creation_timeout=3600,
                                       ami_wait='yes',
                                       cache_id='',
                                       artifact_path=constants.ARTIFACT_PATH,

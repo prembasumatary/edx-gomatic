@@ -75,13 +75,15 @@ def install_pipelines(configurator, config):
         'configuration_internal_version': '$CONFIGURATION_INTERNAL_VERSION',
         'basic_auth': 'false'
     }
+    jenkins_timeout = 75 * 60
+    jenkins_create_ora2_sandbox_job.timeout = str(jenkins_timeout + 60)
     tasks.trigger_jenkins_build(
         jenkins_create_ora2_sandbox_job,
         constants.ORA2_JENKINS_URL,
         constants.ORA2_JENKINS_USER_NAME,
         constants.CREATE_ORA2_SANDBOX_JENKINS_JOB_NAME,
         create_ora2_sandbox_jenkins_params,
-        timeout=75 * 60
+        timeout=jenkins_timeout
     )
 
     # Create the Set Ora2 Version stage, job, and task

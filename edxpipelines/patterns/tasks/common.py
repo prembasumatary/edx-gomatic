@@ -370,7 +370,7 @@ def generate_create_ami(
         job, play, deployment, edx_environment,
         app_repo, aws_access_key_id,
         aws_secret_access_key, launch_info_path,
-        ami_creation_timeout='3600', ami_wait='yes', cache_id='',
+        ami_creation_timeout=3600, ami_wait='yes', cache_id='',
         artifact_path=constants.ARTIFACT_PATH, hipchat_token='',
         hipchat_room=constants.HIPCHAT_ROOM,
         runif='passed', version_tags=None,
@@ -394,6 +394,7 @@ def generate_create_ami(
         The newly created task (gomatic.gocd.tasks.ExecTask)
 
     """
+    job.timeout = str(ami_creation_timeout + 60)
     job.ensure_encrypted_environment_variables(
         {
             'AWS_ACCESS_KEY_ID': aws_access_key_id,
@@ -424,7 +425,7 @@ def generate_create_ami(
         ('hipchat_room', hipchat_room),
         ('ami_wait', ami_wait),
         ('no_reboot', 'no'),
-        ('ami_creation_timeout', ami_creation_timeout),
+        ('ami_creation_timeout', str(ami_creation_timeout)),
         ('extra_name_identifier', '$GO_PIPELINE_COUNTER'),
         ('cache_id', cache_id),
     ]
@@ -1367,6 +1368,7 @@ def trigger_jenkins_build(
         jenkins_job_name (str): name of the jenkins job to trigger
         jenkins_param (dict): parameter names and values to pass to the job
     """
+    job.timeout = str(timeout + 60)
     command = [
         '--url', jenkins_url,
         '--user_name', jenkins_user_name,
