@@ -39,24 +39,24 @@ def provision_devstack(pipeline):
         common.bash_task('vagrant plugin install vagrant-vbguest', working_dir=constants.PUBLIC_CONFIGURATION_DEVSTACK_DIR)
     )
 
-    # Stop any running Vagrant image
-    build_job.ensure_task(
-        common.bash_task('vagrant halt', working_dir=constants.PUBLIC_CONFIGURATION_DEVSTACK_DIR)
-    )
-
-    # # Destroy any Vagrant image
-    # build_job.ensure_task(
-    #     common.bash_task('vagrant destroy', working_dir=constants.PUBLIC_CONFIGURATION_DEVSTACK_DIR)
-    # )
-    #
-    # # Remove .vagrant directory
-    # build_job.ensure_task(
-    #     common.bash_task('rm -rf .vagrant', working_dir=constants.PUBLIC_CONFIGURATION_DEVSTACK_DIR)
-    # )
-
     # Bring up the image
     build_job.ensure_task(
-        common.bash_task("vagrant up --provider virtualbox", working_dir=constants.PUBLIC_CONFIGURATION_DEVSTACK_DIR)
+        common.bash_task("CONFIGURATION_VERSION=jbarciauskas/fixes-to-vagrant-devstack-post-docker-merge OPENEDX_RELEASE=master vagrant up --provider virtualbox", working_dir=constants.PUBLIC_CONFIGURATION_DEVSTACK_DIR)
+    )
+
+    # Stop any running Vagrant image
+    build_job.ensure_task(
+        common.bash_task('vagrant halt', working_dir=constants.PUBLIC_CONFIGURATION_DEVSTACK_DIR, runif='any')
+    )
+
+    # Destroy any Vagrant image
+    build_job.ensure_task(
+        common.bash_task('vagrant destroy --force', working_dir=constants.PUBLIC_CONFIGURATION_DEVSTACK_DIR, runif='any')
+    )
+
+    # Remove .vagrant directory
+    build_job.ensure_task(
+        common.bash_task('rm -rf .vagrant', working_dir=constants.PUBLIC_CONFIGURATION_DEVSTACK_DIR, runif='any')
     )
 
 
