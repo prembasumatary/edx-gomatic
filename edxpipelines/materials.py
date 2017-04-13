@@ -159,4 +159,5 @@ E2E_TESTS = partial(
     destination_directory="edx-e2e-tests",
     ignore_patterns=constants.MATERIAL_IGNORE_ALL_REGEX,
     shallow=True,
+    branch='bbeggs/course_import'
 )
