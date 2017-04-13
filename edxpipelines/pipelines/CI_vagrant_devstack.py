@@ -21,18 +21,10 @@ def install_pipelines(configurator, config):
     pipeline = configurator.ensure_pipeline_group("CI") \
         .ensure_replacement_of_pipeline("Vagrant_Devstack_CI")
 
-    for material in [E2E_TESTS, CONFIGURATION]:
-        pipeline.ensure_material(
-            GitMaterial(
-                url=material['url'],
-                branch=material['branch'],
-                material_name=material['material_name'],
-                polling=material['polling'],
-                destination_directory=material['destination_directory'],
-                ignore_patterns=set(material['ignore_patterns'])
-            )
-        )
+    for material in (E2E_TESTS, CONFIGURATION):
+        pipeline.ensure_material(material())
 
+    # Make sure port is open for the e2e tests
     provision_devstack(pipeline)
 
     run_e2e(pipeline)
@@ -41,9 +33,30 @@ def install_pipelines(configurator, config):
 def provision_devstack(pipeline):
     build_stage = pipeline.ensure_stage("build_vagrant_devstack")
     build_job = build_stage.ensure_job("build_vagrant_devstack_job")
-    # TODO: Build the job and tasks
+
+    # Stop any running Vagrant image
     build_job.ensure_task(
-        common.bash_task("vagrant provision", working_dir=constants.PUBLIC_CONFIGURATION_DIR) # NOT SURE ON DIR?
+        common.bash_task('vagrant halt', working_dir=constants.PUBLIC_CONFIGURATION_DEVSTACK_DIR)
+    )
+
+    # Destroy any Vagrant image
+    build_job.ensure_task(
+        common.bash_task('vagrant destroy', working_dir=constants.PUBLIC_CONFIGURATION_DEVSTACK_DIR)
+    )
+
+    # Remove .vagrant directory
+    build_job.ensure_task(
+        common.bash_task('rm -rf .vagrant', working_dir=constants.PUBLIC_CONFIGURATION_DEVSTACK_DIR)
+    )
+
+    # Install vbguest
+    build_job.ensure_task(
+        common.bash_task('vagrant plugin install vagrant-vbguest')
+    )
+
+    # Bring up the image
+    build_job.ensure_task(
+        common.bash_task("vagrant up --provider virtualbox", working_dir=constants.PUBLIC_CONFIGURATION_DEVSTACK_DIR)
     )
 
 
@@ -57,7 +70,7 @@ def run_e2e(pipeline):
         common.bash_task("vagrant scp ...", working_dir="")
     )
 
-    #TODO run the tests
+    # TODO run the tests
     test_job.ensure_task(
         common.bash_task("e2e something something", working_dir="")
     )
