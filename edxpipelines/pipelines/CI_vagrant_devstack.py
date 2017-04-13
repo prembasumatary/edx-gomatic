@@ -26,7 +26,7 @@ def install_pipelines(configurator, config):
 
     # Make sure port is open for the e2e tests
     provision_devstack(pipeline)
-    run_e2e(pipeline)
+    # run_e2e(pipeline)
 
 
 # add resource to job level
@@ -44,15 +44,15 @@ def provision_devstack(pipeline):
         common.bash_task('vagrant halt', working_dir=constants.PUBLIC_CONFIGURATION_DEVSTACK_DIR)
     )
 
-    # Destroy any Vagrant image
-    build_job.ensure_task(
-        common.bash_task('vagrant destroy', working_dir=constants.PUBLIC_CONFIGURATION_DEVSTACK_DIR)
-    )
-
-    # Remove .vagrant directory
-    build_job.ensure_task(
-        common.bash_task('rm -rf .vagrant', working_dir=constants.PUBLIC_CONFIGURATION_DEVSTACK_DIR)
-    )
+    # # Destroy any Vagrant image
+    # build_job.ensure_task(
+    #     common.bash_task('vagrant destroy', working_dir=constants.PUBLIC_CONFIGURATION_DEVSTACK_DIR)
+    # )
+    #
+    # # Remove .vagrant directory
+    # build_job.ensure_task(
+    #     common.bash_task('rm -rf .vagrant', working_dir=constants.PUBLIC_CONFIGURATION_DEVSTACK_DIR)
+    # )
 
     # Bring up the image
     build_job.ensure_task(
