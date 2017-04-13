@@ -129,6 +129,7 @@ DB_MIGRATION_USER = 'migrate'
 MIGRATION_OUTPUT_DIR_NAME = 'migrations'
 PLAYBOOK_PATH_TPL = 'playbooks/edx-east/{.play}.yml'.format
 EDX_REPO_TPL = 'https://github.com/edx/{}.git'.format
+E2E_TESTS_DIR = 'edx-e2e-tests'
 
 
 # AWS Defaults
