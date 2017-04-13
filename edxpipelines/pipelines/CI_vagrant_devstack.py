@@ -33,6 +33,12 @@ def install_pipelines(configurator, config):
             )
         )
 
+    provision_devstack(pipeline)
+
+    run_e2e(pipeline)
+
+
+def provision_devstack(pipeline):
     build_stage = pipeline.ensure_stage("build_vagrant_devstack")
     build_job = build_stage.ensure_job("build_vagrant_devstack_job")
     # TODO: Build the job and tasks
@@ -40,6 +46,8 @@ def install_pipelines(configurator, config):
         common.bash_task("vagrant provision", working_dir=constants.PUBLIC_CONFIGURATION_DIR) # NOT SURE ON DIR?
     )
 
+
+def run_e2e(pipeline):
     # TODO: run the smoke tests
     test_stage = pipeline.ensure_stage("test_e2e_vagrant_devstack")
     test_job = test_stage.ensure_job("test_e2e_vagrant_devstack_job")
