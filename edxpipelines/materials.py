@@ -151,3 +151,12 @@ EDX_ORA2 = partial(
     destination_directory='edx-ora2',
     ignore_patterns=constants.MATERIAL_IGNORE_ALL_REGEX,
 )
+
+E2E_TESTS = partial(
+    GitMaterial,
+    url="git@github.com:edx/edx-e2e-tests.git",
+    polling=True,
+    destination_directory="edx-e2e-tests",
+    ignore_patterns=constants.MATERIAL_IGNORE_ALL_REGEX,
+    shallow=True,
+)
