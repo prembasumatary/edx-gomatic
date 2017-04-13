@@ -27,12 +27,18 @@ def install_pipelines(configurator, config):
     # Make sure port is open for the e2e tests
     provision_devstack(pipeline)
 
-    run_e2e(pipeline)
+    # run_e2e(pipeline)
 
 
+# add resource to job level
 def provision_devstack(pipeline):
     build_stage = pipeline.ensure_stage("build_vagrant_devstack")
     build_job = build_stage.ensure_job("build_vagrant_devstack_job")
+
+    # Install vbguest
+    build_job.ensure_task(
+        common.bash_task('vagrant plugin install vagrant-vbguest', working_dir=constants.PUBLIC_CONFIGURATION_DEVSTACK_DIR)
+    )
 
     # Stop any running Vagrant image
     build_job.ensure_task(
@@ -47,11 +53,6 @@ def provision_devstack(pipeline):
     # Remove .vagrant directory
     build_job.ensure_task(
         common.bash_task('rm -rf .vagrant', working_dir=constants.PUBLIC_CONFIGURATION_DEVSTACK_DIR)
-    )
-
-    # Install vbguest
-    build_job.ensure_task(
-        common.bash_task('vagrant plugin install vagrant-vbguest')
     )
 
     # Bring up the image
