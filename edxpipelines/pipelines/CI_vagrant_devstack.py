@@ -85,10 +85,10 @@ def run_e2e(pipeline):
 
     # TODO Import the course
     test_job.ensure_task(
-        common.bash_task('vagrant scp ../../../../{2}/courses/{0} {1}:/edx/app/edxapp '.format(COURSE_TAR_FILE, VAGRANT_NAME, constants.E2E_TESTS_DIR), working_dir=constants.PUBLIC_CONFIGURATION_DEVSTACK_DIR)
+        common.bash_task('vagrant scp ../../../../{2}/courses/{0} {1}:/tmp/ '.format(COURSE_TAR_FILE, VAGRANT_NAME, constants.E2E_TESTS_DIR), working_dir=constants.PUBLIC_CONFIGURATION_DEVSTACK_DIR)
     )
     test_job.ensure_task(
-        common.bash_task('''vagrant ssh -c 'tar -zxvf /edx/app/edxapp/{} --directory {}' '''.format(COURSE_TAR_FILE, COURSE_NAME),
+        common.bash_task('''vagrant ssh -c 'mkdir -p AR-1000 && tar -zxvf /tmp/{} -C {}' '''.format(COURSE_TAR_FILE, COURSE_NAME),
                          working_dir=constants.PUBLIC_CONFIGURATION_DEVSTACK_DIR)
     )
     test_job.ensure_task(
