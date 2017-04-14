@@ -44,7 +44,7 @@ def provision_devstack(pipeline):
 
     # Bring up the image
     build_job.ensure_task(
-        common.bash_task("CONFIGURATION_VERSION=jbarciauskas/fixes-to-vagrant-devstack-post-docker-merge OPENEDX_RELEASE=master vagrant up --provider virtualbox", working_dir=constants.PUBLIC_CONFIGURATION_DEVSTACK_DIR)
+        common.bash_task("OPENEDX_RELEASE=master vagrant up --provider virtualbox", working_dir=constants.PUBLIC_CONFIGURATION_DEVSTACK_DIR)
     )
 
     # Stop any running Vagrant image
