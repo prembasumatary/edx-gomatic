@@ -78,18 +78,8 @@ def run_e2e(pipeline):
             'LMS_BASE_URL': 'http://localhost:8000/',
         }
     )
-    # install configuration requiremenst
-    common.generate_requirements_install(
-        test_job,
-        working_dir='{}/requirements'.format(constants.E2E_TESTS_DIR)
-    )
 
-    # # Install page objects
-    test_job.ensure_task(
-        common.bash_task('paver install_pages', working_dir=constants.E2E_TESTS_DIR)
-    )
-
-    # # TODO Import the course
+    # TODO Import the course
     test_job.ensure_task(
         common.bash_task('vagrant scp courses/{} {}:/edx/app/edxapp '.format(COURSE_TAR_FILE, VAGRANT_NAME), working_dir=constants.E2E_TESTS_DIR)
     )
@@ -102,9 +92,23 @@ def run_e2e(pipeline):
                          working_dir=constants.E2E_TESTS_DIR)
     )
 
-    # # TODO run the tests
     test_job.ensure_task(
-        common.bash_task("vagrant ssh -c 'cd /edx/app/edxapp/edx-platform && sudo -u edxapp paver e2e_test", working_dir='')
+        common.bash_task(
+            '''
+            virtualenv -p python2.7 .python &&
+            source .python/bin/activate &&
+            pip install -r {}/requirements/requirements.txt
+            '''.format(constants.E2E_TESTS_DIR))
+    )
+
+    # Install page objects
+    test_job.ensure_task(
+        common.bash_task('source ../.python/bin/activate && paver install_pages', working_dir=constants.E2E_TESTS_DIR)
+    )
+    
+    # TODO run the tests
+    test_job.ensure_task(
+        common.bash_task('source ../.python/bin/activate && paver e2e_tests', working_dir=constants.E2E_TESTS_DIR)
     )
 
 
