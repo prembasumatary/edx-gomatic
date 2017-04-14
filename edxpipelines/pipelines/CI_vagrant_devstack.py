@@ -48,19 +48,19 @@ def provision_devstack(pipeline):
     )
 
     # Stop any running Vagrant image
-    build_job.ensure_task(
-        common.bash_task('vagrant halt', working_dir=constants.PUBLIC_CONFIGURATION_DEVSTACK_DIR, runif='any')
-    )
-
-    # Destroy any Vagrant image
-    build_job.ensure_task(
-        common.bash_task('vagrant destroy --force', working_dir=constants.PUBLIC_CONFIGURATION_DEVSTACK_DIR, runif='any')
-    )
-
-    # Remove .vagrant directory
-    build_job.ensure_task(
-        common.bash_task('rm -rf .vagrant', working_dir=constants.PUBLIC_CONFIGURATION_DEVSTACK_DIR, runif='any')
-    )
+    # build_job.ensure_task(
+    #     common.bash_task('vagrant halt', working_dir=constants.PUBLIC_CONFIGURATION_DEVSTACK_DIR, runif='any')
+    # )
+    #
+    # # Destroy any Vagrant image
+    # build_job.ensure_task(
+    #     common.bash_task('vagrant destroy --force', working_dir=constants.PUBLIC_CONFIGURATION_DEVSTACK_DIR, runif='any')
+    # )
+    #
+    # # Remove .vagrant directory
+    # build_job.ensure_task(
+    #     common.bash_task('rm -rf .vagrant', working_dir=constants.PUBLIC_CONFIGURATION_DEVSTACK_DIR, runif='any')
+    # )
 
 
 def run_e2e(pipeline):
@@ -72,6 +72,10 @@ def run_e2e(pipeline):
         {
             'BASIC_AUTH_USER': '',
             'BASIC_AUTH_PASSWORD': '',
+            'COURSE_ORG': '',
+            'COURSE_NUMBER': '',
+            'COURSE_RUN': '',
+            'COURSE_DISPLAY_NAME': '',
             'USER_LOGIN_EMAIL': 'staff@example.com',
             'USER_LOGIN_PASSWORD': 'edx',
             'STUDIO_BASE_URL': 'http://localhost:8001/',
@@ -97,7 +101,9 @@ def run_e2e(pipeline):
             '''
             virtualenv -p python2.7 .python &&
             source .python/bin/activate &&
-            pip install -r {}/requirements/requirements.txt
+            pwd &&
+            ls -alh {0}/requirements &&
+            pip install -r {0}/requirements/base.txt
             '''.format(constants.E2E_TESTS_DIR))
     )
 
@@ -108,7 +114,7 @@ def run_e2e(pipeline):
     
     # TODO run the tests
     test_job.ensure_task(
-        common.bash_task('source ../.python/bin/activate && paver e2e_tests', working_dir=constants.E2E_TESTS_DIR)
+        common.bash_task('source ../.python/bin/activate && paver e2e_test', working_dir=constants.E2E_TESTS_DIR)
     )
 
 
