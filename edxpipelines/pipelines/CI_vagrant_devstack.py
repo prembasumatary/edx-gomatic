@@ -18,6 +18,7 @@ from gomatic import GitMaterial
 
 COURSE_TAR_FILE = 'AR-1000.tar.gz'
 COURSE_NAME = 'AR-1000'
+VAGRANT_NAME = 'default'
 
 def install_pipelines(configurator, config):
     pipeline = configurator.ensure_pipeline_group("CI") \
@@ -28,7 +29,7 @@ def install_pipelines(configurator, config):
 
     # Make sure port is open for the e2e tests
     provision_devstack(pipeline)
-    # run_e2e(pipeline)
+    run_e2e(pipeline)
 
 
 # add resource to job level
@@ -83,14 +84,14 @@ def run_e2e(pipeline):
         working_dir='{}/requirements'.format(constants.E2E_TESTS_DIR)
     )
 
-    # Install page objects
+    # # Install page objects
     test_job.ensure_task(
         common.bash_task('paver install_pages', working_dir=constants.E2E_TESTS_DIR)
     )
 
-    # TODO Import the course
+    # # TODO Import the course
     test_job.ensure_task(
-        common.bash_task('vagrant scp courses/{} /edx/app/edxapp/'.format(COURSE_TAR_FILE), working_dir=constants.E2E_TESTS_DIR)
+        common.bash_task('vagrant scp courses/{} {}:/edx/app/edxapp '.format(COURSE_TAR_FILE, VAGRANT_NAME), working_dir=constants.E2E_TESTS_DIR)
     )
     test_job.ensure_task(
         common.bash_task('''vagrant ssh -c 'tar -zxvf /edx/app/edxapp/{} --directory {}' '''.format(COURSE_TAR_FILE, COURSE_NAME),
@@ -101,9 +102,9 @@ def run_e2e(pipeline):
                          working_dir=constants.E2E_TESTS_DIR)
     )
 
-    # TODO run the tests
+    # # TODO run the tests
     test_job.ensure_task(
-        common.bash_task('paver e2e_test', working_dir='')
+        common.bash_task("vagrant ssh -c 'cd /edx/app/edxapp/edx-platform && sudo -u edxapp paver e2e_test", working_dir='')
     )
 
 
